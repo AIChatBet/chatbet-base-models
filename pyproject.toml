@@ -38,7 +38,7 @@ dev = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["base_models*"]
+include = ["chatbet_base_models*"]
 
 [tool.black]
 line-length = 88
