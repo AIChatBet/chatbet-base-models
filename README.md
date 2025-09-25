@@ -1,7 +1,7 @@
 # ChatBet Base Models
 
 [![Tests](https://github.com/chatbet/chatbet-base-models/workflows/Tests/badge.svg)](https://github.com/chatbet/chatbet-base-models/actions)
-[![Python Version](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://python.org)
+[![Python Version](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://python.org)
 [![Pydantic Version](https://img.shields.io/badge/pydantic-2.x-green.svg)](https://pydantic.dev)
 [![Code Coverage](https://codecov.io/gh/chatbet/chatbet-base-models/branch/main/graph/badge.svg)](https://codecov.io/gh/chatbet/chatbet-base-models)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -149,7 +149,7 @@ print(db_templates.SK)  # "message_templates"
 
 ### Requirements
 
-- Python 3.8+
+- Python 3.10+
 - Pydantic 2.x
 
 ### Development Setup
@@ -269,7 +269,7 @@ This project maintains high quality standards through:
 - **80%+ code coverage** enforced automatically
 
 **CI/CD Ready**: All tests run automatically on GitHub Actions:
-- ✅ **Tests must pass** across Python 3.8-3.12
+- ✅ **Tests must pass** across Python 3.10-3.12
 - ✅ **Coverage must be ≥80%** or merge is blocked
 - ✅ **131 comprehensive tests** executed automatically
 

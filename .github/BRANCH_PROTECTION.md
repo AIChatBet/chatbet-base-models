@@ -22,8 +22,6 @@ Go to: **Settings** → **Branches** → **Add rule** or **Edit rule**
 4. **Require status checks to pass before merging**: ✅ Checked
    - **Require branches to be up to date before merging**: ✅ Checked
    - **Status checks that are required**:
-     - `test (3.8)` - Python 3.8 tests
-     - `test (3.9)` - Python 3.9 tests  
      - `test (3.10)` - Python 3.10 tests
      - `test (3.11)` - Python 3.11 tests
      - `test (3.12)` - Python 3.12 tests
@@ -87,7 +85,7 @@ The GitHub Actions workflow (`.github/workflows/ci.yml`) automatically:
 
 1. **Runs on every push** to main, develop, staging
 2. **Runs on every pull request** to main, develop, staging
-3. **Tests across Python versions** 3.8-3.12
+3. **Tests across Python versions** 3.10-3.12
 4. **Enforces 80% coverage minimum** with `--cov-fail-under=80`
 5. **Reports coverage** to Codecov
 6. **Blocks merging** if any test fails or coverage drops
@@ -117,7 +115,7 @@ gh api repos/:owner/:repo/branches/develop/protection \
 ## 📝 Notes
 
 - **Coverage threshold**: Set to 80% minimum, but current project has much higher coverage
-- **Multi-Python testing**: Ensures compatibility across supported Python versions 3.8-3.12
+- **Multi-Python testing**: Ensures compatibility across supported Python versions 3.10-3.12
 - **Simple but effective**: Focuses on core quality - tests and coverage
 - **Test summary**: Provides clear summary of test execution results
 

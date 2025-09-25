@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.8, 3.9, "3.10", "3.11", "3.12"]
+        python-version: ["3.10", "3.11", "3.12"]
 
     steps:
     - name: Checkout code
@@ -62,7 +62,7 @@ jobs:
       run: |
         echo "🧪 All tests completed successfully!"
         echo ""
-        echo "✅ Tests passed across Python 3.8-3.12"
+        echo "✅ Tests passed across Python 3.10-3.12"
         echo "✅ Code coverage ≥ 80%"
         echo "✅ 131 comprehensive tests executed"
         echo ""
