@@ -1,9 +1,9 @@
 """
 ChatBet Base Models
 
-Modelos base de Pydantic reutilizables para aplicaciones ChatBet.
-Este paquete centraliza los modelos de datos comunes utilizados
-en múltiples proyectos de ChatBet.
+Reusable Pydantic base models for ChatBet applications.
+This package centralizes common data models used across
+multiple ChatBet projects.
 """
 
 __version__ = "1.0.0"
@@ -87,7 +87,6 @@ from .sportbook_config import (
 __all__ = [
     # Version
     "__version__",
-    
     # Message Templates
     "InlineKeyboardButton",
     "InlineKeyboardMarkup",
@@ -105,7 +104,6 @@ __all__ = [
     "GuidanceMessages",
     "MessageTemplates",
     "MessageTemplatesDB",
-    
     # Platform Endpoints
     "HTTPMethod",
     "Endpoint",
@@ -119,7 +117,6 @@ __all__ = [
     "CombosEndpoints",
     "APIEndpoints",
     "APIEndpointsDB",
-    
     # Site Configuration
     "OddType",
     "ValidationMethod",
@@ -142,7 +139,6 @@ __all__ = [
     "Meta",
     "SiteConfig",
     "SiteConfigDB",
-    
     # Sportbook Configuration
     "Competition",
     "Region",
