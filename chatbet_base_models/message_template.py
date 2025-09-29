@@ -261,7 +261,14 @@ class CombosMessages(BaseModel):
                 "combos_recommendation" not in obj
                 or obj.get("combos_recommendation") is None
             ):
-                obj["combos_recommendation"] = {"text": "Recommended combos"}
+                obj["combos_recommendation"] = {
+                    "text": "Recommended combos",
+                    "reply_markup": {
+                        "inline_keyboard": [
+                            [{"text": "Select Amount", "callback_data": "combo_select_amount_recommended"}]
+                        ]
+                    }
+                }
             if (
                 "combos_confirm_add_recommended" not in obj
                 or obj.get("combos_confirm_add_recommended") is None
@@ -378,13 +385,13 @@ class MessageTemplates(BaseModel):
         return cls(
             onboarding=OnboardingMessages(
                 member_onboarding=MessageItem(
-                    text="Do you have an account?",
+                    text="Welcome to our chatbot!",
                     reply_markup=InlineKeyboardMarkup(
                         inline_keyboard=[
-                            InlineKeyboardButton(
+                            [InlineKeyboardButton(
                                 text="Yes", callback_data="account_yes"
-                            ),
-                            InlineKeyboardButton(text="No", callback_data="account_no"),
+                            )],
+                            [InlineKeyboardButton(text="No", callback_data="account_no")],
                         ]
                     ),
                 ),
@@ -392,12 +399,12 @@ class MessageTemplates(BaseModel):
                     text="Hello! 👋 How can I help you today?",
                     reply_markup=InlineKeyboardMarkup(
                         inline_keyboard=[
-                            InlineKeyboardButton(
+                            [InlineKeyboardButton(
                                 text="Place a Bet", callback_data="bet"
-                            ),
-                            InlineKeyboardButton(
+                            )],
+                            [InlineKeyboardButton(
                                 text="More Options", callback_data="show_links"
-                            ),
+                            )],
                         ]
                     ),
                 ),
@@ -414,9 +421,9 @@ class MessageTemplates(BaseModel):
                     text="We've sent you an OTP.",
                     reply_markup=InlineKeyboardMarkup(
                         inline_keyboard=[
-                            InlineKeyboardButton(
+                            [InlineKeyboardButton(
                                 text="Resend OTP", callback_data="send_otp"
-                            ),
+                            )],
                         ]
                     ),
                 ),
@@ -424,9 +431,9 @@ class MessageTemplates(BaseModel):
                     text="Invalid OTP, try again.",
                     reply_markup=InlineKeyboardMarkup(
                         inline_keyboard=[
-                            InlineKeyboardButton(
+                            [InlineKeyboardButton(
                                 text="Resend OTP", callback_data="send_otp"
-                            ),
+                            )],
                         ]
                     ),
                 ),
@@ -445,10 +452,10 @@ class MessageTemplates(BaseModel):
                     text="Main menu",
                     reply_markup=InlineKeyboardMarkup(
                         inline_keyboard=[
-                            InlineKeyboardButton(text="Bet", callback_data="bet"),
-                            InlineKeyboardButton(
+                            [InlineKeyboardButton(text="Bet", callback_data="bet")],
+                            [InlineKeyboardButton(
                                 text="Show links", callback_data="show_links"
-                            ),
+                            )],
                         ]
                     ),
                 ),
