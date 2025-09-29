@@ -100,7 +100,15 @@ class TestMessageItem:
 class TestOnboardingMessages:
     def test_create_onboarding_messages(self):
         onboarding = OnboardingMessages(
-            member_onboarding=MessageItem(text="Welcome"),
+            member_onboarding=MessageItem(
+                text="Welcome",
+                reply_markup=InlineKeyboardMarkup(
+                    inline_keyboard=[
+                        [InlineKeyboardButton(text="Yes", callback_data="account_yes")],
+                        [InlineKeyboardButton(text="No", callback_data="account_no")]
+                    ]
+                )
+            ),
             greeting_message=MessageItem(text="Hello"),
         )
         assert onboarding.member_onboarding.text == "Welcome"
@@ -108,7 +116,15 @@ class TestOnboardingMessages:
 
     def test_model_validate_with_string_coercion(self):
         data = {
-            "member_onboarding": "Welcome to ChatBet",
+            "member_onboarding": {
+                "text": "Welcome to ChatBet",
+                "reply_markup": {
+                    "inline_keyboard": [
+                        [{"text": "Yes", "callback_data": "account_yes"}],
+                        [{"text": "No", "callback_data": "account_no"}]
+                    ]
+                }
+            },
             "greeting_message": "Hello there!",
         }
         onboarding = OnboardingMessages.model_validate(data)
@@ -120,7 +136,14 @@ class TestValidationMessages:
     def test_create_validation_messages(self):
         validation = ValidationMessages(
             member_validation=MessageItem(text="Please validate"),
-            send_otp=MessageItem(text="OTP sent"),
+            send_otp=MessageItem(
+                text="OTP sent",
+                reply_markup=InlineKeyboardMarkup(
+                    inline_keyboard=[
+                        [InlineKeyboardButton(text="Send OTP", callback_data="send_otp")]
+                    ]
+                )
+            ),
         )
         assert validation.member_validation.text == "Please validate"
         assert validation.send_otp.text == "OTP sent"
@@ -129,14 +152,29 @@ class TestValidationMessages:
 class TestMenuMessages:
     def test_create_menu_messages(self):
         menu = MenuMessages(
-            main_menu=MessageItem(text="Main Menu"), support=MessageItem(text="Support")
+            main_menu=MessageItem(
+                text="Main Menu",
+                reply_markup=InlineKeyboardMarkup(
+                    inline_keyboard=[
+                        [InlineKeyboardButton(text="Bet", callback_data="bet")]
+                    ]
+                )
+            ), 
+            support=MessageItem(text="Support")
         )
         assert menu.main_menu.text == "Main Menu"
         assert menu.support.text == "Support"
 
     def test_legacy_key_aliases(self):
         data = {
-            "main_menu": "Main Menu",
+            "main_menu": {
+                "text": "Main Menu",
+                "reply_markup": {
+                    "inline_keyboard": [
+                        [{"text": "Bet", "callback_data": "bet"}]
+                    ]
+                }
+            },
             "support_message": "Support Help",
             "withdrawal_message": "Withdraw Funds",
             "deposit_message": "Deposit Money",

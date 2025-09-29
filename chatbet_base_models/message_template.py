@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import List, Literal, Optional, Any
+import re
+from typing import List, Literal, Optional, Any, Sequence
 from enum import Enum
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator, field_validator
 
 
 # ==================
@@ -59,6 +60,39 @@ class MessageItem(BaseModel):
         return v
 
 
+def require_callbacks(
+    msg: Optional["MessageItem"],
+    needles: Sequence[str],
+    mode: Literal["all", "any"] = "all",  # "all" => AND, "any" => OR
+) -> Optional["MessageItem"]:
+    if msg is None:
+        return msg  # allow None if field is Optional
+
+    kb = getattr(msg, "reply_markup", None)
+    if not kb or not kb.inline_keyboard:
+        raise ValueError(
+            f"Must include an inline keyboard with callbacks {needles!r} (mode={mode})"
+        )
+
+    # flatten all callback_data values
+    callbacks: list[str] = []
+    for row in kb.inline_keyboard:
+        for btn in row:
+            cd = getattr(btn, "callback_data", None)
+            if cd:
+                callbacks.append(cd)
+
+    # substring match; switch to equality if you prefer strict
+    def has(needle: str) -> bool:
+        return any(needle in cd for cd in callbacks)
+
+    ok = all(has(n) for n in needles) if mode == "all" else any(has(n) for n in needles)
+    if not ok:
+        details = f"present={callbacks!r}, required({mode})={needles!r}"
+        raise ValueError(f"Inline keyboard callbacks do not satisfy rule: {details}")
+    return msg
+
+
 # ==================
 # Message Group Models
 # ==================
@@ -72,6 +106,11 @@ class OnboardingMessages(BaseModel):
         if isinstance(obj, dict):
             obj = {k: MessageItem._coerce(v) for k, v in obj.items()}
         return super().model_validate(obj)
+
+    @field_validator("member_onboarding")
+    @classmethod
+    def _member_rules(cls, v):
+        return require_callbacks(v, ["account_yes", "account_no"])
 
 
 class ValidationMessages(BaseModel):
@@ -88,6 +127,16 @@ class ValidationMessages(BaseModel):
         if isinstance(obj, dict):
             obj = {k: MessageItem._coerce(v) for k, v in obj.items()}
         return super().model_validate(obj)
+
+    @field_validator("send_otp")
+    @classmethod
+    def _send_otp_rules(cls, v):
+        return require_callbacks(v, ["send_otp"])
+
+    @field_validator("bad_otp")
+    @classmethod
+    def _bad_otp_rules(cls, v):
+        return require_callbacks(v, ["send_otp"])
 
 
 class RegistrationMessages(BaseModel):
@@ -111,6 +160,11 @@ class MenuMessages(BaseModel):
     results: Optional[MessageItem] = None
     deposit: Optional[MessageItem] = None
     show_links: Optional[MessageItem] = None  # renders quick links/buttons
+
+    @field_validator("main_menu")
+    @classmethod
+    def _main_menu_rules(cls, v):
+        return require_callbacks(v, ["bet"])
 
     @classmethod
     def model_validate(cls, obj):
@@ -144,6 +198,14 @@ class BetsMessages(BaseModel):
     without_funds: Optional[MessageItem] = None
     deposit: Optional[MessageItem] = None
     bet_rejected: Optional[MessageItem] = None
+    select_type_of_bet: Optional[MessageItem] = None
+
+    @field_validator("select_type_of_bet")
+    @classmethod
+    def _type_of_bet_rules(cls, v):
+        return require_callbacks(
+            v, ["bet_simple&{FIXTURE_ID}", "add_market_to_combo&{FIXTURE_ID}"]
+        )
 
     @classmethod
     def model_validate(cls, obj):
@@ -170,6 +232,21 @@ class CombosMessages(BaseModel):
     combos_recommendation: Optional[MessageItem] = None
     combos_confirm_add_recommended: Optional[MessageItem] = None
 
+    @field_validator("combos_recommendation")
+    @classmethod
+    def _combos_recommendation_rules(cls, v):
+        return require_callbacks(v, ["combo_select_amount_recommended"])
+
+    @field_validator("delete_combo")
+    @classmethod
+    def _delete_combo_rules(cls, v):
+        return require_callbacks(v, ["combo_confirm_delete_combo"])
+
+    @field_validator("place_combo_bet")
+    @classmethod
+    def _place_combo_bet_rules(cls, v):
+        return require_callbacks(v, ["combo_sumary_after_bet"])
+
     @classmethod
     def model_validate(cls, obj):
         if isinstance(obj, dict):
@@ -184,7 +261,14 @@ class CombosMessages(BaseModel):
                 "combos_recommendation" not in obj
                 or obj.get("combos_recommendation") is None
             ):
-                obj["combos_recommendation"] = {"text": "Recommended combos"}
+                obj["combos_recommendation"] = {
+                    "text": "Recommended combos",
+                    "reply_markup": {
+                        "inline_keyboard": [
+                            [{"text": "Select Amount", "callback_data": "combo_select_amount_recommended"}]
+                        ]
+                    }
+                }
             if (
                 "combos_confirm_add_recommended" not in obj
                 or obj.get("combos_confirm_add_recommended") is None
@@ -212,6 +296,11 @@ class ErrorMessages(BaseModel):
 class ConfirmationMessages(BaseModel):
     model_config = ConfigDict(extra="forbid")
     confirm_bet: Optional[MessageItem] = None
+
+    @field_validator("confirm_bet")
+    @classmethod
+    def _confirm_bet_rules(cls, v):
+        return require_callbacks(v, ["confirm_bet"])
 
     @classmethod
     def model_validate(cls, obj):
@@ -295,21 +384,86 @@ class MessageTemplates(BaseModel):
     def from_minimal(cls) -> "MessageTemplates":
         return cls(
             onboarding=OnboardingMessages(
-                member_onboarding=MessageItem(text="Welcome to our chatbot!"),
+                member_onboarding=MessageItem(
+                    text="Welcome to our chatbot!",
+                    reply_markup=InlineKeyboardMarkup(
+                        inline_keyboard=[
+                            [InlineKeyboardButton(
+                                text="Yes", callback_data="account_yes"
+                            )],
+                            [InlineKeyboardButton(text="No", callback_data="account_no")],
+                        ]
+                    ),
+                ),
                 greeting_message=MessageItem(
-                    text="Hello! 👋 How can I help you today?"
+                    text="Hello! 👋 How can I help you today?",
+                    reply_markup=InlineKeyboardMarkup(
+                        inline_keyboard=[
+                            [InlineKeyboardButton(
+                                text="Place a Bet", callback_data="bet"
+                            )],
+                            [InlineKeyboardButton(
+                                text="More Options", callback_data="show_links"
+                            )],
+                        ]
+                    ),
                 ),
             ),
             validation=ValidationMessages(
                 member_validation=MessageItem(text="Please validate your account."),
-                send_otp=MessageItem(text="We've sent you an OTP."),
-                bad_otp=MessageItem(text="Invalid OTP, try again."),
+                member_validation_phone=MessageItem(
+                    text="Please provide your phone number."
+                ),
+                member_validation_email=MessageItem(
+                    text="Please provide your email address."
+                ),
+                send_otp=MessageItem(
+                    text="We've sent you an OTP.",
+                    reply_markup=InlineKeyboardMarkup(
+                        inline_keyboard=[
+                            [InlineKeyboardButton(
+                                text="Resend OTP", callback_data="send_otp"
+                            )],
+                        ]
+                    ),
+                ),
+                bad_otp=MessageItem(
+                    text="Invalid OTP, try again.",
+                    reply_markup=InlineKeyboardMarkup(
+                        inline_keyboard=[
+                            [InlineKeyboardButton(
+                                text="Resend OTP", callback_data="send_otp"
+                            )],
+                        ]
+                    ),
+                ),
+                blocked_otp=MessageItem(
+                    text="Too many failed attempts. OTP blocked.",
+                ),
             ),
             registration=RegistrationMessages(
                 not_registered_user=MessageItem(text="You are not registered."),
+                not_registered_user_country=MessageItem(
+                    text="You are in the wrong country."
+                ),
             ),
             menu=MenuMessages(
-                main_menu=MessageItem(text="Main menu"),
+                main_menu=MessageItem(
+                    text="Main menu",
+                    reply_markup=InlineKeyboardMarkup(
+                        inline_keyboard=[
+                            [InlineKeyboardButton(text="Bet", callback_data="bet")],
+                            [InlineKeyboardButton(
+                                text="Show links", callback_data="show_links"
+                            )],
+                        ]
+                    ),
+                ),
+                support=MessageItem(text="Support options"),
+                withdrawal=MessageItem(text="Withdrawal options"),
+                balance=MessageItem(text="Your balance"),
+                results=MessageItem(text="Latest results"),
+                deposit=MessageItem(text="Deposit options"),
                 show_links=MessageItem(
                     text="Quick links",
                     reply_markup=InlineKeyboardMarkup(
@@ -326,24 +480,233 @@ class MessageTemplates(BaseModel):
             bets=BetsMessages(
                 select_sport=MessageItem(text="Select a sport"),
                 select_tournament=MessageItem(text="Select a tournament"),
-                bet_amount=MessageItem(text="Enter your bet amount"),
+                select_fixture=MessageItem(text="Select a fixture"),
+                invalid_bet_amount=MessageItem(
+                    text="Invalid amount, Enter your bet amount",
+                    reply_markup=InlineKeyboardMarkup(
+                        inline_keyboard=[
+                            [
+                                InlineKeyboardButton(text="5", callback_data="5"),
+                                InlineKeyboardButton(text="10", callback_data="10"),
+                            ]
+                        ]
+                    ),
+                ),
+                bet_amount=MessageItem(
+                    text="Enter your bet amount",
+                    reply_markup=InlineKeyboardMarkup(
+                        inline_keyboard=[
+                            [
+                                InlineKeyboardButton(text="5", callback_data="5"),
+                                InlineKeyboardButton(text="10", callback_data="10"),
+                            ]
+                        ]
+                    ),
+                ),
+                select_type_of_bet=MessageItem(
+                    text="Select type of bet",
+                    reply_markup=InlineKeyboardMarkup(
+                        inline_keyboard=[
+                            [
+                                InlineKeyboardButton(
+                                    text="Simple",
+                                    callback_data="bet_simple&{FIXTURE_ID}",
+                                ),
+                                InlineKeyboardButton(
+                                    text="Combo",
+                                    callback_data="add_market_to_combo&{FIXTURE_ID}",
+                                ),
+                            ]
+                        ]
+                    ),
+                ),
+                fixture_odds=MessageItem(text="Here are the odds for the fixture."),
+                unavailable_odds=MessageItem(text="Some odds are unavailable."),
+                placed_bet=MessageItem(
+                    text="Your bet has been placed successfully! 🤑 • Match: %1 • Bet Amount: %2 • Selection: %3 • Potential Win: %4 • Balance: %5"
+                ),
+                placed_bet_menu=MessageItem(
+                    text="Your bet has been placed! What would you like to do next?"
+                ),
+                without_funds=MessageItem(
+                    text="Insufficient funds. Please deposit to continue."
+                ),
+                deposit=MessageItem(
+                    text="To deposit funds, please visit: https://example.com/deposit"
+                ),
+                bet_rejected=MessageItem(
+                    text="Your bet was rejected. Please try again."
+                ),
             ),
             combos=CombosMessages(
                 show_all_markets_by_fixtures=MessageItem(text="Showing all markets"),
-                combos_recommendation=MessageItem(text="Recommended combos"),
+                error_to_add_market=MessageItem(text="Error adding market."),
+                error_to_get_odds=MessageItem(text="Error retrieving odds."),
+                error_to_place_bet=MessageItem(text="Error placing combo bet."),
+                summary_after_add_market=MessageItem(
+                    text="I’ve added that pick to your combo ✅ Your combo: {PICKS} Total odds: {TOTAL_ODDS}",
+                    reply_markup=InlineKeyboardMarkup(
+                        inline_keyboard=[
+                            [
+                                InlineKeyboardButton(
+                                    text="My Combo",
+                                    callback_data="combo_show_my_combo",
+                                ),
+                            ]
+                        ]
+                    ),
+                ),
+                summary_after_remove_bet_from_combo=MessageItem(
+                    text="I have eliminated the match {BET_REMOVED} This is your combo now {COMBO} • What would you like to do now?",
+                    reply_markup=InlineKeyboardMarkup(
+                        inline_keyboard=[
+                            [
+                                InlineKeyboardButton(
+                                    text="My Combo",
+                                    callback_data="combo_show_my_combo",
+                                ),
+                            ]
+                        ]
+                    ),
+                ),
+                remove_market=MessageItem(text="Remove a market from your combo"),
+                select_amount=MessageItem(
+                    text="Enter the amount for your combo bet",
+                    reply_markup=InlineKeyboardMarkup(
+                        inline_keyboard=[
+                            [
+                                InlineKeyboardButton(text="5", callback_data="5"),
+                                InlineKeyboardButton(text="10", callback_data="10"),
+                            ]
+                        ]
+                    ),
+                ),
+                place_combo_bet=MessageItem(
+                    text="Do you want to confirm this combo with the following details? 👇 {COMBO} ∙ Amount {AMOUNT} ∙ Total Odds: {TOTAL_ODDS} ∙ Potential Win: {PROFIT}",
+                    reply_markup=InlineKeyboardMarkup(
+                        inline_keyboard=[
+                            [
+                                InlineKeyboardButton(
+                                    text="Confirm Combo Bet",
+                                    callback_data="combo_sumary_after_bet",
+                                )
+                            ]
+                        ]
+                    ),
+                ),
+                summary_after_bet=MessageItem(
+                    text="Your combo bet was placed successfully! 🤑 ∙ Combo: {COMBO} ∙ Amount: {AMOUNT} ∙ Potential Win: {PROFIT} ∙ Balance: {BALANCE}"
+                ),
+                show_my_combo=MessageItem(
+                    text="You are currently viewing the following combo bet: ∙{SUMMARY_COMBO} ∙ Total Odds: {TOTAL_ODDS}",
+                    reply_markup=InlineKeyboardMarkup(
+                        inline_keyboard=[
+                            [
+                                InlineKeyboardButton(
+                                    text="Confirm Combo Bet",
+                                    callback_data="combo_select_amount",
+                                )
+                            ],
+                            [
+                                InlineKeyboardButton(
+                                    text="Delete Bet",
+                                    callback_data="combo_delete_combo",
+                                )
+                            ],
+                            [
+                                InlineKeyboardButton(
+                                    text="Add Other Market",
+                                    callback_data="combo_add_market",
+                                )
+                            ],
+                            [
+                                InlineKeyboardButton(
+                                    text="Remove Market",
+                                    callback_data="combo_remove_market",
+                                )
+                            ],
+                        ]
+                    ),
+                ),
+                delete_combo=MessageItem(
+                    text="Are you sure? Do you want to delete your combo bet?",
+                    reply_markup=InlineKeyboardMarkup(
+                        inline_keyboard=[
+                            [
+                                InlineKeyboardButton(
+                                    text="Yes Delete",
+                                    callback_data="combo_confirm_delete_combo",
+                                )
+                            ]
+                        ]
+                    ),
+                ),
+                combo_odds=MessageItem(text="Here are the odds for your combo."),
+                combos_recommendation=MessageItem(
+                    text="Recommended combo: {PICKS} ∙ If you bet {AMOUNT} you can potentially win: {PROFIT}",
+                    reply_markup=InlineKeyboardMarkup(
+                        inline_keyboard=[
+                            [
+                                InlineKeyboardButton(
+                                    text="Add Combo",
+                                    callback_data="combo_select_amount_recommended",
+                                )
+                            ]
+                        ]
+                    ),
+                ),
                 combos_confirm_add_recommended=MessageItem(
-                    text="Do you want to add these recommended combos?",
+                    text="Done! Your Combo has been successfully created ∙ {COMBO}",
+                    reply_markup=InlineKeyboardMarkup(
+                        inline_keyboard=[
+                            [
+                                InlineKeyboardButton(
+                                    text="View Combo",
+                                    callback_data="combo_show_my_combo",
+                                )
+                            ]
+                        ]
+                    ),
                 ),
             ),
             errors=ErrorMessages(
                 invalid_input=MessageItem(text="Invalid input."),
                 error=MessageItem(text="An error occurred."),
+                error_2=MessageItem(text="Another error occurred."),
             ),
             confirmation=ConfirmationMessages(
-                confirm_bet=MessageItem(text="Confirm your bet?"),
+                confirm_bet=MessageItem(
+                    text="Bet Summary: ∙ Match: {DESCRIPTION_GAME} ∙ Bet Amount: {AMOUNT} ∙ Selection: {BET_NAME} ∙ Potential Win: {PROFIT}",
+                    reply_markup=InlineKeyboardMarkup(
+                        inline_keyboard=[
+                            [
+                                InlineKeyboardButton(
+                                    text="Place Combo",
+                                    callback_data="confirm_bet",
+                                )
+                            ]
+                        ]
+                    ),
+                )
             ),
             labels=LabelMessages(
                 menu_label_text=MessageItem(text="Menu"),
+                label_text=MessageItem(text="Label"),
+                combo_summary_after_add_market_label_text=MessageItem(
+                    text="Your combo"
+                ),
+                select_tournament_label_text=MessageItem(text="Tournaments"),
+                select_fixture_label_text=MessageItem(text="Fixtures"),
+                markets_without_combo_label_text=MessageItem(text="Markets"),
+                select_sport_label_text=MessageItem(text="Sports"),
+                more_options_text=MessageItem(text="More options"),
+                combo_remove_market_label_text=MessageItem(text="Remove market"),
+                selected_other_market_label_text=MessageItem(text="Selected"),
+                other_markets_label_text=MessageItem(text="Other markets"),
+                combo_odds_label_text=MessageItem(text="Combo odds"),
+                fixture_odds_label_text=MessageItem(text="Fixture odds"),
+                menu_more_options_text=MessageItem(text="More options"),
+                list_markets_label_text=MessageItem(text="Markets"),
                 list_fixtures_label_text=MessageItem(text="Fixtures"),
             ),
             end=EndMessages(
@@ -352,6 +715,7 @@ class MessageTemplates(BaseModel):
             guidance=GuidanceMessages(
                 valid_input_text=MessageItem(text="Looks good ✅"),
                 invalid_input_text=MessageItem(text="Please check your input ⚠️"),
+                invalid_input_response=MessageItem(text="Invalid input, try again."),
             ),
         )
 
