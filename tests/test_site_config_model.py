@@ -229,7 +229,13 @@ class TestIntegrations:
 
     def test_legacy_whapi_mapping(self):
         # Test legacy "whapi" key gets mapped to "whatsapp"
-        data = {"whapi": {"provider": "whapi", "api_url": "https://whapi.example.com/", "token": "token"}}
+        data = {
+            "whapi": {
+                "provider": "whapi",
+                "api_url": "https://whapi.example.com/",
+                "token": "token",
+            }
+        }
         integrations = Integrations.model_validate(data)
         assert integrations.whatsapp is not None
         assert integrations.whatsapp.enabled is True
@@ -239,7 +245,11 @@ class TestIntegrations:
         data = {
             "whapi": {
                 "enabled": False,
-                "config": {"provider": "whapi", "api_url": "https://whapi.example.com/", "token": "token"},
+                "config": {
+                    "provider": "whapi",
+                    "api_url": "https://whapi.example.com/",
+                    "token": "token",
+                },
             }
         }
         integrations = Integrations.model_validate(data)
@@ -315,12 +325,14 @@ class TestFeaturesConfig:
             combos=True,
             chatbet_version=ChatbetVersion.V2,
             multigames_response=True,
+            see_in_combo=True,
         )
         assert features.odd_type == OddType.DECIMAL
         assert features.validation == ValidationMethod.EMAIL
         assert features.combos is True
         assert features.chatbet_version == ChatbetVersion.V2
         assert features.multigames_response is True
+        assert features.see_in_combo is True
 
 
 class TestMeta:

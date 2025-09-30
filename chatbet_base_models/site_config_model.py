@@ -223,7 +223,10 @@ class FeaturesConfig(BaseModel):
     validation: ValidationMethod
     combos: bool = Field(description="Enable or disable combos in this configuration")
     chatbet_version: ChatbetVersion
-    multigames_response: Optional[bool] = Field(description="Enable or disable multi-games response")
+    multigames_response: Optional[bool] = Field(
+        description="Enable or disable multi-games response"
+    )
+    see_in_combo: Optional[bool] = Field(description="Enable or disable combos")
 
 
 class Meta(BaseModel):
@@ -258,6 +261,7 @@ class SiteConfig(BaseModel):
             combos=False,
             chatbet_version=ChatbetVersion.V1,
             multigames_response=False,
+            see_in_combo=False,
         )
     )
     limits: MoneyLimits = Field(

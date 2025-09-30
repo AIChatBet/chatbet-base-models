@@ -60,37 +60,84 @@ class MessageItem(BaseModel):
         return v
 
 
+MatchMode = Literal["exact", "substring", "prefix", "suffix", "regex"]
+
+
+def _normalize(s: str, *, case_sensitive: bool) -> str:
+    return s if case_sensitive else s.lower()
+
+
+def _collect_callbacks(msg) -> list[str]:
+    kb = getattr(msg, "reply_markup", None)
+    if not kb or not kb.inline_keyboard:
+        return []
+    out: list[str] = []
+    for row in kb.inline_keyboard:
+        for btn in row:
+            cd = getattr(btn, "callback_data", None)
+            if isinstance(cd, str):
+                out.append(cd)
+    return out
+
+
 def require_callbacks(
     msg: Optional["MessageItem"],
     needles: Sequence[str],
-    mode: Literal["all", "any"] = "all",  # "all" => AND, "any" => OR
+    mode: Literal["all", "any"] = "all",  # AND / OR over the needles
+    match_mode: MatchMode = "exact",  # <-- changed default to exact
+    case_sensitive: bool = True,
 ) -> Optional["MessageItem"]:
     if msg is None:
         return msg  # allow None if field is Optional
 
-    kb = getattr(msg, "reply_markup", None)
-    if not kb or not kb.inline_keyboard:
+    callbacks = _collect_callbacks(msg)
+    if not callbacks:
         raise ValueError(
-            f"Must include an inline keyboard with callbacks {needles!r} (mode={mode})"
+            f"Must include an inline keyboard with callbacks {needles!r} (mode={mode}, match={match_mode})"
         )
 
-    # flatten all callback_data values
-    callbacks: list[str] = []
-    for row in kb.inline_keyboard:
-        for btn in row:
-            cd = getattr(btn, "callback_data", None)
-            if cd:
-                callbacks.append(cd)
+    # Prepare comparators
+    if not case_sensitive:
+        callbacks_norm = [_normalize(c, case_sensitive=False) for c in callbacks]
+        needles_norm = [_normalize(n, case_sensitive=False) for n in needles]
+    else:
+        callbacks_norm = callbacks
+        needles_norm = list(needles)
 
-    # substring match; switch to equality if you prefer strict
-    def has(needle: str) -> bool:
-        return any(needle in cd for cd in callbacks)
+    def any_match(needle: str) -> bool:
+        if match_mode == "exact":
+            return any(cd == needle for cd in callbacks_norm)
+        if match_mode == "substring":
+            return any(needle in cd for cd in callbacks_norm)
+        if match_mode == "prefix":
+            return any(cd.startswith(needle) for cd in callbacks_norm)
+        if match_mode == "suffix":
+            return any(cd.endswith(needle) for cd in callbacks_norm)
+        if match_mode == "regex":
+            pat = re.compile(needle)
+            return any(pat.search(cd) for cd in callbacks_norm)
+        raise ValueError(f"Unknown match_mode: {match_mode!r}")
 
-    ok = all(has(n) for n in needles) if mode == "all" else any(has(n) for n in needles)
+    ok = (
+        all(any_match(n) for n in needles_norm)
+        if mode == "all"
+        else any(any_match(n) for n in needles_norm)
+    )
     if not ok:
-        details = f"present={callbacks!r}, required({mode})={needles!r}"
+        details = f"present={callbacks!r}, required({mode},{match_mode})={needles!r}"
         raise ValueError(f"Inline keyboard callbacks do not satisfy rule: {details}")
     return msg
+
+
+def extract(item):
+    if not item or not item.reply_markup:
+        return set()
+    cbs = []
+    for row in item.reply_markup.inline_keyboard or []:
+        for btn in row:
+            if btn.callback_data:
+                cbs.append(btn.callback_data)
+    return set(cbs)
 
 
 # ==================
@@ -111,6 +158,16 @@ class OnboardingMessages(BaseModel):
     @classmethod
     def _member_rules(cls, v):
         return require_callbacks(v, ["account_yes", "account_no"])
+
+    @model_validator(mode="after")
+    def _require_callbacks(self):
+        need = {"account_yes", "account_no"}
+        got = extract(self.member_onboarding)
+        missing = need - got
+        if missing:
+            raise ValueError(f"member_onboarding missing callbacks: {sorted(missing)}")
+
+        return self
 
 
 class ValidationMessages(BaseModel):
@@ -137,6 +194,21 @@ class ValidationMessages(BaseModel):
     @classmethod
     def _bad_otp_rules(cls, v):
         return require_callbacks(v, ["send_otp"])
+
+    @model_validator(mode="after")
+    def _require_callbacks(self):
+        need = {"send_otp"}
+        for field, item in {
+            "send_otp": self.send_otp,
+            "bad_otp": self.bad_otp,
+        }.items():
+            if item is None:
+                continue
+            got = extract(item)
+            missing = need - got
+            if missing:
+                raise ValueError(f"{field} missing callbacks: {sorted(missing)}")
+        return self
 
 
 class RegistrationMessages(BaseModel):
@@ -181,6 +253,17 @@ class MenuMessages(BaseModel):
             obj = {k: MessageItem._coerce(v) for k, v in obj.items()}
         return super().model_validate(obj)
 
+    @model_validator(mode="after")
+    def _require_callbacks(self):
+        if self.main_menu is None:
+            return self
+        need = {"bet"}
+        got = extract(self.main_menu)
+        missing = need - got
+        if missing:
+            raise ValueError(f"main_menu missing callbacks: {sorted(missing)}")
+        return self
+
 
 class BetsMessages(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -212,6 +295,17 @@ class BetsMessages(BaseModel):
         if isinstance(obj, dict):
             obj = {k: MessageItem._coerce(v) for k, v in obj.items()}
         return super().model_validate(obj)
+
+    @model_validator(mode="after")
+    def _require_callbacks(self):
+        if self.select_type_of_bet is None:
+            return self
+        need = {"bet_simple&{FIXTURE_ID}", "add_market_to_combo&{FIXTURE_ID}"}
+        got = extract(self.select_type_of_bet)
+        missing = need - got
+        if missing:
+            raise ValueError(f"select_type_of_bet missing callbacks: {sorted(missing)}")
+        return self
 
 
 class CombosMessages(BaseModel):
@@ -279,6 +373,23 @@ class CombosMessages(BaseModel):
             obj = {k: MessageItem._coerce(v) for k, v in obj.items()}
         return super().model_validate(obj)
 
+    @model_validator(mode="after")
+    def _require_callbacks(self):
+        checks = {
+            "combos_recommendation": {"combo_select_amount_recommended"},
+            "delete_combo": {"combo_confirm_delete_combo"},
+            "place_combo_bet": {"combo_sumary_after_bet"},
+        }
+        for field, need in checks.items():
+            item = getattr(self, field)
+            if item is None:
+                continue
+            got = extract(item)
+            missing = need - got
+            if missing:
+                raise ValueError(f"{field} missing callbacks: {sorted(missing)}")
+        return self
+
 
 class ErrorMessages(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -307,6 +418,17 @@ class ConfirmationMessages(BaseModel):
         if isinstance(obj, dict):
             obj = {k: MessageItem._coerce(v) for k, v in obj.items()}
         return super().model_validate(obj)
+
+    @model_validator(mode="after")
+    def _require_callbacks(self):
+        if self.confirm_bet is None:
+            return self
+        need = {"confirm_bet"}
+        got = extract(self.confirm_bet)
+        missing = need - got
+        if missing:
+            raise ValueError(f"confirm_bet missing callbacks: {sorted(missing)}")
+        return self
 
 
 class LabelMessages(BaseModel):
