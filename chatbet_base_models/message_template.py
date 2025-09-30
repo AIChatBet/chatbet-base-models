@@ -93,6 +93,17 @@ def require_callbacks(
     return msg
 
 
+def extract(item):
+    if not item or not item.reply_markup:
+        return set()
+    cbs = []
+    for row in item.reply_markup.inline_keyboard or []:
+        for btn in row:
+            if btn.callback_data:
+                cbs.append(btn.callback_data)
+    return set(cbs)
+
+
 # ==================
 # Message Group Models
 # ==================
@@ -111,6 +122,16 @@ class OnboardingMessages(BaseModel):
     @classmethod
     def _member_rules(cls, v):
         return require_callbacks(v, ["account_yes", "account_no"])
+
+    @model_validator(mode="after")
+    def _require_callbacks(self):
+        need = {"account_yes", "account_no"}
+        got = extract(self.member_onboarding)
+        missing = need - got
+        if missing:
+            raise ValueError(f"member_onboarding missing callbacks: {sorted(missing)}")
+
+        return self
 
 
 class ValidationMessages(BaseModel):
@@ -137,6 +158,21 @@ class ValidationMessages(BaseModel):
     @classmethod
     def _bad_otp_rules(cls, v):
         return require_callbacks(v, ["send_otp"])
+
+    @model_validator(mode="after")
+    def _require_callbacks(self):
+        need = {"send_otp"}
+        for field, item in {
+            "send_otp": self.send_otp,
+            "bad_otp": self.bad_otp,
+        }.items():
+            if item is None:
+                continue
+            got = extract(item)
+            missing = need - got
+            if missing:
+                raise ValueError(f"{field} missing callbacks: {sorted(missing)}")
+        return self
 
 
 class RegistrationMessages(BaseModel):
@@ -181,6 +217,17 @@ class MenuMessages(BaseModel):
             obj = {k: MessageItem._coerce(v) for k, v in obj.items()}
         return super().model_validate(obj)
 
+    @model_validator(mode="after")
+    def _require_callbacks(self):
+        if self.main_menu is None:
+            return self
+        need = {"bet"}
+        got = extract(self.main_menu)
+        missing = need - got
+        if missing:
+            raise ValueError(f"main_menu missing callbacks: {sorted(missing)}")
+        return self
+
 
 class BetsMessages(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -212,6 +259,17 @@ class BetsMessages(BaseModel):
         if isinstance(obj, dict):
             obj = {k: MessageItem._coerce(v) for k, v in obj.items()}
         return super().model_validate(obj)
+
+    @model_validator(mode="after")
+    def _require_callbacks(self):
+        if self.select_type_of_bet is None:
+            return self
+        need = {"bet_simple&{FIXTURE_ID}", "add_market_to_combo&{FIXTURE_ID}"}
+        got = extract(self.select_type_of_bet)
+        missing = need - got
+        if missing:
+            raise ValueError(f"select_type_of_bet missing callbacks: {sorted(missing)}")
+        return self
 
 
 class CombosMessages(BaseModel):
@@ -272,6 +330,23 @@ class CombosMessages(BaseModel):
             obj = {k: MessageItem._coerce(v) for k, v in obj.items()}
         return super().model_validate(obj)
 
+    @model_validator(mode="after")
+    def _require_callbacks(self):
+        checks = {
+            "combos_recommendation": {"combo_select_amount_recommended"},
+            "delete_combo": {"combo_confirm_delete_combo"},
+            "place_combo_bet": {"combo_sumary_after_bet"},
+        }
+        for field, need in checks.items():
+            item = getattr(self, field)
+            if item is None:
+                continue
+            got = extract(item)
+            missing = need - got
+            if missing:
+                raise ValueError(f"{field} missing callbacks: {sorted(missing)}")
+        return self
+
 
 class ErrorMessages(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -300,6 +375,17 @@ class ConfirmationMessages(BaseModel):
         if isinstance(obj, dict):
             obj = {k: MessageItem._coerce(v) for k, v in obj.items()}
         return super().model_validate(obj)
+
+    @model_validator(mode="after")
+    def _require_callbacks(self):
+        if self.confirm_bet is None:
+            return self
+        need = {"confirm_bet"}
+        got = extract(self.confirm_bet)
+        missing = need - got
+        if missing:
+            raise ValueError(f"confirm_bet missing callbacks: {sorted(missing)}")
+        return self
 
 
 class LabelMessages(BaseModel):
