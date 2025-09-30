@@ -104,8 +104,6 @@ def require_callbacks(
         callbacks_norm = callbacks
         needles_norm = list(needles)
 
-    import re
-
     def any_match(needle: str) -> bool:
         if match_mode == "exact":
             return any(cd == needle for cd in callbacks_norm)
