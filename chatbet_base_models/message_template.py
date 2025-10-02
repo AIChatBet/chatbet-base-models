@@ -339,7 +339,7 @@ class CombosMessages(BaseModel):
     @field_validator("place_combo_bet")
     @classmethod
     def _place_combo_bet_rules(cls, v):
-        return require_callbacks(v, ["combo_sumary_after_bet"])
+        return require_callbacks(v, ["combo_summary_after_bet"])
 
     @classmethod
     def model_validate(cls, obj):
@@ -359,9 +359,14 @@ class CombosMessages(BaseModel):
                     "text": "Recommended combos",
                     "reply_markup": {
                         "inline_keyboard": [
-                            [{"text": "Select Amount", "callback_data": "combo_select_amount_recommended"}]
+                            [
+                                {
+                                    "text": "Select Amount",
+                                    "callback_data": "combo_select_amount_recommended",
+                                }
+                            ]
                         ]
-                    }
+                    },
                 }
             if (
                 "combos_confirm_add_recommended" not in obj
@@ -378,7 +383,7 @@ class CombosMessages(BaseModel):
         checks = {
             "combos_recommendation": {"combo_select_amount_recommended"},
             "delete_combo": {"combo_confirm_delete_combo"},
-            "place_combo_bet": {"combo_sumary_after_bet"},
+            "place_combo_bet": {"combo_summary_after_bet"},
         }
         for field, need in checks.items():
             item = getattr(self, field)
@@ -510,10 +515,16 @@ class MessageTemplates(BaseModel):
                     text="Welcome to our chatbot!",
                     reply_markup=InlineKeyboardMarkup(
                         inline_keyboard=[
-                            [InlineKeyboardButton(
-                                text="Yes", callback_data="account_yes"
-                            )],
-                            [InlineKeyboardButton(text="No", callback_data="account_no")],
+                            [
+                                InlineKeyboardButton(
+                                    text="Yes", callback_data="account_yes"
+                                )
+                            ],
+                            [
+                                InlineKeyboardButton(
+                                    text="No", callback_data="account_no"
+                                )
+                            ],
                         ]
                     ),
                 ),
@@ -521,12 +532,16 @@ class MessageTemplates(BaseModel):
                     text="Hello! 👋 How can I help you today?",
                     reply_markup=InlineKeyboardMarkup(
                         inline_keyboard=[
-                            [InlineKeyboardButton(
-                                text="Place a Bet", callback_data="bet"
-                            )],
-                            [InlineKeyboardButton(
-                                text="More Options", callback_data="show_links"
-                            )],
+                            [
+                                InlineKeyboardButton(
+                                    text="Place a Bet", callback_data="bet"
+                                )
+                            ],
+                            [
+                                InlineKeyboardButton(
+                                    text="More Options", callback_data="show_links"
+                                )
+                            ],
                         ]
                     ),
                 ),
@@ -543,9 +558,11 @@ class MessageTemplates(BaseModel):
                     text="We've sent you an OTP.",
                     reply_markup=InlineKeyboardMarkup(
                         inline_keyboard=[
-                            [InlineKeyboardButton(
-                                text="Resend OTP", callback_data="send_otp"
-                            )],
+                            [
+                                InlineKeyboardButton(
+                                    text="Resend OTP", callback_data="send_otp"
+                                )
+                            ],
                         ]
                     ),
                 ),
@@ -553,9 +570,11 @@ class MessageTemplates(BaseModel):
                     text="Invalid OTP, try again.",
                     reply_markup=InlineKeyboardMarkup(
                         inline_keyboard=[
-                            [InlineKeyboardButton(
-                                text="Resend OTP", callback_data="send_otp"
-                            )],
+                            [
+                                InlineKeyboardButton(
+                                    text="Resend OTP", callback_data="send_otp"
+                                )
+                            ],
                         ]
                     ),
                 ),
@@ -575,9 +594,11 @@ class MessageTemplates(BaseModel):
                     reply_markup=InlineKeyboardMarkup(
                         inline_keyboard=[
                             [InlineKeyboardButton(text="Bet", callback_data="bet")],
-                            [InlineKeyboardButton(
-                                text="Show links", callback_data="show_links"
-                            )],
+                            [
+                                InlineKeyboardButton(
+                                    text="Show links", callback_data="show_links"
+                                )
+                            ],
                         ]
                     ),
                 ),
@@ -710,7 +731,7 @@ class MessageTemplates(BaseModel):
                             [
                                 InlineKeyboardButton(
                                     text="Confirm Combo Bet",
-                                    callback_data="combo_sumary_after_bet",
+                                    callback_data="combo_summary_after_bet",
                                 )
                             ]
                         ]
