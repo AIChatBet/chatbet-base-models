@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import Dict, Optional, Union
+from typing import Dict, Optional, Any
 
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator
 
@@ -28,7 +28,7 @@ class Endpoint(BaseModel):
     method: Optional[HTTPMethod] = None
     endpoint: HttpUrl
     params: Optional[Dict[str, str | bool | int | float]] = None
-    payload: Optional[Dict[str, Union[str, int, float, bool]]] = None
+    payload: Optional[Dict[str, Any]] = None
     headers: Optional[Dict[str, str]] = None
 
     @field_validator("method", mode="before")
