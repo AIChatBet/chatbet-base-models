@@ -16,6 +16,7 @@ class InlineKeyboardButton(BaseModel):
     text: str = Field(min_length=1)
     callback_data: Optional[str] = None
     url: Optional[str] = None
+    title: Optional[str] = None
 
     @model_validator(mode="after")
     def _only_one_action(self) -> "InlineKeyboardButton":
