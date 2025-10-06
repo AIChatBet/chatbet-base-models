@@ -29,7 +29,7 @@ class Endpoint(BaseModel):
     endpoint: HttpUrl
     params: Optional[Dict[str, str | bool | int | float]] = None
     payload: Optional[Dict[str, Any]] = None
-    headers: Optional[Dict[str, str]] = None
+    headers: Optional[Dict[str, Optional[str]]] = None
 
     @field_validator("method", mode="before")
     @classmethod
