@@ -34,6 +34,11 @@ class ChatbetVersion(str, Enum):
     V2 = "v2"
 
 
+class HourFormat(str, Enum):
+    H12 = "12h"
+    H24 = "24h"
+
+
 # ==========================="
 # Mixins / Value Objects
 # ==========================="
@@ -227,6 +232,10 @@ class FeaturesConfig(BaseModel):
         description="Enable or disable multi-games response"
     )
     see_in_combo: Optional[bool] = Field(description="Enable or disable combos")
+    hour_format: HourFormat = Field(
+        default=HourFormat.H24,
+        description="Hour display format: '12h' or '24h'",
+    )
 
 
 class Meta(BaseModel):
@@ -262,6 +271,7 @@ class SiteConfig(BaseModel):
             chatbet_version=ChatbetVersion.V1,
             multigames_response=False,
             see_in_combo=False,
+            hour_format=HourFormat.H24,
         )
     )
     limits: MoneyLimits = Field(
