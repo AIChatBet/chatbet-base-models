@@ -315,6 +315,7 @@ class CombosMessages(BaseModel):
     error_to_add_market: Optional[MessageItem] = None
     error_to_get_odds: Optional[MessageItem] = None
     error_to_place_bet: Optional[MessageItem] = None
+    empty_combo: Optional[MessageItem] = None
     summary_after_add_market: Optional[MessageItem] = None
     summary_after_remove_bet_from_combo: Optional[MessageItem] = None
     remove_market: Optional[MessageItem] = None
@@ -687,6 +688,7 @@ class MessageTemplates(BaseModel):
                 error_to_add_market=MessageItem(text="Error adding market."),
                 error_to_get_odds=MessageItem(text="Error retrieving odds."),
                 error_to_place_bet=MessageItem(text="Error placing combo bet."),
+                empty_combo=MessageItem(text="Sorry, there isn't any combo yet"),
                 summary_after_add_market=MessageItem(
                     text="I’ve added that pick to your combo ✅ Your combo: {PICKS} Total odds: {TOTAL_ODDS}",
                     reply_markup=InlineKeyboardMarkup(
