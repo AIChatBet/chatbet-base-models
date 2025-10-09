@@ -205,8 +205,8 @@ class LocaleConfig(BaseModel):
         min_length=2, max_length=4, description="Phone prefix e.g., +52"
     )
     time_zone: str
-    default_amount: str
-    default_desired_profit: str
+    default_amount: Optional[str] = None
+    default_desired_profit: Optional[str] = None
 
     @field_validator("currency")
     @classmethod
