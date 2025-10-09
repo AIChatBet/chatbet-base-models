@@ -205,8 +205,8 @@ class LocaleConfig(BaseModel):
         min_length=2, max_length=4, description="Phone prefix e.g., +52"
     )
     time_zone: str
-    default_amount: Optional[str] = None
-    default_desired_profit: Optional[str] = None
+    default_amount: Optional[float] = None
+    default_desired_profit: Optional[float] = None
 
     @field_validator("currency")
     @classmethod
@@ -263,8 +263,8 @@ class SiteConfig(BaseModel):
             country="US",
             country_code="+1",
             time_zone="UTC",
-            default_amount="",
-            default_desired_profit="",
+            default_amount=10,
+            default_desired_profit=100,
         )
     )
     features: FeaturesConfig = Field(
