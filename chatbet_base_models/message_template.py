@@ -315,7 +315,9 @@ class CombosMessages(BaseModel):
     error_to_add_market: Optional[MessageItem] = None
     error_to_get_odds: Optional[MessageItem] = None
     error_to_place_bet: Optional[MessageItem] = None
-    empty_combo: Optional[MessageItem] = None
+    empty_combo: Optional[MessageItem] = MessageItem(
+        text="Sorry, there isn't any combo yet"
+    )
     summary_after_add_market: Optional[MessageItem] = None
     summary_after_remove_bet_from_combo: Optional[MessageItem] = None
     remove_market: Optional[MessageItem] = None
