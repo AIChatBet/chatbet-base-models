@@ -179,6 +179,7 @@ class ValidationMessages(BaseModel):
     send_otp: Optional[MessageItem] = None
     bad_otp: Optional[MessageItem] = None
     blocked_otp: Optional[MessageItem] = None
+    blocked_user: Optional[MessageItem] = None
 
     @classmethod
     def model_validate(cls, obj):
@@ -584,6 +585,9 @@ class MessageTemplates(BaseModel):
                 ),
                 blocked_otp=MessageItem(
                     text="Too many failed attempts. OTP blocked.",
+                ),
+                blocked_user=MessageItem(
+                    text="Sorry, I can't help you, you are blocked",
                 ),
             ),
             registration=RegistrationMessages(
