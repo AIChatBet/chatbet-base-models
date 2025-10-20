@@ -10,7 +10,6 @@ from pydantic import (
     Field,
     HttpUrl,
     model_validator,
-    WebsocketUrl,
 )
 
 
@@ -67,7 +66,7 @@ class DigitainConfig(BaseModel):
     client_id: str
     client_secret: str
     token_url: HttpUrl
-    websocket_url: WebsocketUrl
+    websocket_url: str
     validate_user_url: HttpUrl
     place_bet_url: HttpUrl
 
