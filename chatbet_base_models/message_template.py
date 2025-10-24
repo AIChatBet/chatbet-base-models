@@ -406,6 +406,7 @@ class ErrorMessages(BaseModel):
     invalid_input: Optional[MessageItem] = None
     error: Optional[MessageItem] = None
     error_2: Optional[MessageItem] = None
+    error_unavailable_bot: Optional[MessageItem] = None
 
     @classmethod
     def model_validate(cls, obj):
@@ -825,6 +826,9 @@ class MessageTemplates(BaseModel):
                 invalid_input=MessageItem(text="Invalid input."),
                 error=MessageItem(text="An error occurred."),
                 error_2=MessageItem(text="Another error occurred."),
+                error_unavailable_bot=MessageItem(
+                    text="Sorry, the bot is currently unavailable."
+                ),
             ),
             confirmation=ConfirmationMessages(
                 confirm_bet=MessageItem(
