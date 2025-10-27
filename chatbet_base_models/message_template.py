@@ -284,6 +284,7 @@ class BetsMessages(BaseModel):
     deposit: Optional[MessageItem] = None
     bet_rejected: Optional[MessageItem] = None
     select_type_of_bet: Optional[MessageItem] = None
+    closed_fixture: Optional[MessageItem] = None
 
     @field_validator("select_type_of_bet")
     @classmethod
@@ -688,6 +689,9 @@ class MessageTemplates(BaseModel):
                 ),
                 bet_rejected=MessageItem(
                     text="Your bet was rejected. Please try again."
+                ),
+                closed_fixture=MessageItem(
+                    text="Fixture is closed. You cannot place bets on this fixture."
                 ),
             ),
             combos=CombosMessages(
