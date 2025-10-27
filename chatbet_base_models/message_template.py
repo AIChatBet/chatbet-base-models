@@ -284,6 +284,8 @@ class BetsMessages(BaseModel):
     deposit: Optional[MessageItem] = None
     bet_rejected: Optional[MessageItem] = None
     select_type_of_bet: Optional[MessageItem] = None
+    closed_fixture: Optional[MessageItem] = None
+
 
     @field_validator("select_type_of_bet")
     @classmethod
@@ -406,7 +408,6 @@ class ErrorMessages(BaseModel):
     invalid_input: Optional[MessageItem] = None
     error: Optional[MessageItem] = None
     error_2: Optional[MessageItem] = None
-    error_unavailable_bot: Optional[MessageItem] = None
 
     @classmethod
     def model_validate(cls, obj):
@@ -689,6 +690,9 @@ class MessageTemplates(BaseModel):
                 bet_rejected=MessageItem(
                     text="Your bet was rejected. Please try again."
                 ),
+                closed_fixture=MessageItem(
+                    text="Fixture is closed. You cannot place bets on this fixture."
+                ),
             ),
             combos=CombosMessages(
                 show_all_markets_by_fixtures=MessageItem(text="Showing all markets"),
@@ -826,9 +830,6 @@ class MessageTemplates(BaseModel):
                 invalid_input=MessageItem(text="Invalid input."),
                 error=MessageItem(text="An error occurred."),
                 error_2=MessageItem(text="Another error occurred."),
-                error_unavailable_bot=MessageItem(
-                    text="Sorry, the bot is currently unavailable."
-                ),
             ),
             confirmation=ConfirmationMessages(
                 confirm_bet=MessageItem(
