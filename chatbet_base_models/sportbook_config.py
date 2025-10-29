@@ -92,9 +92,21 @@ class PhoenixConfig(BaseModel):
     last_state_epoch: str | int
     integration_state: str
 
+class KambiOffering(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    id: str
+    server: str
+    lang: str
+    market: str
+
+class KambiConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    provider: Literal["kambi"] = "kambi"
+    offering: KambiOffering
+
 
 ConfigUnion = Annotated[
-    Union[Betsw3Config, DigitainConfig, PhoenixConfig], Field(discriminator="provider")
+    Union[Betsw3Config, DigitainConfig, PhoenixConfig, KambiConfig], Field(discriminator="provider")
 ]
 
 
@@ -230,6 +242,24 @@ class SportbookConfig(BaseModel):
             created_at=now,
             updated_at=now,
         )
+    
+    @classmethod
+    def from_minimal_kambi(
+        cls,
+        *,
+        offering: Optional[PhoenixBasicAuth] = None
+    ) -> "SportbookConfig":
+        cfg = KambiConfig(
+            offering=offering or KambiOffering(id="", server="", lang="", market=""),
+        )
+        now = datetime.now(timezone.utc)
+        return cls(
+            sportbook="Kambi",
+            config=cfg,
+            tournaments=_default_tournaments(),
+            created_at=now,
+            updated_at=now,
+        )
 
     # ---------- utilidades ----------
     def touch(self) -> None:
@@ -272,6 +302,17 @@ class SportbookConfig(BaseModel):
 class SportbookConfigDB(SportbookConfig):
     PK: Optional[str] = Field(default=None, description="Partition key")
     SK: Optional[str] = Field(default=None, description="Sort key")
+
+    @classmethod
+    def from_minimal_kambi(
+        cls,
+        company_id: str,
+        **kwargs,
+    ) -> "SportbookConfigDB":
+        base = SportbookConfig.from_minimal_kambi(**kwargs)
+        return cls(
+            **base.model_dump(), PK=f"company#{company_id}", SK="sportbook_config"
+        )
 
     @classmethod
     def from_minimal_phoenix(
