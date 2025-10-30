@@ -92,6 +92,7 @@ class PhoenixConfig(BaseModel):
     last_state_epoch: str | int
     integration_state: str
 
+
 class KambiOffering(BaseModel):
     model_config = ConfigDict(extra="forbid")
     id: str
@@ -99,14 +100,23 @@ class KambiOffering(BaseModel):
     lang: str
     market: str
 
+
+class KambiPlayer(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    operator: str
+    host: str
+
+
 class KambiConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
     provider: Literal["kambi"] = "kambi"
     offering: KambiOffering
+    player: KambiPlayer
 
 
 ConfigUnion = Annotated[
-    Union[Betsw3Config, DigitainConfig, PhoenixConfig, KambiConfig], Field(discriminator="provider")
+    Union[Betsw3Config, DigitainConfig, PhoenixConfig, KambiConfig],
+    Field(discriminator="provider"),
 ]
 
 
@@ -242,15 +252,17 @@ class SportbookConfig(BaseModel):
             created_at=now,
             updated_at=now,
         )
-    
+
     @classmethod
     def from_minimal_kambi(
         cls,
         *,
-        offering: Optional[PhoenixBasicAuth] = None
+        offering: Optional[PhoenixBasicAuth] = None,
+        player: Optional[KambiPlayer] = None,
     ) -> "SportbookConfig":
         cfg = KambiConfig(
             offering=offering or KambiOffering(id="", server="", lang="", market=""),
+            player=player or KambiPlayer(operator="", host=""),
         )
         now = datetime.now(timezone.utc)
         return cls(
