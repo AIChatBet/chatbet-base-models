@@ -69,6 +69,7 @@ class DigitainConfig(BaseModel):
     websocket_url: str
     validate_user_url: HttpUrl
     place_bet_url: HttpUrl
+    main_market_only: Optional[bool] = True
 
 
 class PhoenixBasicAuth(BaseModel):
@@ -234,6 +235,7 @@ class SportbookConfig(BaseModel):
         validate_user_url: str = "https://placeholder.com/validate-user",
         place_bet_url: str = "https://placeholder.com/place-bet",
         tournaments: Optional[List[Tournament]] = None,
+        main_market_only: Optional[bool] = True,
     ) -> "SportbookConfig":
         cfg = DigitainConfig(
             partner_id=partner_id,
@@ -243,6 +245,7 @@ class SportbookConfig(BaseModel):
             websocket_url=websocket_url,
             validate_user_url=validate_user_url,
             place_bet_url=place_bet_url,
+            main_market_only=main_market_only,
         )
         now = datetime.now(timezone.utc)
         return cls(
