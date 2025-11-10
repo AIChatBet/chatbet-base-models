@@ -178,6 +178,7 @@ class ValidationMessages(BaseModel):
     member_validation_email: Optional[MessageItem] = None
     send_otp: Optional[MessageItem] = None
     bad_otp: Optional[MessageItem] = None
+    error_otp: Optional[MessageItem] = None
     blocked_otp: Optional[MessageItem] = None
     blocked_user: Optional[MessageItem] = None
 
@@ -197,12 +198,18 @@ class ValidationMessages(BaseModel):
     def _bad_otp_rules(cls, v):
         return require_callbacks(v, ["send_otp"])
 
+    @field_validator("error_otp")
+    @classmethod
+    def _error_otp_rules(cls, v):
+        return require_callbacks(v, ["send_otp"])
+
     @model_validator(mode="after")
     def _require_callbacks(self):
         need = {"send_otp"}
         for field, item in {
             "send_otp": self.send_otp,
             "bad_otp": self.bad_otp,
+            "error_otp": self.error_otp,
         }.items():
             if item is None:
                 continue
@@ -576,6 +583,18 @@ class MessageTemplates(BaseModel):
                 ),
                 bad_otp=MessageItem(
                     text="Invalid OTP, try again.",
+                    reply_markup=InlineKeyboardMarkup(
+                        inline_keyboard=[
+                            [
+                                InlineKeyboardButton(
+                                    text="Resend OTP", callback_data="send_otp"
+                                )
+                            ],
+                        ]
+                    ),
+                ),
+                error_otp=MessageItem(
+                    text="Error sending OTP, try again.",
                     reply_markup=InlineKeyboardMarkup(
                         inline_keyboard=[
                             [
