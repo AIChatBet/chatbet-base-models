@@ -6,6 +6,7 @@ from chatbet_base_models.site_config_model import (
     OddType,
     ValidationMethod,
     ChatbetVersion,
+    AliasProbabilities,
     MoneyLimits,
     TestConfig,
     WhatsAppProvider,
@@ -42,6 +43,11 @@ class TestEnums:
     def test_whatsapp_provider_enum(self):
         assert WhatsAppProvider.WHAPI == "whapi"
         assert WhatsAppProvider.META == "meta"
+
+    def test_alias_probabilities_enum(self):
+        assert AliasProbabilities.CUOTA == "cuota"
+        assert AliasProbabilities.MOMIO == "momio"
+        assert AliasProbabilities.ODD == "odd"
 
 
 class TestMoneyLimits:
@@ -333,6 +339,40 @@ class TestFeaturesConfig:
         assert features.chatbet_version == ChatbetVersion.V2
         assert features.multigames_response is True
         assert features.see_in_combo is True
+
+    def test_features_config_default_alias_probabilities(self):
+        features = FeaturesConfig(
+            odd_type=OddType.DECIMAL,
+            validation=ValidationMethod.EMAIL,
+            combos=True,
+            chatbet_version=ChatbetVersion.V2,
+            multigames_response=True,
+            see_in_combo=True,
+        )
+        assert features.alias_probabilities == AliasProbabilities.ODD
+
+    def test_features_config_with_custom_alias_probabilities(self):
+        features = FeaturesConfig(
+            odd_type=OddType.DECIMAL,
+            alias_probabilities=AliasProbabilities.CUOTA,
+            validation=ValidationMethod.EMAIL,
+            combos=True,
+            chatbet_version=ChatbetVersion.V2,
+            multigames_response=True,
+            see_in_combo=True,
+        )
+        assert features.alias_probabilities == AliasProbabilities.CUOTA
+
+        features_momio = FeaturesConfig(
+            odd_type=OddType.DECIMAL,
+            alias_probabilities=AliasProbabilities.MOMIO,
+            validation=ValidationMethod.EMAIL,
+            combos=False,
+            chatbet_version=ChatbetVersion.V1,
+            multigames_response=False,
+            see_in_combo=False,
+        )
+        assert features_momio.alias_probabilities == AliasProbabilities.MOMIO
 
 
 class TestMeta:
