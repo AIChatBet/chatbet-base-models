@@ -39,6 +39,12 @@ class HourFormat(str, Enum):
     H24 = "24h"
 
 
+class AliasProbabilities(str, Enum):
+    CUOTA = "cuota"
+    MOMIO = "momio"
+    ODD = "odd"
+
+
 # ==========================="
 # Mixins / Value Objects
 # ==========================="
@@ -227,6 +233,10 @@ class LocaleConfig(BaseModel):
 class FeaturesConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
     odd_type: OddType
+    alias_probabilities: AliasProbabilities = Field(
+        default=AliasProbabilities.ODD,
+        description="Terminology for displaying odds/probabilities",
+    )
     validation: ValidationMethod
     combos: bool = Field(description="Enable or disable combos in this configuration")
     chatbet_version: ChatbetVersion
@@ -270,6 +280,7 @@ class SiteConfig(BaseModel):
     features: FeaturesConfig = Field(
         default_factory=lambda: FeaturesConfig(
             odd_type=OddType.DECIMAL,
+            alias_probabilities=AliasProbabilities.ODD,
             validation=ValidationMethod.EMAIL,
             combos=False,
             chatbet_version=ChatbetVersion.V1,
