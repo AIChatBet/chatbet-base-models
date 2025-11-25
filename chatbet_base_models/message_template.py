@@ -456,7 +456,9 @@ class ErrorMessages(BaseModel):
     error: Optional[MessageItem] = None
     error_2: Optional[MessageItem] = None
     error_unavailable_bot: Optional[MessageItem] = None
-    general_errors: Optional[Dict[str, List[str]]] = None
+    general_errors: Dict[str, List[str]] = Field(
+        default_factory=lambda: DEFAULT_GENERAL_ERRORS
+    )
 
     @classmethod
     def model_validate(cls, obj):
@@ -464,10 +466,9 @@ class ErrorMessages(BaseModel):
             # Don't coerce general_errors as it's not a MessageItem
             general_errors = obj.pop("general_errors", None)
             obj = {k: MessageItem._coerce(v) for k, v in obj.items()}
-            # Use default values if general_errors is not provided
-            obj["general_errors"] = (
-                general_errors if general_errors is not None else DEFAULT_GENERAL_ERRORS
-            )
+            # Only assign if explicitly provided, otherwise default_factory handles it
+            if general_errors is not None:
+                obj["general_errors"] = general_errors
         return super().model_validate(obj)
 
 
