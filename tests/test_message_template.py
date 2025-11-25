@@ -288,6 +288,15 @@ class TestErrorMessages:
         assert len(error_messages.general_errors["en"]) == 10
         assert len(error_messages.general_errors["pt-br"]) == 10
 
+    def test_general_errors_defaults_with_direct_constructor(self):
+        """Test that general_errors gets default values when using direct constructor."""
+        error_messages = ErrorMessages()
+        assert error_messages.general_errors is not None
+        assert "es" in error_messages.general_errors
+        assert "en" in error_messages.general_errors
+        assert "pt-br" in error_messages.general_errors
+        assert len(error_messages.general_errors["es"]) == 10
+
 
 class TestMessageTemplates:
     def test_create_empty_message_templates(self):
