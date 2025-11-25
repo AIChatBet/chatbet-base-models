@@ -273,6 +273,21 @@ class TestErrorMessages:
         assert "es" in item["errors"]["general_errors"]
         assert len(item["errors"]["general_errors"]["es"]) == 10
 
+    def test_general_errors_defaults_when_not_provided(self):
+        """Test that general_errors gets default values when not provided."""
+        data = {
+            "invalid_input": "Invalid input text",
+            "error": "An error occurred",
+        }
+        error_messages = ErrorMessages.model_validate(data)
+        assert error_messages.general_errors is not None
+        assert "es" in error_messages.general_errors
+        assert "en" in error_messages.general_errors
+        assert "pt-br" in error_messages.general_errors
+        assert len(error_messages.general_errors["es"]) == 10
+        assert len(error_messages.general_errors["en"]) == 10
+        assert len(error_messages.general_errors["pt-br"]) == 10
+
 
 class TestMessageTemplates:
     def test_create_empty_message_templates(self):
