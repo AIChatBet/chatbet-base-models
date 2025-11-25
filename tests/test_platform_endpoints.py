@@ -131,6 +131,7 @@ class TestEndpointGroups:
         assert fixtures.get_fixtures_by_tournament is not None
         assert fixtures.get_special_bets is None
         assert fixtures.get_recommended_bets is None
+        assert fixtures.get_recommended_fixtures is None
 
     def test_tournaments_endpoints(self):
         tournaments = TournamentsEndpoints(
