@@ -460,8 +460,9 @@ class ErrorMessages(BaseModel):
         default_factory=lambda: DEFAULT_GENERAL_ERRORS
     )
 
+    @model_validator(mode="before")
     @classmethod
-    def model_validate(cls, obj):
+    def _coerce_message_items(cls, obj):
         if isinstance(obj, dict):
             # Don't coerce general_errors as it's not a MessageItem
             general_errors = obj.pop("general_errors", None)
@@ -469,7 +470,7 @@ class ErrorMessages(BaseModel):
             # Only assign if explicitly provided, otherwise default_factory handles it
             if general_errors is not None:
                 obj["general_errors"] = general_errors
-        return super().model_validate(obj)
+        return obj
 
 
 class ConfirmationMessages(BaseModel):
