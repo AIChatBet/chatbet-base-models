@@ -10,6 +10,7 @@ from chatbet_base_models.message_template import (
     MenuMessages,
     BetsMessages,
     CombosMessages,
+    ErrorMessages,
     MessageTemplates,
     MessageTemplatesDB,
 )
@@ -221,6 +222,80 @@ class TestCombosMessages:
             combos.combos_confirm_add_recommended.text
             == "Do you want to add these recommended combos?"
         )
+
+
+class TestErrorMessages:
+    def test_create_error_messages_with_general_errors(self):
+        error_messages = ErrorMessages(
+            invalid_input=MessageItem(text="Invalid input"),
+            general_errors={
+                "es": ["Error 1 en español", "Error 2 en español"],
+                "en": ["Error 1 in English", "Error 2 in English"],
+            }
+        )
+        assert error_messages.invalid_input.text == "Invalid input"
+        assert error_messages.general_errors is not None
+        assert len(error_messages.general_errors["es"]) == 2
+        assert len(error_messages.general_errors["en"]) == 2
+        assert error_messages.general_errors["es"][0] == "Error 1 en español"
+
+    def test_general_errors_from_minimal(self):
+        templates = MessageTemplates.from_minimal()
+        assert templates.errors is not None
+        assert templates.errors.general_errors is not None
+        assert "es" in templates.errors.general_errors
+        assert "en" in templates.errors.general_errors
+        assert "pt-br" in templates.errors.general_errors
+        assert len(templates.errors.general_errors["es"]) == 10
+        assert len(templates.errors.general_errors["en"]) == 10
+        assert len(templates.errors.general_errors["pt-br"]) == 10
+
+    def test_model_validate_with_general_errors(self):
+        data = {
+            "invalid_input": "Invalid input text",
+            "error": "An error occurred",
+            "general_errors": {
+                "es": ["Error español"],
+                "en": ["English error"],
+            }
+        }
+        error_messages = ErrorMessages.model_validate(data)
+        assert error_messages.invalid_input.text == "Invalid input text"
+        assert error_messages.error.text == "An error occurred"
+        assert error_messages.general_errors["es"] == ["Error español"]
+        assert error_messages.general_errors["en"] == ["English error"]
+
+    def test_general_errors_in_dynamodb_item(self):
+        templates = MessageTemplates.from_minimal()
+        item = templates.to_dynamodb_item()
+        assert "errors" in item
+        assert "general_errors" in item["errors"]
+        assert "es" in item["errors"]["general_errors"]
+        assert len(item["errors"]["general_errors"]["es"]) == 10
+
+    def test_general_errors_defaults_when_not_provided(self):
+        """Test that general_errors gets default values when not provided."""
+        data = {
+            "invalid_input": "Invalid input text",
+            "error": "An error occurred",
+        }
+        error_messages = ErrorMessages.model_validate(data)
+        assert error_messages.general_errors is not None
+        assert "es" in error_messages.general_errors
+        assert "en" in error_messages.general_errors
+        assert "pt-br" in error_messages.general_errors
+        assert len(error_messages.general_errors["es"]) == 10
+        assert len(error_messages.general_errors["en"]) == 10
+        assert len(error_messages.general_errors["pt-br"]) == 10
+
+    def test_general_errors_defaults_with_direct_constructor(self):
+        """Test that general_errors gets default values when using direct constructor."""
+        error_messages = ErrorMessages()
+        assert error_messages.general_errors is not None
+        assert "es" in error_messages.general_errors
+        assert "en" in error_messages.general_errors
+        assert "pt-br" in error_messages.general_errors
+        assert len(error_messages.general_errors["es"]) == 10
 
 
 class TestMessageTemplates:

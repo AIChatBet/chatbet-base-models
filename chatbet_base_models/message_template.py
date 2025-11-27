@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import re
-from typing import List, Literal, Optional, Any, Sequence
+from typing import Dict, List, Literal, Optional, Any, Sequence
 from enum import Enum
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator, field_validator
@@ -410,18 +410,67 @@ class CombosMessages(BaseModel):
         return self
 
 
+DEFAULT_GENERAL_ERRORS: Dict[str, List[str]] = {
+    "es": [
+        "¡Uff! Me mandaste una pelota curva y no la pude atrapar 🥎 ¿Me puedes repetir lo que quieres hacer?",
+        "¡Ay! Me hiciste un jaque mate y quedé confundido ♟️ ¿Me puedes repetir lo que quieres hacer?",
+        "¡Oops! Fallé el penalty y se me fue la pelota ⚽ ¿Me puedes repetir lo que quieres hacer?",
+        "¡Ups! Me sacaste una tarjeta roja por no entender 🔴 ¿Me puedes repetir lo que quieres hacer?",
+        "¡Auch! Me noqueaste con esa pregunta 🥊 ¿Me puedes repetir lo que quieres hacer?",
+        "¡Rayos! Hice strike pero en los bolos equivocados 🎳 ¿Me puedes repetir lo que quieres hacer?",
+        "¡Ouch! Metí la pelota en mi propia canasta 🏀 ¿Me puedes repetir lo que quieres hacer?",
+        "¡Gol en contra! ⚽ ¿Me puedes repetir lo que quieres hacer?",
+        "¡Fuera de juego! 🚩 ¿Me puedes repetir lo que quieres hacer?",
+        "¡Pelotazo! ⚾ ¿Me puedes repetir lo que quieres hacer?",
+    ],
+    "en": [
+        "Oops! You threw me a curveball and I struck out ⚾ Can you repeat what you want to do?",
+        "Whoops! I fumbled the ball on that one 🏈 Can you repeat what you want to do?",
+        "Uh oh! You served an ace and I completely whiffed 🎾 Can you repeat what you want to do?",
+        "Ouch! I got tackled by that question 🏉 Can you repeat what you want to do?",
+        "Yikes! I missed the goal completely ⚽ Can you repeat what you want to do?",
+        "Bummer! I struck out swinging on that one ⚾ Can you repeat what you want to do?",
+        "Darn! I went offside and got confused 🏒 Can you repeat what you want to do?",
+        "Total whiff! ⚾ Can you repeat what you want to do?",
+        "Fumbled it! 🏈 Can you repeat what you want to do?",
+        "Air ball! 🏀 Can you repeat what you want to do?",
+    ],
+    "pt-br": [
+        "Eita! Você me deu um drible desconcertante e eu fiquei no chão ⚽ Pode repetir o que você quer fazer?",
+        "Opa! Você me aplicou um nocaute técnico 🥊 Pode repetir o que você quer fazer?",
+        "Caramba! Fiz um gol contra sem querer ⚽ Pode repetir o que você quer fazer?",
+        "Poxa! Você me deu um ace na cabeça 🎾 Pode repetir o que você quer fazer?",
+        "Ai! Levei uma cesta na cara e fiquei tonto 🏀 Pode repetir o que você quer fazer?",
+        "Ixe! Errei o alvo completamente 🎯 Pode repetir o que você quer fazer?",
+        "Nossa! Fiz strike nos pinos errados 🎳 Pode repetir o que você quer fazer?",
+        "Gol contra! ⚽ Pode repetir o que você quer fazer?",
+        "Falta! 🟨 Pode repetir o que você quer fazer?",
+        "Fora! 🎾 Pode repetir o que você quer fazer?",
+    ],
+}
+
+
 class ErrorMessages(BaseModel):
     model_config = ConfigDict(extra="forbid")
     invalid_input: Optional[MessageItem] = None
     error: Optional[MessageItem] = None
     error_2: Optional[MessageItem] = None
     error_unavailable_bot: Optional[MessageItem] = None
+    general_errors: Dict[str, List[str]] = Field(
+        default_factory=lambda: DEFAULT_GENERAL_ERRORS
+    )
 
+    @model_validator(mode="before")
     @classmethod
-    def model_validate(cls, obj):
+    def _coerce_message_items(cls, obj):
         if isinstance(obj, dict):
+            # Don't coerce general_errors as it's not a MessageItem
+            general_errors = obj.pop("general_errors", None)
             obj = {k: MessageItem._coerce(v) for k, v in obj.items()}
-        return super().model_validate(obj)
+            # Only assign if explicitly provided, otherwise default_factory handles it
+            if general_errors is not None:
+                obj["general_errors"] = general_errors
+        return obj
 
 
 class ConfirmationMessages(BaseModel):
@@ -866,6 +915,7 @@ class MessageTemplates(BaseModel):
                 error_unavailable_bot=MessageItem(
                     text="Sorry, the bot is currently unavailable."
                 ),
+                general_errors=DEFAULT_GENERAL_ERRORS,
             ),
             confirmation=ConfirmationMessages(
                 confirm_bet=MessageItem(
