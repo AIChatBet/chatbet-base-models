@@ -57,6 +57,7 @@ class Betsw3Config(BaseModel):
     currency: str
     access_token: str
     url: HttpUrl
+    check_fixture_availability: Optional[bool] = True
 
 
 class DigitainConfig(BaseModel):
@@ -70,6 +71,7 @@ class DigitainConfig(BaseModel):
     validate_user_url: HttpUrl
     place_bet_url: HttpUrl
     main_market_only: Optional[bool] = True
+    check_fixture_availability: Optional[bool] = False
 
 
 class PhoenixBasicAuth(BaseModel):
@@ -92,6 +94,7 @@ class PhoenixConfig(BaseModel):
     basic_auth: PhoenixBasicAuth
     last_state_epoch: str | int
     integration_state: str
+    check_fixture_availability: Optional[bool] = False
 
 
 class KambiOffering(BaseModel):
@@ -113,6 +116,7 @@ class KambiConfig(BaseModel):
     provider: Literal["kambi"] = "kambi"
     offering: KambiOffering
     player: KambiPlayer
+    check_fixture_availability: Optional[bool] = True
 
 
 ConfigUnion = Annotated[
@@ -166,6 +170,7 @@ class SportbookConfig(BaseModel):
         last_state_epoch: str = "",
         integration_state: str = "",
         tournaments: Optional[List[Tournament]] = None,
+        check_fixture_availability: Optional[bool] = False,
     ) -> "SportbookConfig":
         cfg = PhoenixConfig(
             cluster_api_key=cluster_api_key,
@@ -179,6 +184,7 @@ class SportbookConfig(BaseModel):
             basic_auth=basic_auth or PhoenixBasicAuth(username="", password=""),
             last_state_epoch=last_state_epoch,
             integration_state=integration_state,
+            check_fixture_availability=check_fixture_availability,
         )
         now = datetime.now(timezone.utc)
         return cls(
@@ -202,6 +208,7 @@ class SportbookConfig(BaseModel):
         access_token: str = "",
         url: str = "https://placeholder.com/",
         tournaments: Optional[List[Tournament]] = None,
+        check_fixture_availability: Optional[bool] = True,
     ) -> "SportbookConfig":
         cfg = Betsw3Config(
             userId=userId,
@@ -212,6 +219,7 @@ class SportbookConfig(BaseModel):
             currency=currency,
             access_token=access_token,
             url=url,
+            check_fixture_availability=check_fixture_availability,
         )
         now = datetime.now(timezone.utc)
         return cls(
@@ -236,6 +244,7 @@ class SportbookConfig(BaseModel):
         place_bet_url: str = "https://placeholder.com/place-bet",
         tournaments: Optional[List[Tournament]] = None,
         main_market_only: Optional[bool] = True,
+        check_fixture_availability: Optional[bool] = False,
     ) -> "SportbookConfig":
         cfg = DigitainConfig(
             partner_id=partner_id,
@@ -246,6 +255,7 @@ class SportbookConfig(BaseModel):
             validate_user_url=validate_user_url,
             place_bet_url=place_bet_url,
             main_market_only=main_market_only,
+            check_fixture_availability=check_fixture_availability,
         )
         now = datetime.now(timezone.utc)
         return cls(
@@ -262,10 +272,12 @@ class SportbookConfig(BaseModel):
         *,
         offering: Optional[PhoenixBasicAuth] = None,
         player: Optional[KambiPlayer] = None,
+        check_fixture_availability: Optional[bool] = True,
     ) -> "SportbookConfig":
         cfg = KambiConfig(
             offering=offering or KambiOffering(id="", server="", lang="", market=""),
             player=player or KambiPlayer(operator="", host=""),
+            check_fixture_availability=check_fixture_availability,
         )
         now = datetime.now(timezone.utc)
         return cls(
