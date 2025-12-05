@@ -339,6 +339,7 @@ class CombosMessages(BaseModel):
     combos_recommendation: Optional[MessageItem] = None
     combos_confirm_add_recommended: Optional[MessageItem] = None
     delete_bet_from_combo: Optional[MessageItem] = None
+    replace_bet_from_combo: Optional[MessageItem] = None
 
     @field_validator("combos_recommendation")
     @classmethod
@@ -895,6 +896,19 @@ class MessageTemplates(BaseModel):
                     ),
                 ),
                 delete_bet_from_combo=MessageItem(
+                    text="",
+                    reply_markup=InlineKeyboardMarkup(
+                        inline_keyboard=[
+                            [
+                                InlineKeyboardButton(
+                                    text="My Combo",
+                                    callback_data="combo_show_my_combo",
+                                ),
+                            ]
+                        ]
+                    ),
+                ),
+                replace_bet_from_combo=MessageItem(
                     text="",
                     reply_markup=InlineKeyboardMarkup(
                         inline_keyboard=[
