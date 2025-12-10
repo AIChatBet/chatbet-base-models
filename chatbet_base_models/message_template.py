@@ -38,6 +38,7 @@ class InlineKeyboardMarkup(BaseModel):
 
 class AdditionalMessageMarkup(BaseModel):
     model_config = ConfigDict(extra="forbid")
+    text: Optional[str] = None
     reply_markup: Optional[InlineKeyboardMarkup] = None
 
 
