@@ -308,16 +308,20 @@ class SportbookConfig(BaseModel):
                 return str(x)
             if isinstance(x, Enum):
                 return x.value
-            if hasattr(x, "model_dump"):
-                return ser(x.model_dump())
+
             if isinstance(x, dict):
                 out = {k: ser(v) for k, v in x.items()}
                 return {k: v for k, v in out.items() if not (drop_none and v is None)}
+
             if isinstance(x, list):
                 return [ser(v) for v in x]
-            # mantener Decimal, str, int, bool, None
+
+            if hasattr(x, "model_dump"):
+                return ser(x.model_dump())
+
             if isinstance(x, Decimal):
                 return x
+
             return x
 
         return ser(self.model_dump())
