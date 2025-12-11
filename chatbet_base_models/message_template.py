@@ -36,6 +36,12 @@ class InlineKeyboardMarkup(BaseModel):
     inline_keyboard: List[List[InlineKeyboardButton]] = Field(default_factory=list)
 
 
+class AdditionalMessageMarkup(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    text: Optional[str] = None
+    reply_markup: Optional[InlineKeyboardMarkup] = None
+
+
 # ==================
 # Message primitive
 # ==================
@@ -49,6 +55,7 @@ class MessageItem(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     text: Optional[str] = None
+    additional_message: Optional[AdditionalMessageMarkup] = None
     reply_markup: Optional[InlineKeyboardMarkup] = None
 
     @classmethod
