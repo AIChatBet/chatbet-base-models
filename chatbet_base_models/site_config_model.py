@@ -158,11 +158,17 @@ class WhatsAppIntegration(BaseModel):
     config: WhatsAppUnion
 
 
+class BitlyConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    bitly_url: HttpUrl
+
+
 class Integrations(BaseModel):
     model_config = ConfigDict(extra="forbid")
     telegram: Optional[TelegramConfig] = None
     twilio: Optional[TwilioConfig] = None
     meilisearch: Optional[MeilisearchConfig] = None
+    bitly: Optional[BitlyConfig] = None
 
     # <-- CAMBIO: ahora `whatsapp`, no `whapi`
     whatsapp: Optional[WhatsAppIntegration] = None
