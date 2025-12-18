@@ -161,6 +161,7 @@ class WhatsAppIntegration(BaseModel):
 class BitlyConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
     bitly_url: HttpUrl
+    access_token: Optional[str] = None
 
 
 class Integrations(BaseModel):
@@ -320,6 +321,7 @@ class SiteConfig(BaseModel):
                     fixtures="fixtures_index", sports="sports_index"
                 ),
             ),
+            bitly=BitlyConfig(bitly_url="https://api-ssl.bitly.com/v4", access_token=""),
         )
     )
 
