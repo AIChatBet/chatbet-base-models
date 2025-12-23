@@ -158,11 +158,20 @@ class WhatsAppIntegration(BaseModel):
     config: WhatsAppUnion
 
 
+class BitlyConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    bitly_url: HttpUrl
+    access_token: Optional[str] = None
+    phone_number: Optional[str] = None
+    initial_message: Optional[str] = None
+
+
 class Integrations(BaseModel):
     model_config = ConfigDict(extra="forbid")
     telegram: Optional[TelegramConfig] = None
     twilio: Optional[TwilioConfig] = None
     meilisearch: Optional[MeilisearchConfig] = None
+    bitly: Optional[BitlyConfig] = None
 
     # <-- CAMBIO: ahora `whatsapp`, no `whapi`
     whatsapp: Optional[WhatsAppIntegration] = None
@@ -313,6 +322,12 @@ class SiteConfig(BaseModel):
                 index=MeilisearchIndexPaths(
                     fixtures="fixtures_index", sports="sports_index"
                 ),
+            ),
+            bitly=BitlyConfig(
+                bitly_url="https://api-ssl.bitly.com/v4",
+                access_token="",
+                phone_number="",
+                initial_message="",
             ),
         )
     )
