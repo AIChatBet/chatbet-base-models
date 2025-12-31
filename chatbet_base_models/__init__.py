@@ -86,6 +86,13 @@ from .sportbook_config import (
     SportbookConfigDB,
 )
 
+# Promotion Configuration
+from .promotion_config import (
+    PromotionItem,
+    PromotionsConfig,
+    PromotionsConfigDB,
+)
+
 __all__ = [
     # Version
     "__version__",
@@ -155,4 +162,8 @@ __all__ = [
     "StakeType",
     "SportbookConfig",
     "SportbookConfigDB",
+    # Promotion Configuration
+    "PromotionItem",
+    "PromotionsConfig",
+    "PromotionsConfigDB",
 ]
