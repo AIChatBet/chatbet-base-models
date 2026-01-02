@@ -26,6 +26,8 @@ from .message_template import (
     GuidanceMessages,
     MessageTemplates,
     MessageTemplatesDB,
+    LinkItem,
+    LinksMessages,
 )
 
 # Platform Endpoints
@@ -113,6 +115,8 @@ __all__ = [
     "GuidanceMessages",
     "MessageTemplates",
     "MessageTemplatesDB",
+    "LinkItem",
+    "LinksMessages",
     # Platform Endpoints
     "HTTPMethod",
     "Endpoint",
