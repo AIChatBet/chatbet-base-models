@@ -559,6 +559,69 @@ class GuidanceMessages(BaseModel):
 
 
 # ==================
+# Links Configuration
+# ==================
+class LinkItem(BaseModel):
+    """Individual link item with button"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    title: str = Field(min_length=1, max_length=200)
+    message_text: str = Field(min_length=1, max_length=5000)
+    button_label: str = Field(min_length=1, max_length=100)
+    button_url: str = Field(min_length=1, max_length=2000)
+
+    @field_validator("title")
+    @classmethod
+    def _validate_title(cls, v: str) -> str:
+        cleaned = v.strip()
+        if not cleaned:
+            raise ValueError("Title cannot be empty or only whitespace")
+        return cleaned
+
+    @field_validator("message_text", "button_label")
+    @classmethod
+    def _validate_text_fields(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("Field cannot be empty or only whitespace")
+        return v
+
+    @field_validator("button_url")
+    @classmethod
+    def _validate_button_url(cls, v: str) -> str:
+        cleaned = v.strip()
+        if not cleaned:
+            raise ValueError("button_url cannot be empty or only whitespace")
+        if not cleaned.startswith(("http://", "https://")):
+            raise ValueError("button_url must start with http:// or https://")
+        return cleaned
+
+
+class LinksMessages(BaseModel):
+    """Container for link items"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    links: List[LinkItem] = Field(
+        default_factory=list,
+        description="List of all link items",
+    )
+
+    @field_validator("links")
+    @classmethod
+    def _validate_links(cls, v: List[LinkItem]) -> List[LinkItem]:
+        if len(v) > 100:
+            raise ValueError("Maximum 100 links allowed")
+
+        # Check for duplicate titles (case-insensitive)
+        titles_lower = [link.title.lower() for link in v]
+        if len(titles_lower) != len(set(titles_lower)):
+            raise ValueError("Duplicate link titles found. Titles must be unique (case-insensitive).")
+
+        return v
+
+
+# ==================
 # Message Template (Core)
 # ==================
 class MessageTemplates(BaseModel):
@@ -574,6 +637,7 @@ class MessageTemplates(BaseModel):
     labels: Optional[LabelMessages] = None
     end: Optional[EndMessages] = None
     guidance: Optional[GuidanceMessages] = None
+    links: LinksMessages = Field(default_factory=lambda: LinksMessages(links=[]))
 
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -981,6 +1045,7 @@ class MessageTemplates(BaseModel):
                 invalid_input_text=MessageItem(text="Please check your input ⚠️"),
                 invalid_input_response=MessageItem(text="Invalid input, try again."),
             ),
+            links=LinksMessages(links=[]),
         )
 
     # ---------- utilidades ----------

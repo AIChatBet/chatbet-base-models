@@ -13,6 +13,8 @@ from chatbet_base_models.message_template import (
     ErrorMessages,
     MessageTemplates,
     MessageTemplatesDB,
+    LinkItem,
+    LinksMessages,
 )
 
 
@@ -380,3 +382,342 @@ class TestMessageTemplatesDB:
 
         with pytest.raises(ValueError, match="PK and SK are required"):
             MessageTemplatesDB(SK="message_templates")
+
+
+class TestLinkItem:
+    """Test individual link item model"""
+
+    def test_create_link_item(self):
+        """Test creating a link item with all fields"""
+        link = LinkItem(
+            title="Help Center",
+            message_text="Visit our help center for assistance",
+            button_label="Get Help",
+            button_url="https://example.com/help"
+        )
+        assert link.title == "Help Center"
+        assert link.message_text == "Visit our help center for assistance"
+        assert link.button_label == "Get Help"
+        assert link.button_url == "https://example.com/help"
+
+    def test_title_validation_strips_whitespace(self):
+        """Test that title whitespace is stripped"""
+        link = LinkItem(
+            title="  Support  ",
+            message_text="Contact support",
+            button_label="Contact Us",
+            button_url="https://example.com/support"
+        )
+        assert link.title == "Support"
+
+    def test_title_validation_empty_raises_error(self):
+        """Test that empty title raises validation error"""
+        with pytest.raises(ValueError, match="Title cannot be empty"):
+            LinkItem(
+                title="   ",
+                message_text="Text",
+                button_label="Label",
+                button_url="https://example.com"
+            )
+
+    def test_message_text_validation_empty_raises_error(self):
+        """Test that empty message_text raises error"""
+        with pytest.raises(ValueError, match="Field cannot be empty"):
+            LinkItem(
+                title="Title",
+                message_text="   ",
+                button_label="Label",
+                button_url="https://example.com"
+            )
+
+    def test_button_label_validation_empty_raises_error(self):
+        """Test that empty button_label raises error"""
+        with pytest.raises(ValueError, match="Field cannot be empty"):
+            LinkItem(
+                title="Title",
+                message_text="Text",
+                button_label="   ",
+                button_url="https://example.com"
+            )
+
+    def test_button_url_validation_requires_protocol(self):
+        """Test that button_url must start with http:// or https://"""
+        with pytest.raises(ValueError, match="must start with http"):
+            LinkItem(
+                title="Title",
+                message_text="Text",
+                button_label="Label",
+                button_url="example.com"
+            )
+
+    def test_button_url_validation_accepts_https(self):
+        """Test that https:// URLs are valid"""
+        link = LinkItem(
+            title="Title",
+            message_text="Text",
+            button_label="Label",
+            button_url="https://example.com"
+        )
+        assert link.button_url == "https://example.com"
+
+    def test_button_url_validation_accepts_http(self):
+        """Test that http:// URLs are valid"""
+        link = LinkItem(
+            title="Title",
+            message_text="Text",
+            button_label="Label",
+            button_url="http://example.com"
+        )
+        assert link.button_url == "http://example.com"
+
+    def test_button_url_validation_empty_raises_error(self):
+        """Test that empty button_url raises error"""
+        with pytest.raises(ValueError, match="button_url cannot be empty"):
+            LinkItem(
+                title="Title",
+                message_text="Text",
+                button_label="Label",
+                button_url="   "
+            )
+
+    def test_extra_fields_forbidden(self):
+        """Test that extra fields are rejected"""
+        with pytest.raises(ValueError):
+            LinkItem(
+                title="Title",
+                message_text="Text",
+                button_label="Label",
+                button_url="https://example.com",
+                extra_field="not allowed"
+            )
+
+
+class TestLinksMessages:
+    """Test links messages container"""
+
+    def test_create_empty_links_messages(self):
+        """Test creating empty links messages"""
+        links = LinksMessages()
+        assert links.links == []
+
+    def test_create_links_messages_with_items(self):
+        """Test creating links messages with items"""
+        link1 = LinkItem(
+            title="Help",
+            message_text="Get help",
+            button_label="Help Center",
+            button_url="https://example.com/help"
+        )
+        link2 = LinkItem(
+            title="Support",
+            message_text="Contact support",
+            button_label="Contact Us",
+            button_url="https://example.com/support"
+        )
+
+        links = LinksMessages(links=[link1, link2])
+        assert len(links.links) == 2
+        assert links.links[0].title == "Help"
+        assert links.links[1].title == "Support"
+
+    def test_duplicate_titles_validation_raises_error(self):
+        """Test that duplicate titles raise validation error"""
+        link1 = LinkItem(
+            title="Help",
+            message_text="Get help",
+            button_label="Help Center",
+            button_url="https://example.com/help"
+        )
+        link2 = LinkItem(
+            title="Help",
+            message_text="Different message",
+            button_label="Different Label",
+            button_url="https://example.com/help2"
+        )
+
+        with pytest.raises(ValueError, match="Duplicate link titles"):
+            LinksMessages(links=[link1, link2])
+
+    def test_duplicate_titles_case_insensitive(self):
+        """Test that duplicate title checking is case-insensitive"""
+        link1 = LinkItem(
+            title="Help",
+            message_text="Get help",
+            button_label="Help Center",
+            button_url="https://example.com/help"
+        )
+        link2 = LinkItem(
+            title="HELP",
+            message_text="Different message",
+            button_label="Different Label",
+            button_url="https://example.com/help2"
+        )
+
+        with pytest.raises(ValueError, match="Duplicate link titles"):
+            LinksMessages(links=[link1, link2])
+
+    def test_max_links_validation(self):
+        """Test maximum links validation"""
+        links_items = [
+            LinkItem(
+                title=f"Link{i}",
+                message_text=f"Message {i}",
+                button_label=f"Label {i}",
+                button_url=f"https://example.com/{i}"
+            )
+            for i in range(101)
+        ]
+
+        with pytest.raises(ValueError, match="Maximum 100 links"):
+            LinksMessages(links=links_items)
+
+    def test_100_links_is_valid(self):
+        """Test that exactly 100 links is valid"""
+        links_items = [
+            LinkItem(
+                title=f"Link{i}",
+                message_text=f"Message {i}",
+                button_label=f"Label {i}",
+                button_url=f"https://example.com/{i}"
+            )
+            for i in range(100)
+        ]
+
+        links = LinksMessages(links=links_items)
+        assert len(links.links) == 100
+
+    def test_extra_fields_forbidden(self):
+        """Test that extra fields are rejected"""
+        with pytest.raises(ValueError):
+            LinksMessages(
+                links=[],
+                extra_field="not allowed"
+            )
+
+
+class TestMessageTemplatesWithLinks:
+    """Test MessageTemplates integration with links"""
+
+    def test_from_minimal_includes_empty_links(self):
+        """Test that from_minimal includes empty links array"""
+        templates = MessageTemplates.from_minimal()
+        assert templates.links is not None
+        assert templates.links.links == []
+
+    def test_create_message_templates_with_links(self):
+        """Test creating MessageTemplates with links"""
+        link = LinkItem(
+            title="Help",
+            message_text="Get help",
+            button_label="Help Center",
+            button_url="https://example.com/help"
+        )
+
+        templates = MessageTemplates(
+            links=LinksMessages(links=[link])
+        )
+
+        assert templates.links is not None
+        assert len(templates.links.links) == 1
+        assert templates.links.links[0].title == "Help"
+
+    def test_to_dynamodb_item_includes_links(self):
+        """Test DynamoDB serialization includes links"""
+        link = LinkItem(
+            title="Help",
+            message_text="Get help",
+            button_label="Help Center",
+            button_url="https://example.com/help"
+        )
+
+        templates = MessageTemplates(
+            links=LinksMessages(links=[link])
+        )
+
+        item = templates.to_dynamodb_item()
+        assert "links" in item
+        assert "links" in item["links"]
+        assert isinstance(item["links"]["links"], list)
+        assert len(item["links"]["links"]) == 1
+        assert item["links"]["links"][0]["title"] == "Help"
+        assert item["links"]["links"][0]["button_url"] == "https://example.com/help"
+
+    def test_to_dynamodb_item_empty_links(self):
+        """Test DynamoDB serialization with empty links"""
+        templates = MessageTemplates.from_minimal()
+        item = templates.to_dynamodb_item()
+
+        assert "links" in item
+        assert item["links"]["links"] == []
+
+    def test_message_templates_db_with_links(self):
+        """Test MessageTemplatesDB with links"""
+        link = LinkItem(
+            title="Help",
+            message_text="Get help",
+            button_label="Help Center",
+            button_url="https://example.com/help"
+        )
+
+        templates_db = MessageTemplatesDB(
+            PK="company#123",
+            SK="message_templates",
+            links=LinksMessages(links=[link])
+        )
+
+        assert templates_db.links is not None
+        assert len(templates_db.links.links) == 1
+        assert templates_db.links.links[0].title == "Help"
+
+    def test_message_templates_db_from_minimal_includes_links(self):
+        """Test MessageTemplatesDB.from_minimal includes empty links"""
+        templates_db = MessageTemplatesDB.from_minimal("test_company")
+
+        assert templates_db.links is not None
+        assert templates_db.links.links == []
+        assert templates_db.PK == "company#test_company"
+        assert templates_db.SK == "message_templates"
+
+    def test_touch_method_works_with_links(self):
+        """Test that touch() method works with links present"""
+        templates = MessageTemplates.from_minimal()
+        original_time = templates.updated_at
+        templates.touch()
+        assert templates.updated_at > original_time
+
+    def test_links_field_has_default(self):
+        """Test that links field defaults to empty array"""
+        templates = MessageTemplates()
+        assert templates.links is not None
+        assert isinstance(templates.links, LinksMessages)
+        assert templates.links.links == []
+
+    def test_multiple_links_different_urls(self):
+        """Test creating multiple links with different URLs"""
+        link1 = LinkItem(
+            title="Help",
+            message_text="Get help",
+            button_label="Help Center",
+            button_url="https://example.com/help"
+        )
+        link2 = LinkItem(
+            title="Support",
+            message_text="Contact support",
+            button_label="Contact Us",
+            button_url="https://example.com/support"
+        )
+        link3 = LinkItem(
+            title="FAQ",
+            message_text="Frequently asked questions",
+            button_label="View FAQ",
+            button_url="https://example.com/faq"
+        )
+
+        templates = MessageTemplates(
+            links=LinksMessages(links=[link1, link2, link3])
+        )
+
+        assert len(templates.links.links) == 3
+        assert templates.links.links[0].title == "Help"
+        assert templates.links.links[1].title == "Support"
+        assert templates.links.links[2].title == "FAQ"
