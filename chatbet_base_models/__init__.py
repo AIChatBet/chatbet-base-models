@@ -96,6 +96,16 @@ from .promotion_config import (
     PromotionsConfigDB,
 )
 
+# Tutorial
+from .tutorial import (
+    TutorialItemDB,
+    TutorialsDB,
+    TutorialVideo,
+    GetTutorialVideosResponse,
+    UploadTutorialVideoResponse,
+    DeleteTutorialVideoResponse,
+)
+
 __all__ = [
     # Version
     "__version__",
@@ -172,4 +182,11 @@ __all__ = [
     "PromotionItem",
     "PromotionsConfig",
     "PromotionsConfigDB",
+    # Tutorial
+    "TutorialItemDB",
+    "TutorialsDB",
+    "TutorialVideo",
+    "GetTutorialVideosResponse",
+    "UploadTutorialVideoResponse",
+    "DeleteTutorialVideoResponse",
 ]
