@@ -9,6 +9,7 @@ from chatbet_base_models.site_config_model import (
     AliasProbabilities,
     MoneyLimits,
     TestConfig,
+    SessionConfig,
     WhatsAppProvider,
     MeilisearchIndexPaths,
     MeilisearchConfig,
@@ -117,6 +118,37 @@ class TestTestConfig:
         assert config.email is None
         assert config.otp is None
         assert config.user_key is None
+
+
+class TestSessionConfig:
+    def test_create_session_config_with_default(self):
+        config = SessionConfig()
+        assert config.inactivity_threshold_minutes == 30
+
+    def test_create_session_config_with_custom_value(self):
+        config = SessionConfig(inactivity_threshold_minutes=60)
+        assert config.inactivity_threshold_minutes == 60
+
+    def test_session_config_with_minimum_value(self):
+        config = SessionConfig(inactivity_threshold_minutes=1)
+        assert config.inactivity_threshold_minutes == 1
+
+    def test_session_config_with_large_value(self):
+        config = SessionConfig(inactivity_threshold_minutes=10080)  # 1 week
+        assert config.inactivity_threshold_minutes == 10080
+
+    def test_zero_threshold_raises_error(self):
+        with pytest.raises(ValueError):
+            SessionConfig(inactivity_threshold_minutes=0)
+
+    def test_negative_threshold_raises_error(self):
+        with pytest.raises(ValueError):
+            SessionConfig(inactivity_threshold_minutes=-10)
+
+    def test_session_config_serialization(self):
+        config = SessionConfig(inactivity_threshold_minutes=45)
+        data = config.model_dump()
+        assert data["inactivity_threshold_minutes"] == 45
 
 
 class TestIntegrationConfigs:
@@ -403,6 +435,8 @@ class TestSiteConfig:
         assert config.features.odd_type == OddType.DECIMAL
         assert config.limits.min_bet_amount == Decimal("1.00")
         assert config.test is not None
+        assert config.session is not None
+        assert config.session.inactivity_threshold_minutes == 30
         assert config.integrations is not None
 
     def test_default_factory(self):
@@ -410,6 +444,17 @@ class TestSiteConfig:
         assert config.identity.site_name == "Test Site"
         assert config.identity.company_id == "test123"
         assert str(config.identity.site_url) == "https://default.url/"
+
+    def test_site_config_with_custom_session(self):
+        identity = Identity(
+            site_name="Test Site",
+            company_id="test123",
+            site_url="https://test.example.com",
+        )
+        config = SiteConfig(
+            identity=identity, session=SessionConfig(inactivity_threshold_minutes=60)
+        )
+        assert config.session.inactivity_threshold_minutes == 60
 
 
 class TestSiteConfigDB:
@@ -445,12 +490,14 @@ class TestSiteConfigDB:
         assert "identity" in item
         assert "locale" in item
         assert "features" in item
+        assert "session" in item
 
         # Check serialization
         assert isinstance(item["created_at"], str)  # datetime as ISO string
         assert isinstance(item["identity"]["site_url"], str)  # HttpUrl as string
         assert item["features"]["odd_type"] == "decimal"  # Enum as value
         assert item["locale"]["currency"] == "USD"
+        assert item["session"]["inactivity_threshold_minutes"] == 30  # Default value
 
         # Check nested structures
         assert "integrations" in item
