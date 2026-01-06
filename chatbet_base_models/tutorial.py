@@ -2,8 +2,12 @@
 Tutorial models for client video tutorials management
 """
 
-from pydantic import BaseModel, Field
-from typing import List, Optional
+from __future__ import annotations
+
+from datetime import datetime, timezone
+from pydantic import BaseModel, Field, field_validator, model_validator, ConfigDict
+from typing import Any, List, Optional
+from uuid import uuid4
 
 
 class TutorialItemDB(BaseModel):
@@ -31,35 +35,142 @@ class TutorialItemDB(BaseModel):
         }
 
 
-class TutorialsDB(BaseModel):
-    """Complete DynamoDB item for client tutorials"""
+# ===========================
+# Main Configuration - Array Container
+# ===========================
+class Tutorials(BaseModel):
+    """Configuration containing an array of tutorials (without DynamoDB keys)"""
 
-    PK: str
-    SK: str
-    tutorials: List[TutorialItemDB]
-    created_at: Optional[str] = None
-    updated_at: Optional[str] = None
+    model_config = ConfigDict(extra="forbid")
 
-    class Config:
-        schema_extra = {
-            "example": {
-                "PK": "company#betvip",
-                "SK": "tutorials",
-                "tutorials": [
-                    {
-                        "tutorial_id": "abc-123",
-                        "s3_key": "betvip/tutorials/como-apostar.mp4",
-                        "title": "Cómo Apostar",
-                        "file_name": "como-apostar.mp4",
-                        "file_size": 15728640,
-                        "file_type": "video/mp4",
-                        "uploaded_at": "2026-01-05T14:30:00Z",
-                    }
-                ],
-                "created_at": "2026-01-05T14:30:00Z",
-                "updated_at": "2026-01-05T14:30:00Z",
-            }
-        }
+    tutorials: List[TutorialItemDB] = Field(
+        default_factory=list,
+        description="List of all tutorial videos",
+    )
+
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    # Array-level validation
+    @field_validator("tutorials")
+    @classmethod
+    def _validate_tutorials(cls, v: List[TutorialItemDB]) -> List[TutorialItemDB]:
+        """Validate tutorials array"""
+        if len(v) > 100:
+            raise ValueError("Maximum 100 tutorials allowed")
+
+        # Check for duplicate tutorial_ids
+        ids = [t.tutorial_id for t in v]
+        if len(ids) != len(set(ids)):
+            raise ValueError("Duplicate tutorial_id found in tutorials array")
+
+        return v
+
+    # Factory method
+    @classmethod
+    def from_minimal(cls) -> "Tutorials":
+        """Create an empty tutorials config"""
+        now = datetime.now(timezone.utc)
+        return cls(
+            tutorials=[],
+            created_at=now,
+            updated_at=now,
+        )
+
+    # Utility methods
+    def touch(self) -> None:
+        """Update the updated_at timestamp"""
+        self.updated_at = datetime.now(timezone.utc)
+
+    def add_tutorial(
+        self,
+        *,
+        s3_key: str,
+        title: str,
+        file_name: str,
+        file_size: int,
+        file_type: str,
+        tutorial_id: Optional[str] = None,
+        uploaded_at: Optional[str] = None,
+    ) -> TutorialItemDB:
+        """Add a new tutorial to the array"""
+        tutorial = TutorialItemDB(
+            tutorial_id=tutorial_id or str(uuid4()),
+            s3_key=s3_key,
+            title=title,
+            file_name=file_name,
+            file_size=file_size,
+            file_type=file_type,
+            uploaded_at=uploaded_at or datetime.now(timezone.utc).isoformat(),
+        )
+        self.tutorials.append(tutorial)
+        self.touch()
+        return tutorial
+
+    def remove_tutorial(self, tutorial_id: str) -> bool:
+        """Remove a tutorial by ID. Returns True if found and removed."""
+        for i, tutorial in enumerate(self.tutorials):
+            if tutorial.tutorial_id == tutorial_id:
+                self.tutorials.pop(i)
+                self.touch()
+                return True
+        return False
+
+    def get_tutorial(self, tutorial_id: str) -> Optional[TutorialItemDB]:
+        """Get a tutorial by ID"""
+        for tutorial in self.tutorials:
+            if tutorial.tutorial_id == tutorial_id:
+                return tutorial
+        return None
+
+    def to_dynamodb_item(self, *, drop_none: bool = True) -> dict:
+        """Serialize to DynamoDB-compatible dict"""
+        from enum import Enum
+
+        def ser(x: Any) -> Any:
+            if isinstance(x, datetime):
+                return x.isoformat()
+            if isinstance(x, Enum):
+                return x.value
+            if isinstance(x, dict):
+                out = {k: ser(v) for k, v in x.items()}
+                return {k: v for k, v in out.items() if not (drop_none and v is None)}
+            if isinstance(x, list):
+                return [ser(v) for v in x]
+            if hasattr(x, "model_dump"):
+                return ser(x.model_dump())
+            return x  # primitives
+
+        return ser(self.model_dump())
+
+
+# ===========================
+# DynamoDB Variant
+# ===========================
+class TutorialsDB(Tutorials):
+    """DynamoDB variant with PK/SK"""
+
+    PK: Optional[str] = Field(default=None, description="Partition key")
+    SK: Optional[str] = Field(default=None, description="Sort key")
+
+    @classmethod
+    def from_minimal(cls, company_id: str) -> "TutorialsDB":
+        """Create an empty tutorials config for a company"""
+        base = Tutorials.from_minimal()
+        return cls(
+            **base.model_dump(),
+            PK=f"company#{company_id}",
+            SK="tutorials",
+        )
+
+    @model_validator(mode="after")
+    def _ensure_keys(self) -> "TutorialsDB":
+        """Ensure PK and SK are set"""
+        if not self.PK or not self.SK:
+            raise ValueError("PK and SK are required for TutorialsDB")
+        return self
+
+    # Inherits all utility methods from Tutorials
 
 
 class TutorialVideo(BaseModel):
