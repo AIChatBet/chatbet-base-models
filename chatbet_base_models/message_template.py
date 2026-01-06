@@ -242,12 +242,6 @@ class RegistrationMessages(BaseModel):
 class MenuMessages(BaseModel):
     model_config = ConfigDict(extra="forbid")
     main_menu: Optional[MessageItem] = None
-    support: Optional[MessageItem] = None
-    withdrawal: Optional[MessageItem] = None
-    balance: Optional[MessageItem] = None
-    results: Optional[MessageItem] = None
-    deposit: Optional[MessageItem] = None
-    show_links: Optional[MessageItem] = None  # renders quick links/buttons
 
     @field_validator("main_menu")
     @classmethod
@@ -256,16 +250,7 @@ class MenuMessages(BaseModel):
 
     @classmethod
     def model_validate(cls, obj):
-        # Soft aliases for legacy keys
         if isinstance(obj, dict):
-            if "support_message" in obj and "support" not in obj:
-                obj["support"] = obj.pop("support_message")
-            if "withdrawal_message" in obj and "withdrawal" not in obj:
-                obj["withdrawal"] = obj.pop("withdrawal_message")
-            if "deposit_message" in obj and "deposit" not in obj:
-                obj["deposit"] = obj.pop("deposit_message")
-            if "show_links_message" in obj and "show_links" not in obj:
-                obj["show_links"] = obj.pop("show_links_message")
             obj = {k: MessageItem._coerce(v) for k, v in obj.items()}
         return super().model_validate(obj)
 
@@ -830,23 +815,6 @@ class MessageTemplates(BaseModel):
                                     text="Show links", callback_data="show_links"
                                 )
                             ],
-                        ]
-                    ),
-                ),
-                support=MessageItem(text="Support options"),
-                withdrawal=MessageItem(text="Withdrawal options"),
-                balance=MessageItem(text="Your balance"),
-                results=MessageItem(text="Latest results"),
-                deposit=MessageItem(text="Deposit options"),
-                show_links=MessageItem(
-                    text="Quick links",
-                    reply_markup=InlineKeyboardMarkup(
-                        inline_keyboard=[
-                            [
-                                InlineKeyboardButton(
-                                    text="Help", url="https://example.com/help"
-                                )
-                            ]
                         ]
                     ),
                 ),

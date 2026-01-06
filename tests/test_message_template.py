@@ -163,33 +163,9 @@ class TestMenuMessages:
                         [InlineKeyboardButton(text="Bet", callback_data="bet")]
                     ]
                 )
-            ), 
-            support=MessageItem(text="Support")
+            )
         )
         assert menu.main_menu.text == "Main Menu"
-        assert menu.support.text == "Support"
-
-    def test_legacy_key_aliases(self):
-        data = {
-            "main_menu": {
-                "text": "Main Menu",
-                "reply_markup": {
-                    "inline_keyboard": [
-                        [{"text": "Bet", "callback_data": "bet"}]
-                    ]
-                }
-            },
-            "support_message": "Support Help",
-            "withdrawal_message": "Withdraw Funds",
-            "deposit_message": "Deposit Money",
-            "show_links_message": "Quick Links",
-        }
-        menu = MenuMessages.model_validate(data)
-        assert menu.main_menu.text == "Main Menu"
-        assert menu.support.text == "Support Help"
-        assert menu.withdrawal.text == "Withdraw Funds"
-        assert menu.deposit.text == "Deposit Money"
-        assert menu.show_links.text == "Quick Links"
 
 
 class TestBetsMessages:
