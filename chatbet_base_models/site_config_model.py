@@ -84,6 +84,17 @@ class TestConfig(BaseModel):
     user_key: Optional[str] = None
 
 
+class SessionConfig(BaseModel):
+    """Configuration for user session management"""
+
+    model_config = ConfigDict(extra="forbid")
+    inactivity_threshold_minutes: int = Field(
+        default=30,
+        gt=0,
+        description="User inactivity threshold in minutes",
+    )
+
+
 # ==========================="
 # Integrations
 # ==========================="
@@ -307,6 +318,9 @@ class SiteConfig(BaseModel):
         default_factory=lambda: TestConfig(
             phone_number="", email="", otp="123456", user_key="testuser"
         )
+    )
+    session: SessionConfig = Field(
+        default_factory=SessionConfig, description="Session configuration settings"
     )
     integrations: Integrations = Field(
         default_factory=lambda: Integrations(

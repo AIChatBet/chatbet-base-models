@@ -26,6 +26,8 @@ from .message_template import (
     GuidanceMessages,
     MessageTemplates,
     MessageTemplatesDB,
+    LinkItem,
+    LinksMessages,
 )
 
 # Platform Endpoints
@@ -53,6 +55,7 @@ from .site_config_model import (
     AliasProbabilities,
     MoneyLimits,
     TestConfig,
+    SessionConfig,
     WhatsAppProvider,
     MeilisearchIndexPaths,
     MeilisearchConfig,
@@ -93,6 +96,16 @@ from .promotion_config import (
     PromotionsConfigDB,
 )
 
+# Tutorial
+from .tutorial import (
+    TutorialItemDB,
+    TutorialsDB,
+    TutorialVideo,
+    GetTutorialVideosResponse,
+    UploadTutorialVideoResponse,
+    DeleteTutorialVideoResponse,
+)
+
 __all__ = [
     # Version
     "__version__",
@@ -113,6 +126,8 @@ __all__ = [
     "GuidanceMessages",
     "MessageTemplates",
     "MessageTemplatesDB",
+    "LinkItem",
+    "LinksMessages",
     # Platform Endpoints
     "HTTPMethod",
     "Endpoint",
@@ -134,6 +149,7 @@ __all__ = [
     "AliasProbabilities",
     "MoneyLimits",
     "TestConfig",
+    "SessionConfig",
     "WhatsAppProvider",
     "MeilisearchIndexPaths",
     "MeilisearchConfig",
@@ -166,4 +182,11 @@ __all__ = [
     "PromotionItem",
     "PromotionsConfig",
     "PromotionsConfigDB",
+    # Tutorial
+    "TutorialItemDB",
+    "TutorialsDB",
+    "TutorialVideo",
+    "GetTutorialVideosResponse",
+    "UploadTutorialVideoResponse",
+    "DeleteTutorialVideoResponse",
 ]

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import re
-from typing import Dict, List, Literal, Optional, Any, Sequence
+from typing import Dict, List, Literal, Optional, Any, Sequence, Set
 from enum import Enum
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator, field_validator
@@ -242,12 +242,6 @@ class RegistrationMessages(BaseModel):
 class MenuMessages(BaseModel):
     model_config = ConfigDict(extra="forbid")
     main_menu: Optional[MessageItem] = None
-    support: Optional[MessageItem] = None
-    withdrawal: Optional[MessageItem] = None
-    balance: Optional[MessageItem] = None
-    results: Optional[MessageItem] = None
-    deposit: Optional[MessageItem] = None
-    show_links: Optional[MessageItem] = None  # renders quick links/buttons
 
     @field_validator("main_menu")
     @classmethod
@@ -256,16 +250,7 @@ class MenuMessages(BaseModel):
 
     @classmethod
     def model_validate(cls, obj):
-        # Soft aliases for legacy keys
         if isinstance(obj, dict):
-            if "support_message" in obj and "support" not in obj:
-                obj["support"] = obj.pop("support_message")
-            if "withdrawal_message" in obj and "withdrawal" not in obj:
-                obj["withdrawal"] = obj.pop("withdrawal_message")
-            if "deposit_message" in obj and "deposit" not in obj:
-                obj["deposit"] = obj.pop("deposit_message")
-            if "show_links_message" in obj and "show_links" not in obj:
-                obj["show_links"] = obj.pop("show_links_message")
             obj = {k: MessageItem._coerce(v) for k, v in obj.items()}
         return super().model_validate(obj)
 
@@ -559,6 +544,149 @@ class GuidanceMessages(BaseModel):
 
 
 # ==================
+# Links Configuration - Default Values
+# ==================
+DEFAULT_LINKS: List[Dict[str, str]] = [
+    {
+        "title": "Support",
+        "message_text": "Contact our support team for assistance.",
+        "button_label": "Get Support",
+        "button_url": "https://example.com/support"
+    },
+    {
+        "title": "Main site",
+        "message_text": "Visit our main website for more information.",
+        "button_label": "Go to Main Site",
+        "button_url": "https://example.com"
+    },
+    {
+        "title": "Sign up",
+        "message_text": "Create an account to get started.",
+        "button_label": "Sign Up Now",
+        "button_url": "https://example.com/signup"
+    },
+    {
+        "title": "Withdrawal",
+        "message_text": "Easily withdraw your funds anytime.",
+        "button_label": "Withdraw Funds",
+        "button_url": "https://example.com/withdrawal"
+    },
+    {
+        "title": "Deposit",
+        "message_text": "Deposit funds securely into your account.",
+        "button_label": "Deposit Now",
+        "button_url": "https://example.com/deposit"
+    },
+    {
+        "title": "Bet results",
+        "message_text": "Check your latest bet results here.",
+        "button_label": "View Results",
+        "button_url": "https://example.com/bet-results"
+    }
+]
+
+# Required link titles (case-insensitive comparison)
+REQUIRED_LINK_TITLES: Set[str] = {
+    "support",
+    "main site",
+    "sign up",
+    "withdrawal",
+    "deposit",
+    "bet results"
+}
+
+
+# ==================
+# Links Configuration
+# ==================
+class LinkItem(BaseModel):
+    """Individual link item with button"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    title: str = Field(min_length=1, max_length=200)
+    message_text: str = Field(min_length=1, max_length=5000)
+    button_label: str = Field(min_length=1, max_length=100)
+    button_url: str = Field(min_length=1, max_length=2000)
+
+    @field_validator("title")
+    @classmethod
+    def _validate_title(cls, v: str) -> str:
+        cleaned = v.strip()
+        if not cleaned:
+            raise ValueError("Title cannot be empty or only whitespace")
+        return cleaned
+
+    @field_validator("message_text", "button_label")
+    @classmethod
+    def _validate_text_fields(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("Field cannot be empty or only whitespace")
+        return v
+
+    @field_validator("button_url")
+    @classmethod
+    def _validate_button_url(cls, v: str) -> str:
+        cleaned = v.strip()
+        if not cleaned:
+            raise ValueError("button_url cannot be empty or only whitespace")
+        if not cleaned.startswith(("http://", "https://")):
+            raise ValueError("button_url must start with http:// or https://")
+        return cleaned
+
+
+class LinksMessages(BaseModel):
+    """Container for link items"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    links: List[LinkItem] = Field(
+        default_factory=lambda: [LinkItem(**link) for link in DEFAULT_LINKS],
+        description="List of all link items (6 required defaults + optional additional links)",
+    )
+
+    @field_validator("links")
+    @classmethod
+    def _validate_links(cls, v: List[LinkItem]) -> List[LinkItem]:
+        if len(v) > 100:
+            raise ValueError("Maximum 100 links allowed")
+
+        # Check for duplicate titles (case-insensitive)
+        titles_lower = [link.title.lower() for link in v]
+        if len(titles_lower) != len(set(titles_lower)):
+            raise ValueError("Duplicate link titles found. Titles must be unique (case-insensitive).")
+
+        return v
+
+    @model_validator(mode="after")
+    def _require_default_links(self) -> "LinksMessages":
+        """Ensure all 6 required default links are present.
+
+        Users can modify content but cannot delete required links.
+        Additional links beyond the required 6 are allowed.
+
+        Raises:
+            ValueError: If any required link titles are missing
+        """
+        # Extract titles from current links (case-insensitive)
+        current_titles_lower = {link.title.lower() for link in self.links}
+
+        # Check for missing required links
+        missing_titles = REQUIRED_LINK_TITLES - current_titles_lower
+
+        if missing_titles:
+            # Sort for consistent error messages
+            missing_sorted = sorted(missing_titles)
+            raise ValueError(
+                f"Missing required link titles: {missing_sorted}. "
+                f"Required links are: {sorted(REQUIRED_LINK_TITLES)}. "
+                f"You can modify their content but cannot delete them."
+            )
+
+        return self
+
+
+# ==================
 # Message Template (Core)
 # ==================
 class MessageTemplates(BaseModel):
@@ -574,6 +702,7 @@ class MessageTemplates(BaseModel):
     labels: Optional[LabelMessages] = None
     end: Optional[EndMessages] = None
     guidance: Optional[GuidanceMessages] = None
+    links: LinksMessages = Field(default_factory=LinksMessages)
 
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -686,23 +815,6 @@ class MessageTemplates(BaseModel):
                                     text="Show links", callback_data="show_links"
                                 )
                             ],
-                        ]
-                    ),
-                ),
-                support=MessageItem(text="Support options"),
-                withdrawal=MessageItem(text="Withdrawal options"),
-                balance=MessageItem(text="Your balance"),
-                results=MessageItem(text="Latest results"),
-                deposit=MessageItem(text="Deposit options"),
-                show_links=MessageItem(
-                    text="Quick links",
-                    reply_markup=InlineKeyboardMarkup(
-                        inline_keyboard=[
-                            [
-                                InlineKeyboardButton(
-                                    text="Help", url="https://example.com/help"
-                                )
-                            ]
                         ]
                     ),
                 ),
@@ -981,6 +1093,7 @@ class MessageTemplates(BaseModel):
                 invalid_input_text=MessageItem(text="Please check your input ⚠️"),
                 invalid_input_response=MessageItem(text="Invalid input, try again."),
             ),
+            links=LinksMessages(),  # Will use default_factory to populate default links
         )
 
     # ---------- utilidades ----------
