@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import re
-from typing import Dict, List, Literal, Optional, Any, Sequence
+from typing import Dict, List, Literal, Optional, Any, Sequence, Set
 from enum import Enum
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator, field_validator
@@ -559,6 +559,59 @@ class GuidanceMessages(BaseModel):
 
 
 # ==================
+# Links Configuration - Default Values
+# ==================
+DEFAULT_LINKS: List[Dict[str, str]] = [
+    {
+        "title": "Support",
+        "message_text": "Contact our support team for assistance.",
+        "button_label": "Get Support",
+        "button_url": "https://example.com/support"
+    },
+    {
+        "title": "Main site",
+        "message_text": "Visit our main website for more information.",
+        "button_label": "Go to Main Site",
+        "button_url": "https://example.com"
+    },
+    {
+        "title": "Sign up",
+        "message_text": "Create an account to get started.",
+        "button_label": "Sign Up Now",
+        "button_url": "https://example.com/signup"
+    },
+    {
+        "title": "Withdrawal",
+        "message_text": "Easily withdraw your funds anytime.",
+        "button_label": "Withdraw Funds",
+        "button_url": "https://example.com/withdrawal"
+    },
+    {
+        "title": "Deposit",
+        "message_text": "Deposit funds securely into your account.",
+        "button_label": "Deposit Now",
+        "button_url": "https://example.com/deposit"
+    },
+    {
+        "title": "Bet results",
+        "message_text": "Check your latest bet results here.",
+        "button_label": "View Results",
+        "button_url": "https://example.com/bet-results"
+    }
+]
+
+# Required link titles (case-insensitive comparison)
+REQUIRED_LINK_TITLES: Set[str] = {
+    "support",
+    "main site",
+    "sign up",
+    "withdrawal",
+    "deposit",
+    "bet results"
+}
+
+
+# ==================
 # Links Configuration
 # ==================
 class LinkItem(BaseModel):
@@ -603,8 +656,8 @@ class LinksMessages(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     links: List[LinkItem] = Field(
-        default_factory=list,
-        description="List of all link items",
+        default_factory=lambda: [LinkItem(**link) for link in DEFAULT_LINKS],
+        description="List of all link items (6 required defaults + optional additional links)",
     )
 
     @field_validator("links")
@@ -619,6 +672,33 @@ class LinksMessages(BaseModel):
             raise ValueError("Duplicate link titles found. Titles must be unique (case-insensitive).")
 
         return v
+
+    @model_validator(mode="after")
+    def _require_default_links(self) -> "LinksMessages":
+        """Ensure all 6 required default links are present.
+
+        Users can modify content but cannot delete required links.
+        Additional links beyond the required 6 are allowed.
+
+        Raises:
+            ValueError: If any required link titles are missing
+        """
+        # Extract titles from current links (case-insensitive)
+        current_titles_lower = {link.title.lower() for link in self.links}
+
+        # Check for missing required links
+        missing_titles = REQUIRED_LINK_TITLES - current_titles_lower
+
+        if missing_titles:
+            # Sort for consistent error messages
+            missing_sorted = sorted(missing_titles)
+            raise ValueError(
+                f"Missing required link titles: {missing_sorted}. "
+                f"Required links are: {sorted(REQUIRED_LINK_TITLES)}. "
+                f"You can modify their content but cannot delete them."
+            )
+
+        return self
 
 
 # ==================
@@ -637,7 +717,7 @@ class MessageTemplates(BaseModel):
     labels: Optional[LabelMessages] = None
     end: Optional[EndMessages] = None
     guidance: Optional[GuidanceMessages] = None
-    links: LinksMessages = Field(default_factory=lambda: LinksMessages(links=[]))
+    links: LinksMessages = Field(default_factory=LinksMessages)
 
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -1045,7 +1125,7 @@ class MessageTemplates(BaseModel):
                 invalid_input_text=MessageItem(text="Please check your input ⚠️"),
                 invalid_input_response=MessageItem(text="Invalid input, try again."),
             ),
-            links=LinksMessages(links=[]),
+            links=LinksMessages(),  # Will use default_factory to populate default links
         )
 
     # ---------- utilidades ----------
