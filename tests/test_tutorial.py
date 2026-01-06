@@ -1,4 +1,5 @@
 import pytest
+from datetime import datetime, timezone
 
 from chatbet_base_models.tutorial import (
     TutorialItemDB,
@@ -70,6 +71,9 @@ class TestTutorialsDB:
 
     def test_create_tutorials_db_with_all_fields(self):
         """Test creating TutorialsDB with all fields"""
+        # Create datetime object for testing
+        test_time = datetime(2026, 1, 5, 14, 30, tzinfo=timezone.utc)
+
         tutorials = [
             TutorialItemDB(
                 tutorial_id="abc-123",
@@ -85,15 +89,17 @@ class TestTutorialsDB:
             PK="company#betvip",
             SK="tutorials",
             tutorials=tutorials,
-            created_at="2026-01-05T14:30:00Z",
-            updated_at="2026-01-05T14:30:00Z",
+            created_at=test_time,
+            updated_at=test_time,
         )
         assert db_item.PK == "company#betvip"
         assert db_item.SK == "tutorials"
         assert len(db_item.tutorials) == 1
         assert db_item.tutorials[0].tutorial_id == "abc-123"
-        assert db_item.created_at == "2026-01-05T14:30:00Z"
-        assert db_item.updated_at == "2026-01-05T14:30:00Z"
+        assert db_item.created_at == test_time
+        assert db_item.updated_at == test_time
+        assert isinstance(db_item.created_at, datetime)
+        assert isinstance(db_item.updated_at, datetime)
 
     def test_create_tutorials_db_with_minimal_fields(self):
         """Test creating TutorialsDB with minimal required fields"""
@@ -105,8 +111,11 @@ class TestTutorialsDB:
         assert db_item.PK == "company#testclient"
         assert db_item.SK == "tutorials"
         assert len(db_item.tutorials) == 0
-        assert db_item.created_at is None
-        assert db_item.updated_at is None
+        # Fields have default_factory, so they will be auto-populated
+        assert isinstance(db_item.created_at, datetime)
+        assert isinstance(db_item.updated_at, datetime)
+        assert db_item.created_at <= datetime.now(timezone.utc)
+        assert db_item.updated_at <= datetime.now(timezone.utc)
 
     def test_tutorials_db_with_multiple_tutorials(self):
         """Test TutorialsDB with multiple tutorial items"""
@@ -177,6 +186,9 @@ class TestTutorialsDB:
 
     def test_tutorials_db_model_dump(self):
         """Test dumping TutorialsDB to dictionary"""
+        # Create datetime object for testing
+        test_time = datetime(2026, 1, 5, 12, 0, tzinfo=timezone.utc)
+
         tutorials = [
             TutorialItemDB(
                 tutorial_id="test-123",
@@ -192,14 +204,16 @@ class TestTutorialsDB:
             PK="company#test",
             SK="tutorials",
             tutorials=tutorials,
-            created_at="2026-01-05T12:00:00Z",
-            updated_at="2026-01-05T12:00:00Z",
+            created_at=test_time,  # Pass datetime object
+            updated_at=test_time,  # Pass datetime object
         )
         data = db_item.model_dump()
         assert data["PK"] == "company#test"
         assert data["SK"] == "tutorials"
         assert len(data["tutorials"]) == 1
-        assert data["created_at"] == "2026-01-05T12:00:00Z"
+        # model_dump() returns datetime objects, not strings
+        assert data["created_at"] == test_time
+        assert isinstance(data["created_at"], datetime)
 
 
 class TestTutorialVideo:
