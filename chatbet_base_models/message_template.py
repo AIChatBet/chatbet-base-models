@@ -242,6 +242,7 @@ class RegistrationMessages(BaseModel):
 class MenuMessages(BaseModel):
     model_config = ConfigDict(extra="forbid")
     main_menu: Optional[MessageItem] = None
+    balance: Optional[MessageItem] = None
 
     @field_validator("main_menu")
     @classmethod
@@ -551,38 +552,38 @@ DEFAULT_LINKS: List[Dict[str, str]] = [
         "title": "Support",
         "message_text": "Contact our support team for assistance.",
         "button_label": "Get Support",
-        "button_url": "https://example.com/support"
+        "button_url": "https://example.com/support",
     },
     {
         "title": "Main site",
         "message_text": "Visit our main website for more information.",
         "button_label": "Go to Main Site",
-        "button_url": "https://example.com"
+        "button_url": "https://example.com",
     },
     {
         "title": "Sign up",
         "message_text": "Create an account to get started.",
         "button_label": "Sign Up Now",
-        "button_url": "https://example.com/signup"
+        "button_url": "https://example.com/signup",
     },
     {
         "title": "Withdrawal",
         "message_text": "Easily withdraw your funds anytime.",
         "button_label": "Withdraw Funds",
-        "button_url": "https://example.com/withdrawal"
+        "button_url": "https://example.com/withdrawal",
     },
     {
         "title": "Deposit",
         "message_text": "Deposit funds securely into your account.",
         "button_label": "Deposit Now",
-        "button_url": "https://example.com/deposit"
+        "button_url": "https://example.com/deposit",
     },
     {
         "title": "Bet results",
         "message_text": "Check your latest bet results here.",
         "button_label": "View Results",
-        "button_url": "https://example.com/bet-results"
-    }
+        "button_url": "https://example.com/bet-results",
+    },
 ]
 
 # Required link titles (case-insensitive comparison)
@@ -592,7 +593,7 @@ REQUIRED_LINK_TITLES: Set[str] = {
     "sign up",
     "withdrawal",
     "deposit",
-    "bet results"
+    "bet results",
 }
 
 
@@ -654,7 +655,9 @@ class LinksMessages(BaseModel):
         # Check for duplicate titles (case-insensitive)
         titles_lower = [link.title.lower() for link in v]
         if len(titles_lower) != len(set(titles_lower)):
-            raise ValueError("Duplicate link titles found. Titles must be unique (case-insensitive).")
+            raise ValueError(
+                "Duplicate link titles found. Titles must be unique (case-insensitive)."
+            )
 
         return v
 
