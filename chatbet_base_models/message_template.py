@@ -688,6 +688,76 @@ class LinksMessages(BaseModel):
 
         return self
 
+    def _get_link_by_title(self, title: str) -> LinkItem:
+        """Get a link by title (case-insensitive lookup).
+
+        Args:
+            title: The title of the link to retrieve
+
+        Returns:
+            LinkItem: The matching link item
+
+        Raises:
+            ValueError: If link with given title is not found
+        """
+        for link in self.links:
+            if link.title.lower() == title.lower():
+                return link
+
+        available_titles = [link.title for link in self.links]
+        raise ValueError(
+            f"Link with title '{title}' not found. "
+            f"Available links: {available_titles}"
+        )
+
+    def get_support_link(self) -> LinkItem:
+        """Retrieve the Support link.
+
+        Returns:
+            LinkItem: The Support link item
+        """
+        return self._get_link_by_title("Support")
+
+    def get_main_site_link(self) -> LinkItem:
+        """Retrieve the Main site link.
+
+        Returns:
+            LinkItem: The Main site link item
+        """
+        return self._get_link_by_title("Main site")
+
+    def get_sign_up_link(self) -> LinkItem:
+        """Retrieve the Sign up link.
+
+        Returns:
+            LinkItem: The Sign up link item
+        """
+        return self._get_link_by_title("Sign up")
+
+    def get_withdrawal_link(self) -> LinkItem:
+        """Retrieve the Withdrawal link.
+
+        Returns:
+            LinkItem: The Withdrawal link item
+        """
+        return self._get_link_by_title("Withdrawal")
+
+    def get_deposit_link(self) -> LinkItem:
+        """Retrieve the Deposit link.
+
+        Returns:
+            LinkItem: The Deposit link item
+        """
+        return self._get_link_by_title("Deposit")
+
+    def get_bet_results_link(self) -> LinkItem:
+        """Retrieve the Bet results link.
+
+        Returns:
+            LinkItem: The Bet results link item
+        """
+        return self._get_link_by_title("Bet results")
+
 
 # ==================
 # Message Template (Core)

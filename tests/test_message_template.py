@@ -805,6 +805,134 @@ class TestLinksMessagesDefaultLinks:
             LinksMessages(links=links_items)
 
 
+class TestLinksMessagesHelperMethods:
+    """Test helper methods for accessing default links"""
+
+    def test_get_support_link(self):
+        """Test retrieving support link by helper method"""
+        links = LinksMessages()
+        support = links.get_support_link()
+
+        assert isinstance(support, LinkItem)
+        assert support.title == "Support"
+        assert support.message_text
+        assert support.button_label
+        assert support.button_url
+
+    def test_get_main_site_link(self):
+        """Test retrieving main site link by helper method"""
+        links = LinksMessages()
+        main_site = links.get_main_site_link()
+
+        assert isinstance(main_site, LinkItem)
+        assert main_site.title == "Main site"
+        assert main_site.message_text
+        assert main_site.button_label
+        assert main_site.button_url
+
+    def test_get_sign_up_link(self):
+        """Test retrieving sign up link by helper method"""
+        links = LinksMessages()
+        sign_up = links.get_sign_up_link()
+
+        assert isinstance(sign_up, LinkItem)
+        assert sign_up.title == "Sign up"
+        assert sign_up.message_text
+        assert sign_up.button_label
+        assert sign_up.button_url
+
+    def test_get_withdrawal_link(self):
+        """Test retrieving withdrawal link by helper method"""
+        links = LinksMessages()
+        withdrawal = links.get_withdrawal_link()
+
+        assert isinstance(withdrawal, LinkItem)
+        assert withdrawal.title == "Withdrawal"
+        assert withdrawal.message_text
+        assert withdrawal.button_label
+        assert withdrawal.button_url
+
+    def test_get_deposit_link(self):
+        """Test retrieving deposit link by helper method"""
+        links = LinksMessages()
+        deposit = links.get_deposit_link()
+
+        assert isinstance(deposit, LinkItem)
+        assert deposit.title == "Deposit"
+        assert deposit.message_text
+        assert deposit.button_label
+        assert deposit.button_url
+
+    def test_get_bet_results_link(self):
+        """Test retrieving bet results link by helper method"""
+        links = LinksMessages()
+        bet_results = links.get_bet_results_link()
+
+        assert isinstance(bet_results, LinkItem)
+        assert bet_results.title == "Bet results"
+        assert bet_results.message_text
+        assert bet_results.button_label
+        assert bet_results.button_url
+
+    def test_helper_methods_return_correct_links(self):
+        """Test that all helper methods return the correct links"""
+        links = LinksMessages()
+
+        assert links.get_support_link().title == "Support"
+        assert links.get_main_site_link().title == "Main site"
+        assert links.get_sign_up_link().title == "Sign up"
+        assert links.get_withdrawal_link().title == "Withdrawal"
+        assert links.get_deposit_link().title == "Deposit"
+        assert links.get_bet_results_link().title == "Bet results"
+
+    def test_helper_methods_with_modified_content(self):
+        """Verify methods work when link content is modified"""
+        links = LinksMessages()
+
+        # Modify support link content
+        for link in links.links:
+            if link.title == "Support":
+                link.button_url = "https://custom.com/support"
+
+        support = links.get_support_link()
+        assert support.button_url == "https://custom.com/support"
+
+    def test_get_link_by_title_case_insensitive(self):
+        """Verify the generic helper is case-insensitive"""
+        links = LinksMessages()
+
+        # Should work with different casing
+        support1 = links._get_link_by_title("Support")
+        support2 = links._get_link_by_title("support")
+        support3 = links._get_link_by_title("SUPPORT")
+
+        assert support1.title == support2.title == support3.title
+
+    def test_helper_methods_with_additional_links(self):
+        """Verify methods work when additional custom links present"""
+        custom_link = LinkItem(
+            title="Custom Link",
+            message_text="Custom message",
+            button_label="Custom",
+            button_url="https://custom.com"
+        )
+
+        # Create links with default links plus custom
+        default_link_items = [LinkItem(**link) for link in DEFAULT_LINKS]
+        links = LinksMessages(links=default_link_items + [custom_link])
+
+        # Should still find default links
+        assert links.get_support_link().title == "Support"
+        assert len(links.links) == 7  # 6 default + 1 custom
+
+    def test_get_link_by_title_not_found_raises_error(self):
+        """Verify clear error when link not found"""
+        links = LinksMessages()
+
+        with pytest.raises(ValueError, match="Link with title 'Nonexistent' not found"):
+            links._get_link_by_title("Nonexistent")
+
+
 class TestMessageTemplatesDefaultLinks:
     """Test MessageTemplates integration with default links"""
 
