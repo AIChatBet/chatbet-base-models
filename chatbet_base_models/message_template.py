@@ -584,6 +584,12 @@ DEFAULT_LINKS: List[Dict[str, str]] = [
         "button_label": "View Results",
         "button_url": "https://example.com/bet-results",
     },
+    {
+        "title": "Balance",
+        "message_text": "Check your current account balance.",
+        "button_label": "View Balance",
+        "button_url": "https://example.com/balance",
+    },
 ]
 
 # Required link titles (case-insensitive comparison)
@@ -594,6 +600,7 @@ REQUIRED_LINK_TITLES: Set[str] = {
     "withdrawal",
     "deposit",
     "bet results",
+    "balance",
 }
 
 
@@ -757,6 +764,14 @@ class LinksMessages(BaseModel):
             LinkItem: The Bet results link item
         """
         return self._get_link_by_title("Bet results")
+
+    def get_balance_link(self) -> LinkItem:
+        """Retrieve the Balance link.
+
+        Returns:
+            LinkItem: The Balance link item
+        """
+        return self._get_link_by_title("Balance")
 
 
 # ==================

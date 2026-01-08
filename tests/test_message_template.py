@@ -475,12 +475,12 @@ class TestLinksMessages:
     def test_create_empty_links_messages(self):
         """Test creating links messages with defaults"""
         links = LinksMessages()
-        # Now includes 6 default links instead of empty array
-        assert len(links.links) == 6
+        # Now includes 7 default links instead of empty array
+        assert len(links.links) == 7
 
     def test_create_links_messages_with_items(self):
         """Test creating links messages with items including required defaults"""
-        # Must include all 6 required links
+        # Must include all 7 required links
         required_links = [LinkItem(**link) for link in DEFAULT_LINKS]
 
         # Add custom links
@@ -492,7 +492,7 @@ class TestLinksMessages:
         )
 
         links = LinksMessages(links=required_links + [custom_link])
-        assert len(links.links) == 7  # 6 required + 1 custom
+        assert len(links.links) == 8  # 7 required + 1 custom
         assert any(link.title == "Help" for link in links.links)
         assert any(link.title == "Support" for link in links.links)  # From required defaults
 
@@ -548,11 +548,11 @@ class TestLinksMessages:
             LinksMessages(links=links_items)
 
     def test_100_links_is_valid(self):
-        """Test that exactly 100 links is valid (6 required + 94 custom)"""
-        # Include 6 required links
+        """Test that exactly 100 links is valid (7 required + 93 custom)"""
+        # Include 7 required links
         required_links = [LinkItem(**link) for link in DEFAULT_LINKS]
 
-        # Add 94 custom links (6 + 94 = 100)
+        # Add 93 custom links (7 + 93 = 100)
         custom_links = [
             LinkItem(
                 title=f"Link{i}",
@@ -560,7 +560,7 @@ class TestLinksMessages:
                 button_label=f"Label {i}",
                 button_url=f"https://example.com/{i}"
             )
-            for i in range(94)
+            for i in range(93)
         ]
 
         links = LinksMessages(links=required_links + custom_links)
@@ -579,13 +579,13 @@ class TestLinksMessagesDefaultLinks:
     """Test default links functionality and validation"""
 
     def test_default_links_present_on_initialization(self):
-        """Test that 6 default links are present when LinksMessages is created"""
+        """Test that 7 default links are present when LinksMessages is created"""
         links = LinksMessages()
-        assert len(links.links) == 6
+        assert len(links.links) == 7
 
         # Check all required titles are present
         titles = {link.title.lower() for link in links.links}
-        assert titles == {"support", "main site", "sign up", "withdrawal", "deposit", "bet results"}
+        assert titles == {"support", "main site", "sign up", "withdrawal", "deposit", "bet results", "balance"}
 
     def test_default_links_have_correct_structure(self):
         """Test that default links have all required fields"""
@@ -645,14 +645,15 @@ class TestLinksMessagesDefaultLinks:
             {"title": "sign up", "message_text": "Text", "button_label": "Label", "button_url": "https://example.com/signup"},
             {"title": "WithDrawal", "message_text": "Text", "button_label": "Label", "button_url": "https://example.com/withdrawal"},
             {"title": "deposit", "message_text": "Text", "button_label": "Label", "button_url": "https://example.com/deposit"},
-            {"title": "BET RESULTS", "message_text": "Text", "button_label": "Label", "button_url": "https://example.com/results"}
+            {"title": "BET RESULTS", "message_text": "Text", "button_label": "Label", "button_url": "https://example.com/results"},
+            {"title": "BALANCE", "message_text": "Text", "button_label": "Label", "button_url": "https://example.com/balance"}
         ]
 
         links_items = [LinkItem(**link_data) for link_data in links_data]
         links = LinksMessages(links=links_items)
 
         # Should not raise error
-        assert len(links.links) == 6
+        assert len(links.links) == 7
 
     def test_users_can_modify_default_link_content(self):
         """Test that users can modify message_text, button_label, button_url of default links"""
@@ -693,18 +694,24 @@ class TestLinksMessagesDefaultLinks:
                 message_text="Custom results message",
                 button_label="Custom Results Button",
                 button_url="https://custom.com/results"
+            ),
+            LinkItem(
+                title="Balance",
+                message_text="Custom balance message",
+                button_label="Custom Balance Button",
+                button_url="https://custom.com/balance"
             )
         ]
 
         links = LinksMessages(links=modified_links)
 
         # Should not raise error
-        assert len(links.links) == 6
+        assert len(links.links) == 7
         assert links.links[0].message_text == "Custom support message"
         assert links.links[0].button_url == "https://custom.com/support"
 
     def test_users_can_add_additional_links(self):
-        """Test that users can add links beyond the required 6"""
+        """Test that users can add links beyond the required 7"""
         # Start with default links
         links = LinksMessages()
 
@@ -719,7 +726,7 @@ class TestLinksMessagesDefaultLinks:
         all_links = links.links + [additional_link]
         links_with_extra = LinksMessages(links=all_links)
 
-        assert len(links_with_extra.links) == 7
+        assert len(links_with_extra.links) == 8
         assert any(link.title == "FAQ" for link in links_with_extra.links)
 
     def test_validation_allows_required_plus_additional_links(self):
@@ -732,6 +739,7 @@ class TestLinksMessagesDefaultLinks:
             {"title": "Withdrawal", "message_text": "Text", "button_label": "Label", "button_url": "https://example.com/withdrawal"},
             {"title": "Deposit", "message_text": "Text", "button_label": "Label", "button_url": "https://example.com/deposit"},
             {"title": "Bet results", "message_text": "Text", "button_label": "Label", "button_url": "https://example.com/results"},
+            {"title": "Balance", "message_text": "Text", "button_label": "Label", "button_url": "https://example.com/balance"},
             {"title": "FAQ", "message_text": "Text", "button_label": "Label", "button_url": "https://example.com/faq"},
             {"title": "Terms", "message_text": "Text", "button_label": "Label", "button_url": "https://example.com/terms"},
             {"title": "Privacy", "message_text": "Text", "button_label": "Label", "button_url": "https://example.com/privacy"}
@@ -740,7 +748,7 @@ class TestLinksMessagesDefaultLinks:
         links_items = [LinkItem(**link_data) for link_data in links_data]
         links = LinksMessages(links=links_items)
 
-        assert len(links.links) == 9
+        assert len(links.links) == 10
 
     def test_duplicate_title_validation_still_works(self):
         """Test that duplicate title validation works with default links"""
@@ -752,6 +760,7 @@ class TestLinksMessagesDefaultLinks:
             {"title": "Withdrawal", "message_text": "Text", "button_label": "Label", "button_url": "https://example.com/withdrawal"},
             {"title": "Deposit", "message_text": "Text", "button_label": "Label", "button_url": "https://example.com/deposit"},
             {"title": "Bet results", "message_text": "Text", "button_label": "Label", "button_url": "https://example.com/results"},
+            {"title": "Balance", "message_text": "Text", "button_label": "Label", "button_url": "https://example.com/balance"},
             {"title": "Support", "message_text": "Different text", "button_label": "Different", "button_url": "https://example.com/support2"}
         ]
 
@@ -762,7 +771,7 @@ class TestLinksMessagesDefaultLinks:
 
     def test_max_100_links_validation_still_works(self):
         """Test that max 100 links validation works with defaults"""
-        # Create 6 required + 95 additional = 101 total
+        # Create 7 required + 94 additional = 101 total
         required_links = [LinkItem(**link) for link in DEFAULT_LINKS]
         additional_links = [
             LinkItem(
@@ -771,7 +780,7 @@ class TestLinksMessagesDefaultLinks:
                 button_label=f"Label {i}",
                 button_url=f"https://example.com/extra{i}"
             )
-            for i in range(95)
+            for i in range(94)
         ]
 
         all_links = required_links + additional_links
@@ -874,6 +883,17 @@ class TestLinksMessagesHelperMethods:
         assert bet_results.button_label
         assert bet_results.button_url
 
+    def test_get_balance_link(self):
+        """Test retrieving balance link by helper method"""
+        links = LinksMessages()
+        balance = links.get_balance_link()
+
+        assert isinstance(balance, LinkItem)
+        assert balance.title == "Balance"
+        assert balance.message_text
+        assert balance.button_label
+        assert balance.button_url
+
     def test_helper_methods_return_correct_links(self):
         """Test that all helper methods return the correct links"""
         links = LinksMessages()
@@ -884,6 +904,7 @@ class TestLinksMessagesHelperMethods:
         assert links.get_withdrawal_link().title == "Withdrawal"
         assert links.get_deposit_link().title == "Deposit"
         assert links.get_bet_results_link().title == "Bet results"
+        assert links.get_balance_link().title == "Balance"
 
     def test_helper_methods_with_modified_content(self):
         """Verify methods work when link content is modified"""
@@ -923,7 +944,7 @@ class TestLinksMessagesHelperMethods:
 
         # Should still find default links
         assert links.get_support_link().title == "Support"
-        assert len(links.links) == 7  # 6 default + 1 custom
+        assert len(links.links) == 8  # 7 default + 1 custom
 
     def test_get_link_by_title_not_found_raises_error(self):
         """Verify clear error when link not found"""
@@ -937,11 +958,11 @@ class TestMessageTemplatesDefaultLinks:
     """Test MessageTemplates integration with default links"""
 
     def test_from_minimal_includes_default_links(self):
-        """Test that from_minimal includes 6 default links"""
+        """Test that from_minimal includes 7 default links"""
         templates = MessageTemplates.from_minimal()
 
         assert templates.links is not None
-        assert len(templates.links.links) == 6
+        assert len(templates.links.links) == 7
 
         # Check required titles are present
         titles = {link.title.lower() for link in templates.links.links}
@@ -951,13 +972,14 @@ class TestMessageTemplatesDefaultLinks:
         assert "withdrawal" in titles
         assert "deposit" in titles
         assert "bet results" in titles
+        assert "balance" in titles
 
     def test_message_templates_db_from_minimal_includes_default_links(self):
         """Test that MessageTemplatesDB.from_minimal includes default links"""
         templates_db = MessageTemplatesDB.from_minimal("test_company")
 
         assert templates_db.links is not None
-        assert len(templates_db.links.links) == 6
+        assert len(templates_db.links.links) == 7
         assert templates_db.PK == "company#test_company"
         assert templates_db.SK == "message_templates"
 
@@ -986,12 +1008,12 @@ class TestMessageTemplatesWithLinks:
         """Test that from_minimal includes default links (legacy test updated)"""
         templates = MessageTemplates.from_minimal()
         assert templates.links is not None
-        # Now includes 6 default links instead of empty array
-        assert len(templates.links.links) == 6
+        # Now includes 7 default links instead of empty array
+        assert len(templates.links.links) == 7
 
     def test_create_message_templates_with_links(self):
         """Test creating MessageTemplates with links including required defaults"""
-        # Must include all 6 required links
+        # Must include all 7 required links
         required_links = [LinkItem(**link) for link in DEFAULT_LINKS]
 
         # Add custom link
@@ -1052,7 +1074,7 @@ class TestMessageTemplatesWithLinks:
         )
 
         assert templates_db.links is not None
-        assert len(templates_db.links.links) == 7  # 6 required + 1 custom
+        assert len(templates_db.links.links) == 8  # 7 required + 1 custom
         assert any(link.title == "Help" for link in templates_db.links.links)
 
     def test_message_templates_db_from_minimal_includes_links(self):
@@ -1060,8 +1082,8 @@ class TestMessageTemplatesWithLinks:
         templates_db = MessageTemplatesDB.from_minimal("test_company")
 
         assert templates_db.links is not None
-        # Now includes 6 default links instead of empty array
-        assert len(templates_db.links.links) == 6
+        # Now includes 7 default links instead of empty array
+        assert len(templates_db.links.links) == 7
         assert templates_db.PK == "company#test_company"
         assert templates_db.SK == "message_templates"
 
@@ -1073,16 +1095,16 @@ class TestMessageTemplatesWithLinks:
         assert templates.updated_at > original_time
 
     def test_links_field_has_default(self):
-        """Test that links field defaults to 6 required links"""
+        """Test that links field defaults to 7 required links"""
         templates = MessageTemplates()
         assert templates.links is not None
         assert isinstance(templates.links, LinksMessages)
-        # Now includes 6 default links instead of empty array
-        assert len(templates.links.links) == 6
+        # Now includes 7 default links instead of empty array
+        assert len(templates.links.links) == 7
 
     def test_multiple_links_different_urls(self):
         """Test creating multiple links with different URLs including required defaults"""
-        # Must include all 6 required links
+        # Must include all 7 required links
         required_links = [LinkItem(**link) for link in DEFAULT_LINKS]
 
         # Add custom links
