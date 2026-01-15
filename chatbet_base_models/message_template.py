@@ -512,6 +512,12 @@ class LabelMessages(BaseModel):
     menu_more_options_text: Optional[MessageItem] = None
     list_markets_label_text: Optional[MessageItem] = None
     list_fixtures_label_text: Optional[MessageItem] = None
+    sports_more_options: Optional[MessageItem] = None
+    tournaments_more_options: Optional[MessageItem] = None
+    matches_more_options: Optional[MessageItem] = None
+    sports_back_options: Optional[MessageItem] = None
+    tournaments_back_options: Optional[MessageItem] = None
+    matches_back_options: Optional[MessageItem] = None
 
     @classmethod
     def model_validate(cls, obj):
@@ -706,8 +712,7 @@ class LinksMessages(BaseModel):
 
         available_titles = [link.title for link in self.links]
         raise ValueError(
-            f"Link with title '{title}' not found. "
-            f"Available links: {available_titles}"
+            f"Link with title '{title}' not found. Available links: {available_titles}"
         )
 
     def get_support_link(self) -> LinkItem:
@@ -1165,6 +1170,12 @@ class MessageTemplates(BaseModel):
                 menu_more_options_text=MessageItem(text="More options"),
                 list_markets_label_text=MessageItem(text="Markets"),
                 list_fixtures_label_text=MessageItem(text="Fixtures"),
+                sports_more_options=MessageItem(text="More sports >>"),
+                tournaments_more_options=MessageItem(text="More tournaments >>"),
+                matches_more_options=MessageItem(text="More matches >>"),
+                sports_back_options=MessageItem(text="<< Prev sports"),
+                tournaments_back_options=MessageItem(text="<< Prev tournaments"),
+                matches_back_options=MessageItem(text="<< Prev matches"),
             ),
             end=EndMessages(
                 end_conversation=MessageItem(text="Bye!"),
