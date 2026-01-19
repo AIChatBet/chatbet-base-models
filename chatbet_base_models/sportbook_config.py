@@ -14,7 +14,46 @@ from pydantic import (
 
 
 # ===========================
-# Tournament hierarchy
+# Localized names (multi-language)
+# ===========================
+class LocalizedName(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    en: Optional[str] = None
+    es: Optional[str] = None
+    pt_br: Optional[str] = None
+
+
+# ===========================
+# Sports hierarchy (new structure)
+# ===========================
+class SportTournament(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    id: str
+    name: LocalizedName
+    enabled: bool = True
+    order: int = Field(default=999_999)
+
+
+class SportRegion(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    id: str
+    name: LocalizedName
+    enabled: bool = True
+    order: int = Field(default=999_999)
+    tournaments: List[SportTournament] = Field(default_factory=list)
+
+
+class Sport(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    id: str
+    name: LocalizedName
+    enabled: bool = True
+    order: int = Field(default=999_999)
+    regions: List[SportRegion] = Field(default_factory=list)
+
+
+# ===========================
+# Tournament hierarchy (legacy)
 # ===========================
 class Competition(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -148,6 +187,7 @@ class SportbookConfig(BaseModel):
     tournaments: List[Tournament] = Field(
         default_factory=lambda: _default_tournaments()
     )
+    sports: Optional[List[Sport]] = None
 
     # timestamps por consistencia con tu SiteConfigDB (opcionales aquí)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
