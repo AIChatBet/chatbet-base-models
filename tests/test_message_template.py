@@ -280,6 +280,42 @@ class TestErrorMessages:
         assert "pt-br" in error_messages.general_errors
         assert len(error_messages.general_errors["es"]) == 10
 
+    def test_bet_error_defaults_when_not_provided(self):
+        """Test that bet_error gets a default value when not provided."""
+        data = {
+            "invalid_input": "Invalid input text",
+            "error": "An error occurred",
+        }
+        error_messages = ErrorMessages.model_validate(data)
+        assert error_messages.bet_error is not None
+        assert (
+            error_messages.bet_error.text
+            == "Sorry, your bet was rejected, please try again later."
+        )
+
+    def test_bet_error_defaults_when_none(self):
+        """Test that bet_error gets a default value when explicitly set to None."""
+        data = {
+            "invalid_input": "Invalid input text",
+            "bet_error": None,
+        }
+        error_messages = ErrorMessages.model_validate(data)
+        assert error_messages.bet_error is not None
+        assert (
+            error_messages.bet_error.text
+            == "Sorry, your bet was rejected, please try again later."
+        )
+
+    def test_bet_error_preserves_custom_value(self):
+        """Test that custom bet_error values are preserved."""
+        data = {
+            "invalid_input": "Invalid input text",
+            "bet_error": {"text": "Custom bet error message"},
+        }
+        error_messages = ErrorMessages.model_validate(data)
+        assert error_messages.bet_error is not None
+        assert error_messages.bet_error.text == "Custom bet error message"
+
 
 class TestMessageTemplates:
     def test_create_empty_message_templates(self):
