@@ -87,9 +87,7 @@ from .sportbook_config import (
     StakeType,
     SportbookConfig,
     SportbookConfigDB,
-    Sport,
-    SportRegion,
-    SportTournament,
+    SportsS3Reference,
 )
 
 # Promotion Configuration
@@ -181,9 +179,7 @@ __all__ = [
     "StakeType",
     "SportbookConfig",
     "SportbookConfigDB",
-    "Sport",
-    "SportRegion",
-    "SportTournament",
+    "SportsS3Reference",
     # Promotion Configuration
     "PromotionItem",
     "PromotionsConfig",
