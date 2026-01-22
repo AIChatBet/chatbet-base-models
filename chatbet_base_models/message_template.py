@@ -386,6 +386,13 @@ class CombosMessages(BaseModel):
                 obj["combos_confirm_add_recommended"] = {
                     "text": "Do you want to add these recommended combos?",
                 }
+            if (
+                "combo_not_allowed_not_combinable" not in obj
+                or obj.get("combo_not_allowed_not_combinable") is None
+            ):
+                obj["combo_not_allowed_not_combinable"] = {
+                    "text": "This combo cannot be combined with other offers.",
+                }
             obj = {k: MessageItem._coerce(v) for k, v in obj.items()}
         return super().model_validate(obj)
 
