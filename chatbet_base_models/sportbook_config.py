@@ -14,42 +14,15 @@ from pydantic import (
 
 
 # ===========================
-# Localized names (multi-language)
+# S3 Reference for Sports
 # ===========================
-class LocalizedName(BaseModel):
+class SportsS3Reference(BaseModel):
+    """Reference to sports hierarchy stored in S3."""
     model_config = ConfigDict(extra="forbid")
-    en: Optional[str] = None
-    es: Optional[str] = None
-    pt_br: Optional[str] = None
-
-
-# ===========================
-# Sports hierarchy (new structure)
-# ===========================
-class SportTournament(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    id: str
-    name: LocalizedName
-    enabled: bool = True
-    order: int = Field(default=999_999)
-
-
-class SportRegion(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    id: str
-    name: LocalizedName
-    enabled: bool = True
-    order: int = Field(default=999_999)
-    tournaments: List[SportTournament] = Field(default_factory=list)
-
-
-class Sport(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    id: str
-    name: LocalizedName
-    enabled: bool = True
-    order: int = Field(default=999_999)
-    regions: List[SportRegion] = Field(default_factory=list)
+    type: Literal["s3_reference"] = "s3_reference"
+    bucket: str
+    key: str
+    path: str = Field(description="Full S3 path: s3://bucket/key")
 
 
 # ===========================
@@ -187,7 +160,7 @@ class SportbookConfig(BaseModel):
     tournaments: List[Tournament] = Field(
         default_factory=lambda: _default_tournaments()
     )
-    sports: Optional[List[Sport]] = None
+    sports: Optional[SportsS3Reference] = None
 
     # timestamps por consistencia con tu SiteConfigDB (opcionales aquí)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
