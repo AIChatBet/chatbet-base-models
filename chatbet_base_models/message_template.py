@@ -333,6 +333,9 @@ class CombosMessages(BaseModel):
     combos_confirm_add_recommended: Optional[MessageItem] = None
     delete_bet_from_combo: Optional[MessageItem] = None
     replace_bet_from_combo: Optional[MessageItem] = None
+    combo_not_allowed_not_combinable: Optional[MessageItem] = MessageItem(
+        text="This combo cannot be combined with other offers."
+    )
 
     @field_validator("combos_recommendation")
     @classmethod
@@ -382,6 +385,13 @@ class CombosMessages(BaseModel):
             ):
                 obj["combos_confirm_add_recommended"] = {
                     "text": "Do you want to add these recommended combos?",
+                }
+            if (
+                "combo_not_allowed_not_combinable" not in obj
+                or obj.get("combo_not_allowed_not_combinable") is None
+            ):
+                obj["combo_not_allowed_not_combinable"] = {
+                    "text": "This combo cannot be combined with other offers.",
                 }
             obj = {k: MessageItem._coerce(v) for k, v in obj.items()}
         return super().model_validate(obj)
@@ -450,20 +460,37 @@ class ErrorMessages(BaseModel):
     error: Optional[MessageItem] = None
     error_2: Optional[MessageItem] = None
     error_unavailable_bot: Optional[MessageItem] = None
+    bet_error: Optional[MessageItem] = None
     general_errors: Dict[str, List[str]] = Field(
         default_factory=lambda: DEFAULT_GENERAL_ERRORS
     )
+
+    @classmethod
+    def model_validate(cls, obj):
+        if isinstance(obj, dict):
+            # Add default bet_error if not provided
+            if "bet_error" not in obj or obj.get("bet_error") is None:
+                obj["bet_error"] = {
+                    "text": "Sorry, your bet was rejected, please try again later.",
+                }
+            obj = cls._prepare_dict(obj)
+        return super().model_validate(obj)
 
     @model_validator(mode="before")
     @classmethod
     def _coerce_message_items(cls, obj):
         if isinstance(obj, dict):
-            # Don't coerce general_errors as it's not a MessageItem
-            general_errors = obj.pop("general_errors", None)
-            obj = {k: MessageItem._coerce(v) for k, v in obj.items()}
-            # Only assign if explicitly provided, otherwise default_factory handles it
-            if general_errors is not None:
-                obj["general_errors"] = general_errors
+            obj = cls._prepare_dict(obj)
+        return obj
+
+    @staticmethod
+    def _prepare_dict(obj: dict) -> dict:
+        # Don't coerce general_errors as it's not a MessageItem
+        general_errors = obj.pop("general_errors", None)
+        obj = {k: MessageItem._coerce(v) for k, v in obj.items()}
+        # Only assign if explicitly provided, otherwise default_factory handles it
+        if general_errors is not None:
+            obj["general_errors"] = general_errors
         return obj
 
 

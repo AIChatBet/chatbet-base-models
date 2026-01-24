@@ -14,7 +14,19 @@ from pydantic import (
 
 
 # ===========================
-# Tournament hierarchy
+# S3 Reference for Sports
+# ===========================
+class SportsS3Reference(BaseModel):
+    """Reference to sports hierarchy stored in S3."""
+    model_config = ConfigDict(extra="forbid")
+    type: Literal["s3_reference"] = "s3_reference"
+    bucket: str
+    key: str
+    path: str = Field(description="Full S3 path: s3://bucket/key")
+
+
+# ===========================
+# Tournament hierarchy (legacy)
 # ===========================
 class Competition(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -148,6 +160,7 @@ class SportbookConfig(BaseModel):
     tournaments: List[Tournament] = Field(
         default_factory=lambda: _default_tournaments()
     )
+    sports: Optional[SportsS3Reference] = None
 
     # timestamps por consistencia con tu SiteConfigDB (opcionales aquí)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

@@ -269,3 +269,26 @@ class DeleteTutorialVideoResponse(BaseModel):
                 "deletedTutorialId": "abc-123-uuid",
             }
         }
+
+
+class TutorialPriorityItem(BaseModel):
+    """Tutorial priority item model"""
+
+    tutorial_id: str = Field(alias="tutorialId")
+    priority: int
+
+    class Config:
+        populate_by_name = True
+
+
+class UpdateTutorialPrioritiesRequest(BaseModel):
+    """request model for order priority tutorial videos"""
+
+    updates: List[TutorialPriorityItem]
+
+
+class UpdateTutorialPrioritiesResponse(BaseModel):
+    """Response model for order priority tutorial videos"""
+
+    success: bool
+    message: str
