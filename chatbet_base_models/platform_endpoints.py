@@ -78,6 +78,7 @@ class FixturesEndpoints(BaseModel):
     get_special_bets: Optional[Endpoint] = None
     get_recommended_bets: Optional[Endpoint] = None
     get_recommended_fixtures: Optional[Endpoint] = None
+    search_fixtures: Optional[Endpoint] = None
 
 
 class TournamentsEndpoints(BaseModel):
@@ -181,6 +182,7 @@ class APIEndpointsDB(APIEndpoints):
                 get_recommended_fixtures=ep(
                     f"{base_url}/fixtures/recommended-fixtures", HTTPMethod.GET
                 ),
+                search_fixtures=ep(f"{base_url}/fixtures/search", HTTPMethod.POST),
             ),
             odds=OddsEndpoints(
                 get_fixture_odds=ep(f"{base_url}/odds/fixture", HTTPMethod.GET),
