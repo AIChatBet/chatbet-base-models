@@ -132,6 +132,7 @@ class TestEndpointGroups:
         assert fixtures.get_special_bets is None
         assert fixtures.get_recommended_bets is None
         assert fixtures.get_recommended_fixtures is None
+        assert fixtures.search_fixtures is None
 
     def test_tournaments_endpoints(self):
         tournaments = TournamentsEndpoints(
@@ -243,6 +244,7 @@ class TestAPIEndpointsDB:
         assert api_db.fixtures.get_fixtures_by_tournament is not None
         assert api_db.fixtures.get_special_bets is not None
         assert api_db.fixtures.get_recommended_bets is not None
+        assert api_db.fixtures.search_fixtures is not None
 
         # Verify combos endpoints
         assert api_db.combos.place_combo is not None
