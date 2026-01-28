@@ -333,6 +333,9 @@ class CombosMessages(BaseModel):
     combos_confirm_add_recommended: Optional[MessageItem] = None
     delete_bet_from_combo: Optional[MessageItem] = None
     replace_bet_from_combo: Optional[MessageItem] = None
+    combo_not_allowed_not_combinable: Optional[MessageItem] = MessageItem(
+        text="This combo cannot be combined with other offers."
+    )
 
     @field_validator("combos_recommendation")
     @classmethod
@@ -382,6 +385,13 @@ class CombosMessages(BaseModel):
             ):
                 obj["combos_confirm_add_recommended"] = {
                     "text": "Do you want to add these recommended combos?",
+                }
+            if (
+                "combo_not_allowed_not_combinable" not in obj
+                or obj.get("combo_not_allowed_not_combinable") is None
+            ):
+                obj["combo_not_allowed_not_combinable"] = {
+                    "text": "This combo cannot be combined with other offers.",
                 }
             obj = {k: MessageItem._coerce(v) for k, v in obj.items()}
         return super().model_validate(obj)
@@ -450,20 +460,37 @@ class ErrorMessages(BaseModel):
     error: Optional[MessageItem] = None
     error_2: Optional[MessageItem] = None
     error_unavailable_bot: Optional[MessageItem] = None
+    bet_error: Optional[MessageItem] = None
     general_errors: Dict[str, List[str]] = Field(
         default_factory=lambda: DEFAULT_GENERAL_ERRORS
     )
+
+    @classmethod
+    def model_validate(cls, obj):
+        if isinstance(obj, dict):
+            # Add default bet_error if not provided
+            if "bet_error" not in obj or obj.get("bet_error") is None:
+                obj["bet_error"] = {
+                    "text": "Sorry, your bet was rejected, please try again later.",
+                }
+            obj = cls._prepare_dict(obj)
+        return super().model_validate(obj)
 
     @model_validator(mode="before")
     @classmethod
     def _coerce_message_items(cls, obj):
         if isinstance(obj, dict):
-            # Don't coerce general_errors as it's not a MessageItem
-            general_errors = obj.pop("general_errors", None)
-            obj = {k: MessageItem._coerce(v) for k, v in obj.items()}
-            # Only assign if explicitly provided, otherwise default_factory handles it
-            if general_errors is not None:
-                obj["general_errors"] = general_errors
+            obj = cls._prepare_dict(obj)
+        return obj
+
+    @staticmethod
+    def _prepare_dict(obj: dict) -> dict:
+        # Don't coerce general_errors as it's not a MessageItem
+        general_errors = obj.pop("general_errors", None)
+        obj = {k: MessageItem._coerce(v) for k, v in obj.items()}
+        # Only assign if explicitly provided, otherwise default_factory handles it
+        if general_errors is not None:
+            obj["general_errors"] = general_errors
         return obj
 
 
@@ -512,6 +539,12 @@ class LabelMessages(BaseModel):
     menu_more_options_text: Optional[MessageItem] = None
     list_markets_label_text: Optional[MessageItem] = None
     list_fixtures_label_text: Optional[MessageItem] = None
+    sports_more_options: Optional[MessageItem] = None
+    tournaments_more_options: Optional[MessageItem] = None
+    matches_more_options: Optional[MessageItem] = None
+    sports_back_options: Optional[MessageItem] = None
+    tournaments_back_options: Optional[MessageItem] = None
+    matches_back_options: Optional[MessageItem] = None
 
     @classmethod
     def model_validate(cls, obj):
@@ -706,8 +739,7 @@ class LinksMessages(BaseModel):
 
         available_titles = [link.title for link in self.links]
         raise ValueError(
-            f"Link with title '{title}' not found. "
-            f"Available links: {available_titles}"
+            f"Link with title '{title}' not found. Available links: {available_titles}"
         )
 
     def get_support_link(self) -> LinkItem:
@@ -1165,6 +1197,12 @@ class MessageTemplates(BaseModel):
                 menu_more_options_text=MessageItem(text="More options"),
                 list_markets_label_text=MessageItem(text="Markets"),
                 list_fixtures_label_text=MessageItem(text="Fixtures"),
+                sports_more_options=MessageItem(text="More sports >>"),
+                tournaments_more_options=MessageItem(text="More tournaments >>"),
+                matches_more_options=MessageItem(text="More matches >>"),
+                sports_back_options=MessageItem(text="<< Prev sports"),
+                tournaments_back_options=MessageItem(text="<< Prev tournaments"),
+                matches_back_options=MessageItem(text="<< Prev matches"),
             ),
             end=EndMessages(
                 end_conversation=MessageItem(text="Bye!"),

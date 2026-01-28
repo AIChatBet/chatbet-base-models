@@ -12,6 +12,7 @@ from chatbet_base_models.sportbook_config import (
     StakeType,
     SportbookConfig,
     SportbookConfigDB,
+    SportsS3Reference,
     _default_tournaments,
     _default_stake_types,
 )
@@ -443,6 +444,162 @@ class TestSportbookConfigDB:
 
         with pytest.raises(ValueError, match="PK and SK are required"):
             SportbookConfigDB(sportbook="Betsw3", config=config)
+
+
+class TestSportsS3Reference:
+    def test_create_sports_s3_reference(self):
+        """Test creating a sports S3 reference with all required fields."""
+        ref = SportsS3Reference(
+            bucket="my-bucket",
+            key="company_id/sports_catalog.json",
+            path="s3://my-bucket/company_id/sports_catalog.json"
+        )
+
+        assert ref.type == "s3_reference"
+        assert ref.bucket == "my-bucket"
+        assert ref.key == "company_id/sports_catalog.json"
+        assert ref.path == "s3://my-bucket/company_id/sports_catalog.json"
+
+    def test_sports_s3_reference_type_is_literal(self):
+        """Test that type is automatically set to 's3_reference'."""
+        ref = SportsS3Reference(
+            bucket="test-bucket",
+            key="test.json",
+            path="s3://test-bucket/test.json"
+        )
+
+        assert ref.type == "s3_reference"
+
+    def test_sports_s3_reference_missing_fields_raises_error(self):
+        """Test that missing required fields raises validation error."""
+        with pytest.raises(ValueError):
+            SportsS3Reference(
+                bucket="my-bucket",
+                key="company_id/sports_catalog.json"
+                # Missing path
+            )
+
+    def test_sports_s3_reference_extra_fields_forbidden(self):
+        """Test that extra fields are forbidden."""
+        with pytest.raises(ValueError):
+            SportsS3Reference(
+                bucket="my-bucket",
+                key="company_id/sports_catalog.json",
+                path="s3://my-bucket/company_id/sports_catalog.json",
+                extra_field="not_allowed"
+            )
+
+    def test_sportbook_config_with_sports_s3_reference(self):
+        """Test SportbookConfig with sports as S3 reference."""
+        config = Betsw3Config(
+            userId="user123",
+            siteId="site456",
+            platformId="platform789",
+            language="en",
+            source="web",
+            currency="USD",
+            access_token="token123",
+            url="https://api.betsw3.com",
+        )
+
+        sports_ref = SportsS3Reference(
+            bucket="my-bucket",
+            key="test_company/sports_catalog.json",
+            path="s3://my-bucket/test_company/sports_catalog.json"
+        )
+
+        sportbook = SportbookConfig(
+            sportbook="Betsw3",
+            config=config,
+            sports=sports_ref
+        )
+
+        assert sportbook.sports is not None
+        assert isinstance(sportbook.sports, SportsS3Reference)
+        assert sportbook.sports.bucket == "my-bucket"
+        assert sportbook.sports.key == "test_company/sports_catalog.json"
+
+    def test_sportbook_config_sports_is_optional(self):
+        """Test that sports field is optional (can be None)."""
+        config = Betsw3Config(
+            userId="user123",
+            siteId="site456",
+            platformId="platform789",
+            language="en",
+            source="web",
+            currency="USD",
+            access_token="token123",
+            url="https://api.betsw3.com",
+        )
+
+        sportbook = SportbookConfig(sportbook="Betsw3", config=config)
+
+        assert sportbook.sports is None
+
+    def test_sportbook_config_db_with_sports_s3_reference(self):
+        """Test SportbookConfigDB with sports as S3 reference."""
+        config = Betsw3Config(
+            userId="user123",
+            siteId="site456",
+            platformId="platform789",
+            language="en",
+            source="web",
+            currency="USD",
+            access_token="token123",
+            url="https://api.betsw3.com",
+        )
+
+        sports_ref = SportsS3Reference(
+            bucket="my-bucket",
+            key="test_company/sports_catalog.json",
+            path="s3://my-bucket/test_company/sports_catalog.json"
+        )
+
+        sportbook_db = SportbookConfigDB(
+            sportbook="Betsw3",
+            config=config,
+            sports=sports_ref,
+            PK="company#test_company",
+            SK="sportbook_config"
+        )
+
+        assert sportbook_db.sports is not None
+        assert sportbook_db.sports.type == "s3_reference"
+        assert sportbook_db.PK == "company#test_company"
+        assert sportbook_db.SK == "sportbook_config"
+
+    def test_to_dynamodb_item_with_sports_s3_reference(self):
+        """Test serialization to DynamoDB item includes S3 reference."""
+        config = Betsw3Config(
+            userId="user123",
+            siteId="site456",
+            platformId="platform789",
+            language="en",
+            source="web",
+            currency="USD",
+            access_token="token123",
+            url="https://api.betsw3.com",
+        )
+
+        sports_ref = SportsS3Reference(
+            bucket="my-bucket",
+            key="test_company/sports_catalog.json",
+            path="s3://my-bucket/test_company/sports_catalog.json"
+        )
+
+        sportbook = SportbookConfig(
+            sportbook="Betsw3",
+            config=config,
+            sports=sports_ref
+        )
+
+        item = sportbook.to_dynamodb_item()
+
+        assert "sports" in item
+        assert item["sports"]["type"] == "s3_reference"
+        assert item["sports"]["bucket"] == "my-bucket"
+        assert item["sports"]["key"] == "test_company/sports_catalog.json"
+        assert item["sports"]["path"] == "s3://my-bucket/test_company/sports_catalog.json"
 
 
 class TestDefaultHelpers:
