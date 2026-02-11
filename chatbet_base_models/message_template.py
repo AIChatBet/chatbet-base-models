@@ -545,6 +545,7 @@ class LabelMessages(BaseModel):
     sports_back_options: Optional[MessageItem] = None
     tournaments_back_options: Optional[MessageItem] = None
     matches_back_options: Optional[MessageItem] = None
+    edit_bet_label_text: Optional[MessageItem] = None
 
     @classmethod
     def model_validate(cls, obj):
