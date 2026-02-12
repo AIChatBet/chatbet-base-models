@@ -131,8 +131,22 @@ class KambiConfig(BaseModel):
     check_fixture_availability: Optional[bool] = True
 
 
+class PlannatechConfig(BaseModel):
+    """Configuration for Plannatech sportbook provider.
+
+    Authentication is handled via IP whitelist.
+    Tenant identification is embedded in the URL.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+    provider: Literal["plannatech"] = "plannatech"
+    url: HttpUrl
+    grpc_url: Optional[str] = None
+    check_fixture_availability: Optional[bool] = False
+
+
 ConfigUnion = Annotated[
-    Union[Betsw3Config, DigitainConfig, PhoenixConfig, KambiConfig],
+    Union[Betsw3Config, DigitainConfig, PhoenixConfig, KambiConfig, PlannatechConfig],
     Field(discriminator="provider"),
 ]
 
@@ -301,6 +315,29 @@ class SportbookConfig(BaseModel):
             updated_at=now,
         )
 
+    @classmethod
+    def from_minimal_plannatech(
+        cls,
+        *,
+        url: str = "https://placeholder.plannatech.com/",
+        grpc_url: Optional[str] = None,
+        tournaments: Optional[List[Tournament]] = None,
+        check_fixture_availability: Optional[bool] = False,
+    ) -> "SportbookConfig":
+        cfg = PlannatechConfig(
+            url=url,
+            grpc_url=grpc_url,
+            check_fixture_availability=check_fixture_availability,
+        )
+        now = datetime.now(timezone.utc)
+        return cls(
+            sportbook="Plannatech",
+            config=cfg,
+            tournaments=tournaments or _default_tournaments(),
+            created_at=now,
+            updated_at=now,
+        )
+
     # ---------- utilidades ----------
     def touch(self) -> None:
         self.updated_at = datetime.now(timezone.utc)
@@ -387,6 +424,17 @@ class SportbookConfigDB(SportbookConfig):
         **kwargs,
     ) -> "SportbookConfigDB":
         base = SportbookConfig.from_minimal_digitain(**kwargs)
+        return cls(
+            **base.model_dump(), PK=f"company#{company_id}", SK="sportbook_config"
+        )
+
+    @classmethod
+    def from_minimal_plannatech(
+        cls,
+        company_id: str,
+        **kwargs,
+    ) -> "SportbookConfigDB":
+        base = SportbookConfig.from_minimal_plannatech(**kwargs)
         return cls(
             **base.model_dump(), PK=f"company#{company_id}", SK="sportbook_config"
         )
