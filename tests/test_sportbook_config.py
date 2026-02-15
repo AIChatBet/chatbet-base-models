@@ -9,6 +9,8 @@ from chatbet_base_models.sportbook_config import (
     DigitainConfig,
     PhoenixBasicAuth,
     PhoenixConfig,
+    PlannatechConfig,
+    IsolutionsConfig,
     StakeType,
     SportbookConfig,
     SportbookConfigDB,
@@ -243,6 +245,100 @@ class TestPhoenixConfig:
         assert str(config.url) == "https://placeholder.com/"
 
 
+class TestIsolutionsConfig:
+    def test_create_isolutions_config(self):
+        config = IsolutionsConfig(
+            api_url="https://api-stg.bolabet.co.zm",
+            api_account="ChatBet",
+            api_password="secret123",
+            events_program_code="mefvdituytybd",
+        )
+
+        assert config.provider == "isolutions"
+        assert str(config.api_url) == "https://api-stg.bolabet.co.zm/"
+        assert config.api_account == "ChatBet"
+        assert config.api_password == "secret123"
+        assert config.bookmaker_id == 1  # default
+        assert config.events_program_code == "mefvdituytybd"
+        assert config.language_id == 2  # default (English)
+        assert config.fetch_interval_seconds == 60  # default
+        assert config.check_fixture_availability is False  # default
+
+    def test_create_isolutions_config_with_all_fields(self):
+        config = IsolutionsConfig(
+            api_url="https://api.bolabet.co.zm",
+            api_account="TestAccount",
+            api_password="TestPassword",
+            bookmaker_id=5,
+            events_program_code="custom_code",
+            language_id=1,  # Spanish
+            fetch_interval_seconds=30,
+            check_fixture_availability=True,
+        )
+
+        assert config.provider == "isolutions"
+        assert config.bookmaker_id == 5
+        assert config.language_id == 1
+        assert config.fetch_interval_seconds == 30
+        assert config.check_fixture_availability is True
+
+    def test_isolutions_config_invalid_url_raises_error(self):
+        with pytest.raises(ValueError):
+            IsolutionsConfig(
+                api_url="not-a-valid-url",
+                api_account="ChatBet",
+                api_password="secret123",
+                events_program_code="mefvdituytybd",
+            )
+
+    def test_isolutions_config_extra_fields_forbidden(self):
+        with pytest.raises(ValueError):
+            IsolutionsConfig(
+                api_url="https://api-stg.bolabet.co.zm",
+                api_account="ChatBet",
+                api_password="secret123",
+                events_program_code="mefvdituytybd",
+                extra_field="not_allowed",
+            )
+
+
+class TestPlannatechConfig:
+    def test_create_plannatech_config(self):
+        config = PlannatechConfig(
+            url="https://api.plannatech.com",
+        )
+
+        assert config.provider == "plannatech"
+        assert str(config.url) == "https://api.plannatech.com/"
+        assert config.grpc_url is None  # default
+        assert config.check_fixture_availability is False  # default
+
+    def test_create_plannatech_config_with_all_fields(self):
+        config = PlannatechConfig(
+            url="https://api.plannatech.com",
+            grpc_url="grpc://grpc.plannatech.com:443",
+            check_fixture_availability=True,
+        )
+
+        assert config.provider == "plannatech"
+        assert str(config.url) == "https://api.plannatech.com/"
+        assert config.grpc_url == "grpc://grpc.plannatech.com:443"
+        assert config.check_fixture_availability is True
+
+    def test_plannatech_config_invalid_url_raises_error(self):
+        with pytest.raises(ValueError):
+            PlannatechConfig(
+                url="not-a-valid-url",
+            )
+
+    def test_plannatech_config_extra_fields_forbidden(self):
+        with pytest.raises(ValueError):
+            PlannatechConfig(
+                url="https://api.plannatech.com",
+                extra_field="not_allowed",
+            )
+
+
 class TestSportbookConfig:
     def test_create_sportbook_config(self):
         config = Betsw3Config(
@@ -322,6 +418,63 @@ class TestSportbookConfig:
         assert sportbook.config.provider == "digitain"
         assert sportbook.config.partner_id == "partner123"
         assert "placeholder.com" in str(sportbook.config.token_url)  # default
+
+    def test_from_minimal_plannatech(self):
+        sportbook = SportbookConfig.from_minimal_plannatech(
+            url="https://api.plannatech.com",
+        )
+
+        assert sportbook.sportbook == "Plannatech"
+        assert sportbook.config.provider == "plannatech"
+        assert "plannatech.com" in str(sportbook.config.url)
+        assert sportbook.config.grpc_url is None  # default
+        assert sportbook.config.check_fixture_availability is False  # default
+
+    def test_from_minimal_plannatech_with_all_params(self):
+        sportbook = SportbookConfig.from_minimal_plannatech(
+            url="https://api.plannatech.com",
+            grpc_url="grpc://grpc.plannatech.com:443",
+            check_fixture_availability=True,
+        )
+
+        assert sportbook.sportbook == "Plannatech"
+        assert sportbook.config.provider == "plannatech"
+        assert sportbook.config.grpc_url == "grpc://grpc.plannatech.com:443"
+        assert sportbook.config.check_fixture_availability is True
+
+    def test_from_minimal_isolutions(self):
+        sportbook = SportbookConfig.from_minimal_isolutions(
+            api_url="https://api-stg.bolabet.co.zm",
+            api_account="ChatBet",
+            api_password="secret123",
+            events_program_code="mefvdituytybd",
+        )
+
+        assert sportbook.sportbook == "Isolutions"
+        assert sportbook.config.provider == "isolutions"
+        assert sportbook.config.api_account == "ChatBet"
+        assert sportbook.config.bookmaker_id == 1  # default
+        assert sportbook.config.language_id == 2  # default
+        assert sportbook.config.fetch_interval_seconds == 60  # default
+
+    def test_from_minimal_isolutions_with_all_params(self):
+        sportbook = SportbookConfig.from_minimal_isolutions(
+            api_url="https://api.bolabet.co.zm",
+            api_account="TestAccount",
+            api_password="TestPassword",
+            bookmaker_id=5,
+            events_program_code="custom_code",
+            language_id=1,
+            fetch_interval_seconds=30,
+            check_fixture_availability=True,
+        )
+
+        assert sportbook.sportbook == "Isolutions"
+        assert sportbook.config.provider == "isolutions"
+        assert sportbook.config.bookmaker_id == 5
+        assert sportbook.config.language_id == 1
+        assert sportbook.config.fetch_interval_seconds == 30
+        assert sportbook.config.check_fixture_availability is True
 
     def test_touch_method(self):
         config = Betsw3Config(
@@ -429,6 +582,65 @@ class TestSportbookConfigDB:
         assert sportbook_db.PK == "company#test_company"
         assert sportbook_db.SK == "sportbook_config"
         assert sportbook_db.config.provider == "digitain"
+
+    def test_from_minimal_plannatech_db(self):
+        sportbook_db = SportbookConfigDB.from_minimal_plannatech(
+            "test_company",
+            url="https://api.plannatech.com",
+        )
+
+        assert sportbook_db.PK == "company#test_company"
+        assert sportbook_db.SK == "sportbook_config"
+        assert sportbook_db.sportbook == "Plannatech"
+        assert sportbook_db.config.provider == "plannatech"
+
+    def test_from_minimal_plannatech_db_with_grpc(self):
+        sportbook_db = SportbookConfigDB.from_minimal_plannatech(
+            "test_company",
+            url="https://api.plannatech.com",
+            grpc_url="grpc://grpc.plannatech.com:443",
+        )
+
+        assert sportbook_db.PK == "company#test_company"
+        assert sportbook_db.SK == "sportbook_config"
+        assert sportbook_db.config.grpc_url == "grpc://grpc.plannatech.com:443"
+
+    def test_from_minimal_isolutions_db(self):
+        sportbook_db = SportbookConfigDB.from_minimal_isolutions(
+            "test_company",
+            api_url="https://api-stg.bolabet.co.zm",
+            api_account="ChatBet",
+            api_password="secret123",
+            events_program_code="mefvdituytybd",
+        )
+
+        assert sportbook_db.PK == "company#test_company"
+        assert sportbook_db.SK == "sportbook_config"
+        assert sportbook_db.sportbook == "Isolutions"
+        assert sportbook_db.config.provider == "isolutions"
+        assert sportbook_db.config.api_account == "ChatBet"
+
+    def test_from_minimal_isolutions_db_to_dynamodb_item(self):
+        sportbook_db = SportbookConfigDB.from_minimal_isolutions(
+            "test_company",
+            api_url="https://api-stg.bolabet.co.zm",
+            api_account="ChatBet",
+            api_password="secret123",
+            events_program_code="mefvdituytybd",
+            bookmaker_id=1,
+            language_id=2,
+        )
+
+        item = sportbook_db.to_dynamodb_item()
+
+        assert item["PK"] == "company#test_company"
+        assert item["SK"] == "sportbook_config"
+        assert item["sportbook"] == "Isolutions"
+        assert item["config"]["provider"] == "isolutions"
+        assert item["config"]["api_account"] == "ChatBet"
+        assert item["config"]["bookmaker_id"] == 1
+        assert item["config"]["language_id"] == 2
+        assert isinstance(item["config"]["api_url"], str)
 
     def test_validation_requires_pk_sk(self):
         config = Betsw3Config(
