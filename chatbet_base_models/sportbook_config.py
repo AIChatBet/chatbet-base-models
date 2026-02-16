@@ -18,6 +18,7 @@ from pydantic import (
 # ===========================
 class SportsS3Reference(BaseModel):
     """Reference to sports hierarchy stored in S3."""
+
     model_config = ConfigDict(extra="forbid")
     type: Literal["s3_reference"] = "s3_reference"
     bucket: str
@@ -159,6 +160,7 @@ class IsolutionsConfig(BaseModel):
     language_id: int = 2  # 2 = English
     fetch_interval_seconds: int = 60
     check_fixture_availability: Optional[bool] = False
+    last_server_date: Optional[str] = None
 
 
 ConfigUnion = Annotated[
@@ -374,6 +376,7 @@ class SportbookConfig(BaseModel):
         fetch_interval_seconds: int = 60,
         tournaments: Optional[List[Tournament]] = None,
         check_fixture_availability: Optional[bool] = False,
+        last_server_date: Optional[str] = None,
     ) -> "SportbookConfig":
         cfg = IsolutionsConfig(
             api_url=api_url,
@@ -384,6 +387,7 @@ class SportbookConfig(BaseModel):
             language_id=language_id,
             fetch_interval_seconds=fetch_interval_seconds,
             check_fixture_availability=check_fixture_availability,
+            last_server_date=last_server_date,
         )
         now = datetime.now(timezone.utc)
         return cls(
