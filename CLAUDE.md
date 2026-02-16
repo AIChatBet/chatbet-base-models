@@ -14,7 +14,7 @@ chatbet-base-models/
 │   ├── sportbook_config.py       # Sportsbook configuration
 │   ├── promotion_config.py       # Promotions management
 │   └── tutorial.py               # Tutorial videos management
-├── tests/                        # Test suite (291 tests)
+├── tests/                        # Test suite (295 tests)
 ├── pyproject.toml                # Project configuration
 └── pytest.ini                    # Pytest configuration
 ```
@@ -34,6 +34,7 @@ Models for bot messages with Telegram-like interactive keyboards:
 HTTP endpoint configuration for APIs:
 - `Endpoint`: Single endpoint config (method, url, headers, payload)
 - `AuthEndpoints`, `UsersEndpoints`, `SportsEndpoints`, `FixturesEndpoints`: Endpoint groups
+- `SportCatalogEndpoints`: Sport Catalog endpoints (get_sports, get_regions, get_tournaments, get_markets)
 - `APIEndpoints`: Unified container
 - `APIEndpointsDB`: DynamoDB variant with factory method
 
@@ -136,6 +137,6 @@ db_item = config.to_dynamodb_item()
 
 ## Testing
 
-- 291 tests total (100% pass rate)
+- 295 tests total (100% pass rate)
 - Coverage >= 80% enforced
 - Supports Python 3.10, 3.11, 3.12

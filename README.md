@@ -16,7 +16,7 @@ Reusable Pydantic base models for ChatBet applications. This package centralizes
 - **Sportsbook Configuration**: Models for sportsbook integrations (Betsw3, Digitain, Phoenix, Kambi, Plannatech, Isolutions)
 - **Type Safety**: Full Pydantic v2 validation and type hints
 - **Database Ready**: DynamoDB-compatible serialization methods
-- **Fully Tested**: 291 comprehensive tests covering all models and edge cases
+- **Fully Tested**: 295 comprehensive tests covering all models and edge cases
 - **CI/CD Ready**: Automated testing across Python 3.10-3.12 with coverage enforcement
 
 ## 📦 Installation
@@ -275,7 +275,7 @@ We welcome contributions! Please follow these steps:
 
 This project maintains high quality standards through:
 
-- **291 comprehensive tests** with 100% pass rate
+- **295 comprehensive tests** with 100% pass rate
 - **Type safety** with Pydantic v2 models
 - **Input validation** for all model fields
 - **Serialization testing** for DynamoDB compatibility
@@ -286,14 +286,14 @@ This project maintains high quality standards through:
 **CI/CD Ready**: All tests run automatically on GitHub Actions:
 - ✅ **Tests must pass** across Python 3.10-3.12
 - ✅ **Coverage must be ≥80%** or merge is blocked
-- ✅ **291 comprehensive tests** executed automatically
+- ✅ **295 comprehensive tests** executed automatically
 
 ## 🔒 Quality Gates
 
 This repository enforces quality standards through automated testing:
 
 ### 🚫 **Merge is BLOCKED if:**
-- Any test fails (291 tests must pass)
+- Any test fails (295 tests must pass)
 - Code coverage drops below 80%
 
 ### 🎯 **Branch Protection Rules:**

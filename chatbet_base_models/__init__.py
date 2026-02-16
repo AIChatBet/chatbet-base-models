@@ -42,6 +42,7 @@ from .platform_endpoints import (
     OddsEndpoints,
     BetsEndpoints,
     CombosEndpoints,
+    SportCatalogEndpoints,
     APIEndpoints,
     APIEndpointsDB,
 )
@@ -141,6 +142,7 @@ __all__ = [
     "OddsEndpoints",
     "BetsEndpoints",
     "CombosEndpoints",
+    "SportCatalogEndpoints",
     "APIEndpoints",
     "APIEndpointsDB",
     # Site Configuration
