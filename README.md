@@ -13,11 +13,11 @@ Reusable Pydantic base models for ChatBet applications. This package centralizes
 - **Message Templates**: Comprehensive models for bot messages with Telegram-like inline keyboards
 - **Platform Endpoints**: HTTP API endpoint configurations with method validation
 - **Site Configuration**: Complete site and application configuration models
-- **Sportsbook Configuration**: Models for sportsbook integrations and settings
+- **Sportsbook Configuration**: Models for sportsbook integrations (Betsw3, Digitain, Phoenix, Kambi, Plannatech, Isolutions)
 - **Type Safety**: Full Pydantic v2 validation and type hints
 - **Database Ready**: DynamoDB-compatible serialization methods
-- **Fully Tested**: 131 comprehensive tests covering all models and edge cases
-- **CI/CD Ready**: Automated testing across Python 3.8-3.12 with coverage enforcement
+- **Fully Tested**: 295 comprehensive tests covering all models and edge cases
+- **CI/CD Ready**: Automated testing across Python 3.10-3.12 with coverage enforcement
 
 ## 📦 Installation
 
@@ -50,12 +50,16 @@ chatbet-base-models/
 │   ├── message_template.py      # Bot message templates
 │   ├── platform_endpoints.py    # API endpoint configurations
 │   ├── site_config_model.py     # Site configuration models
-│   └── sportbook_config.py      # Sportsbook configuration models
+│   ├── sportbook_config.py      # Sportsbook configuration models
+│   ├── promotion_config.py      # Promotions management
+│   └── tutorial.py              # Tutorial videos management
 ├── tests/
-│   ├── test_message_template.py      # 31 tests for message templates
-│   ├── test_platform_endpoints.py    # 39 tests for API endpoints
-│   ├── test_site_config_model.py     # 36 tests for site configuration
-│   └── test_sportbook_config.py      # 25 tests for sportsbook config
+│   ├── test_message_template.py      # Message template tests
+│   ├── test_platform_endpoints.py    # API endpoint tests
+│   ├── test_site_config_model.py     # Site configuration tests
+│   ├── test_sportbook_config.py      # Sportsbook config tests (55 tests)
+│   ├── test_promotion_config.py      # Promotion tests
+│   └── test_tutorial.py              # Tutorial tests
 ├── pytest.ini                  # Test configuration
 ├── pyproject.toml              # Project configuration
 └── README.md                   # This file
@@ -185,10 +189,12 @@ pytest -k "test_create_button"
 ```
 
 **Test Coverage:**
-- ✅ **Message Templates**: 31 tests covering inline keyboards, serialization, factory methods
-- ✅ **Platform Endpoints**: 39 tests for HTTP methods, endpoint validation, DynamoDB serialization  
-- ✅ **Site Configuration**: 36 tests for integrations, locale, limits, legacy compatibility
-- ✅ **Sportsbook Configuration**: 25 tests for providers, tournaments, competitions
+- ✅ **Message Templates**: Tests covering inline keyboards, serialization, factory methods
+- ✅ **Platform Endpoints**: Tests for HTTP methods, endpoint validation, DynamoDB serialization
+- ✅ **Site Configuration**: Tests for integrations, locale, limits, legacy compatibility
+- ✅ **Sportsbook Configuration**: 47 tests for providers (Betsw3, Digitain, Phoenix, Kambi, Plannatech, Isolutions), tournaments, competitions
+- ✅ **Promotions**: Tests for promotion management and active promotions
+- ✅ **Tutorials**: Tests for tutorial video management
 
 **What's Tested:**
 - Pydantic model validation and constraints
@@ -223,6 +229,15 @@ isort chatbet_base_models/
 - `SportbookConfig` - Sportsbook integration settings
 - `APIEndpoints` - API endpoint configurations
 - `MoneyLimits` - Betting limits and constraints
+- `PromotionsConfig` - Promotions management
+
+### Sportsbook Providers
+- `Betsw3Config` - Betsw3 provider configuration
+- `DigitainConfig` - Digitain provider configuration
+- `PhoenixConfig` - Phoenix provider configuration
+- `KambiConfig` - Kambi provider configuration
+- `PlannatechConfig` - Plannatech provider configuration
+- `IsolutionsConfig` - Isolutions provider configuration
 
 ### Platform Integration
 - `WhatsAppConfig` - WhatsApp integration settings
@@ -260,7 +275,7 @@ We welcome contributions! Please follow these steps:
 
 This project maintains high quality standards through:
 
-- **131 comprehensive tests** with 100% pass rate
+- **295 comprehensive tests** with 100% pass rate
 - **Type safety** with Pydantic v2 models
 - **Input validation** for all model fields
 - **Serialization testing** for DynamoDB compatibility
@@ -271,14 +286,14 @@ This project maintains high quality standards through:
 **CI/CD Ready**: All tests run automatically on GitHub Actions:
 - ✅ **Tests must pass** across Python 3.10-3.12
 - ✅ **Coverage must be ≥80%** or merge is blocked
-- ✅ **131 comprehensive tests** executed automatically
+- ✅ **295 comprehensive tests** executed automatically
 
 ## 🔒 Quality Gates
 
 This repository enforces quality standards through automated testing:
 
 ### 🚫 **Merge is BLOCKED if:**
-- Any test fails (131 tests must pass)
+- Any test fails (295 tests must pass)
 - Code coverage drops below 80%
 
 ### 🎯 **Branch Protection Rules:**

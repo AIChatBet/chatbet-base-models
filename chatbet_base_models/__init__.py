@@ -42,6 +42,7 @@ from .platform_endpoints import (
     OddsEndpoints,
     BetsEndpoints,
     CombosEndpoints,
+    SportCatalogEndpoints,
     APIEndpoints,
     APIEndpointsDB,
 )
@@ -83,6 +84,7 @@ from .sportbook_config import (
     DigitainConfig,
     PhoenixBasicAuth,
     PhoenixConfig,
+    IsolutionsConfig,
     ConfigUnion,
     StakeType,
     SportbookConfig,
@@ -140,6 +142,7 @@ __all__ = [
     "OddsEndpoints",
     "BetsEndpoints",
     "CombosEndpoints",
+    "SportCatalogEndpoints",
     "APIEndpoints",
     "APIEndpointsDB",
     # Site Configuration
@@ -175,6 +178,7 @@ __all__ = [
     "DigitainConfig",
     "PhoenixBasicAuth",
     "PhoenixConfig",
+    "IsolutionsConfig",
     "ConfigUnion",
     "StakeType",
     "SportbookConfig",
