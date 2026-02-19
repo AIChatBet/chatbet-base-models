@@ -129,6 +129,7 @@ class KambiConfig(BaseModel):
     provider: Literal["kambi"] = "kambi"
     offering: KambiOffering
     player: KambiPlayer
+    operator_url: Optional[str] = None
     check_fixture_availability: Optional[bool] = True
 
 
@@ -324,11 +325,13 @@ class SportbookConfig(BaseModel):
         *,
         offering: Optional[PhoenixBasicAuth] = None,
         player: Optional[KambiPlayer] = None,
+        operator_url: Optional[str] = None,
         check_fixture_availability: Optional[bool] = True,
     ) -> "SportbookConfig":
         cfg = KambiConfig(
             offering=offering or KambiOffering(id="", server="", lang="", market=""),
             player=player or KambiPlayer(operator="", host=""),
+            operator_url=operator_url,
             check_fixture_availability=check_fixture_availability,
         )
         now = datetime.now(timezone.utc)
