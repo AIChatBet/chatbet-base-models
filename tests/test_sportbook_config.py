@@ -9,6 +9,9 @@ from chatbet_base_models.sportbook_config import (
     DigitainConfig,
     PhoenixBasicAuth,
     PhoenixConfig,
+    KambiConfig,
+    KambiOffering,
+    KambiPlayer,
     PlannatechConfig,
     IsolutionsConfig,
     StakeType,
@@ -302,6 +305,34 @@ class TestIsolutionsConfig:
             )
 
 
+class TestKambiConfig:
+    def test_create_kambi_config_minimal(self):
+        offering = KambiOffering(id="op1", server="srv1", lang="en", market="gb")
+        player = KambiPlayer(operator="myop", host="myhost")
+        config = KambiConfig(offering=offering, player=player)
+
+        assert config.provider == "kambi"
+        assert config.operator_url is None  # default
+        assert config.check_fixture_availability is True  # default
+
+    def test_create_kambi_config_with_operator_url(self):
+        offering = KambiOffering(id="op1", server="srv1", lang="en", market="gb")
+        player = KambiPlayer(operator="myop", host="myhost")
+        config = KambiConfig(
+            offering=offering,
+            player=player,
+            operator_url="https://operator.kambi.com",
+        )
+
+        assert config.operator_url == "https://operator.kambi.com"
+
+    def test_create_kambi_config_extra_fields_forbidden(self):
+        offering = KambiOffering(id="op1", server="srv1", lang="en", market="gb")
+        player = KambiPlayer(operator="myop", host="myhost")
+        with pytest.raises(ValueError):
+            KambiConfig(offering=offering, player=player, unknown_field="x")
+
+
 class TestPlannatechConfig:
     def test_create_plannatech_config(self):
         config = PlannatechConfig(
@@ -441,6 +472,29 @@ class TestSportbookConfig:
         assert sportbook.config.provider == "plannatech"
         assert sportbook.config.grpc_url == "grpc://grpc.plannatech.com:443"
         assert sportbook.config.check_fixture_availability is True
+
+    def test_from_minimal_kambi(self):
+        sportbook = SportbookConfig.from_minimal_kambi()
+
+        assert sportbook.sportbook == "Kambi"
+        assert sportbook.config.provider == "kambi"
+        assert sportbook.config.offering.id == ""  # default empty
+        assert sportbook.config.player.operator == ""  # default empty
+        assert sportbook.config.operator_url is None  # default
+        assert sportbook.config.check_fixture_availability is True  # default
+
+    def test_from_minimal_kambi_with_operator_url(self):
+        offering = KambiOffering(id="op1", server="srv1", lang="en", market="gb")
+        player = KambiPlayer(operator="myop", host="myhost")
+        sportbook = SportbookConfig.from_minimal_kambi(
+            offering=offering,
+            player=player,
+            operator_url="https://operator.kambi.com",
+        )
+
+        assert sportbook.config.operator_url == "https://operator.kambi.com"
+        assert sportbook.config.offering.id == "op1"
+        assert sportbook.config.player.operator == "myop"
 
     def test_from_minimal_isolutions(self):
         sportbook = SportbookConfig.from_minimal_isolutions(
