@@ -106,6 +106,15 @@ class CombosEndpoints(BaseModel):
     get_odds_combo: Optional[Endpoint] = None
 
 
+class SportCatalogEndpoints(BaseModel):
+    """Endpoints for Sport Catalog (Catálogo Deportivo)."""
+    model_config = ConfigDict(extra="forbid")
+    get_sports: Optional[Endpoint] = None
+    get_regions: Optional[Endpoint] = None
+    get_tournaments: Optional[Endpoint] = None
+    get_markets: Optional[Endpoint] = None
+
+
 # ======================
 # Unified Endpoints
 # ======================
@@ -120,6 +129,7 @@ class APIEndpoints(BaseModel):
     odds: Optional[OddsEndpoints] = None
     bets: Optional[BetsEndpoints] = None
     combos: Optional[CombosEndpoints] = None
+    sport_catalog: Optional[SportCatalogEndpoints] = None
 
 
 # =========================================================
@@ -197,6 +207,12 @@ class APIEndpointsDB(APIEndpoints):
                 delete_bet_combo=ep(f"{base_url}/combos/bet", HTTPMethod.DELETE),
                 add_bet_to_combo=ep(f"{base_url}/combos/bet", HTTPMethod.POST),
                 get_odds_combo=ep(f"{base_url}/combos/odds", HTTPMethod.POST),
+            ),
+            sport_catalog=SportCatalogEndpoints(
+                get_sports=ep(f"{base_url}/catalog/sports", HTTPMethod.GET),
+                get_regions=ep(f"{base_url}/catalog/regions", HTTPMethod.GET),
+                get_tournaments=ep(f"{base_url}/catalog/tournaments", HTTPMethod.GET),
+                get_markets=ep(f"{base_url}/catalog/markets", HTTPMethod.GET),
             ),
         )
 

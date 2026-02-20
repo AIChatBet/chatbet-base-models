@@ -18,6 +18,7 @@ from pydantic import (
 # ===========================
 class SportsS3Reference(BaseModel):
     """Reference to sports hierarchy stored in S3."""
+
     model_config = ConfigDict(extra="forbid")
     type: Literal["s3_reference"] = "s3_reference"
     bucket: str
@@ -128,11 +129,50 @@ class KambiConfig(BaseModel):
     provider: Literal["kambi"] = "kambi"
     offering: KambiOffering
     player: KambiPlayer
+    operator_url: Optional[str] = None
     check_fixture_availability: Optional[bool] = True
 
 
+class PlannatechConfig(BaseModel):
+    """Configuration for Plannatech sportbook provider.
+
+    Authentication is handled via IP whitelist.
+    Tenant identification is embedded in the URL.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+    provider: Literal["plannatech"] = "plannatech"
+    url: HttpUrl
+    grpc_url: Optional[str] = None
+    check_fixture_availability: Optional[bool] = False
+
+
+class IsolutionsConfig(BaseModel):
+    """Configuration for Isolutions sportbook provider."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    provider: Literal["isolutions"] = "isolutions"
+    api_url: HttpUrl
+    api_account: str
+    api_password: str
+    bookmaker_id: int = 1
+    events_program_code: str
+    language_id: int = 2  # 2 = English
+    fetch_interval_seconds: int = 60
+    check_fixture_availability: Optional[bool] = False
+    last_server_date: Optional[str] = None
+
+
 ConfigUnion = Annotated[
-    Union[Betsw3Config, DigitainConfig, PhoenixConfig, KambiConfig],
+    Union[
+        Betsw3Config,
+        DigitainConfig,
+        PhoenixConfig,
+        KambiConfig,
+        PlannatechConfig,
+        IsolutionsConfig,
+    ],
     Field(discriminator="provider"),
 ]
 
@@ -285,11 +325,13 @@ class SportbookConfig(BaseModel):
         *,
         offering: Optional[PhoenixBasicAuth] = None,
         player: Optional[KambiPlayer] = None,
+        operator_url: Optional[str] = None,
         check_fixture_availability: Optional[bool] = True,
     ) -> "SportbookConfig":
         cfg = KambiConfig(
             offering=offering or KambiOffering(id="", server="", lang="", market=""),
             player=player or KambiPlayer(operator="", host=""),
+            operator_url=operator_url,
             check_fixture_availability=check_fixture_availability,
         )
         now = datetime.now(timezone.utc)
@@ -297,6 +339,64 @@ class SportbookConfig(BaseModel):
             sportbook="Kambi",
             config=cfg,
             tournaments=_default_tournaments(),
+            created_at=now,
+            updated_at=now,
+        )
+
+    @classmethod
+    def from_minimal_plannatech(
+        cls,
+        *,
+        url: str = "https://placeholder.plannatech.com/",
+        grpc_url: Optional[str] = None,
+        tournaments: Optional[List[Tournament]] = None,
+        check_fixture_availability: Optional[bool] = False,
+    ) -> "SportbookConfig":
+        cfg = PlannatechConfig(
+            url=url,
+            grpc_url=grpc_url,
+            check_fixture_availability=check_fixture_availability,
+        )
+        now = datetime.now(timezone.utc)
+        return cls(
+            sportbook="Plannatech",
+            config=cfg,
+            tournaments=tournaments or _default_tournaments(),
+            created_at=now,
+            updated_at=now,
+        )
+
+    @classmethod
+    def from_minimal_isolutions(
+        cls,
+        *,
+        api_url: str = "https://api-stg.bolabet.co.zm",
+        api_account: str = "",
+        api_password: str = "",
+        bookmaker_id: int = 1,
+        events_program_code: str = "",
+        language_id: int = 2,
+        fetch_interval_seconds: int = 60,
+        tournaments: Optional[List[Tournament]] = None,
+        check_fixture_availability: Optional[bool] = False,
+        last_server_date: Optional[str] = None,
+    ) -> "SportbookConfig":
+        cfg = IsolutionsConfig(
+            api_url=api_url,
+            api_account=api_account,
+            api_password=api_password,
+            bookmaker_id=bookmaker_id,
+            events_program_code=events_program_code,
+            language_id=language_id,
+            fetch_interval_seconds=fetch_interval_seconds,
+            check_fixture_availability=check_fixture_availability,
+            last_server_date=last_server_date,
+        )
+        now = datetime.now(timezone.utc)
+        return cls(
+            sportbook="Isolutions",
+            config=cfg,
+            tournaments=tournaments or _default_tournaments(),
             created_at=now,
             updated_at=now,
         )
@@ -387,6 +487,28 @@ class SportbookConfigDB(SportbookConfig):
         **kwargs,
     ) -> "SportbookConfigDB":
         base = SportbookConfig.from_minimal_digitain(**kwargs)
+        return cls(
+            **base.model_dump(), PK=f"company#{company_id}", SK="sportbook_config"
+        )
+
+    @classmethod
+    def from_minimal_plannatech(
+        cls,
+        company_id: str,
+        **kwargs,
+    ) -> "SportbookConfigDB":
+        base = SportbookConfig.from_minimal_plannatech(**kwargs)
+        return cls(
+            **base.model_dump(), PK=f"company#{company_id}", SK="sportbook_config"
+        )
+
+    @classmethod
+    def from_minimal_isolutions(
+        cls,
+        company_id: str,
+        **kwargs,
+    ) -> "SportbookConfigDB":
+        base = SportbookConfig.from_minimal_isolutions(**kwargs)
         return cls(
             **base.model_dump(), PK=f"company#{company_id}", SK="sportbook_config"
         )

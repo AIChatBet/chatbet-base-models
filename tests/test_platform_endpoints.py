@@ -12,6 +12,7 @@ from chatbet_base_models.platform_endpoints import (
     OddsEndpoints,
     BetsEndpoints,
     CombosEndpoints,
+    SportCatalogEndpoints,
     APIEndpoints,
     APIEndpointsDB,
 )
@@ -165,6 +166,34 @@ class TestEndpointGroups:
         assert combos.add_bet_to_combo is None
         assert combos.get_odds_combo is None
 
+    def test_sport_catalog_endpoints(self):
+        catalog = SportCatalogEndpoints(
+            get_sports=Endpoint(endpoint="https://api.example.com/catalog/sports"),
+            get_regions=Endpoint(endpoint="https://api.example.com/catalog/regions"),
+            get_tournaments=Endpoint(endpoint="https://api.example.com/catalog/tournaments"),
+            get_markets=Endpoint(endpoint="https://api.example.com/catalog/markets"),
+        )
+        assert catalog.get_sports is not None
+        assert catalog.get_regions is not None
+        assert catalog.get_tournaments is not None
+        assert catalog.get_markets is not None
+
+    def test_sport_catalog_endpoints_partial(self):
+        catalog = SportCatalogEndpoints(
+            get_sports=Endpoint(endpoint="https://api.example.com/catalog/sports"),
+        )
+        assert catalog.get_sports is not None
+        assert catalog.get_regions is None
+        assert catalog.get_tournaments is None
+        assert catalog.get_markets is None
+
+    def test_sport_catalog_endpoints_extra_fields_forbidden(self):
+        with pytest.raises(ValueError):
+            SportCatalogEndpoints(
+                get_sports=Endpoint(endpoint="https://api.example.com/catalog/sports"),
+                extra_field="not_allowed",
+            )
+
 
 class TestAPIEndpoints:
     def test_create_empty_api_endpoints(self):
@@ -177,6 +206,7 @@ class TestAPIEndpoints:
         assert api.odds is None
         assert api.bets is None
         assert api.combos is None
+        assert api.sport_catalog is None
 
     def test_create_api_endpoints_with_groups(self):
         api = APIEndpoints(
@@ -218,6 +248,7 @@ class TestAPIEndpointsDB:
         assert api_db.odds is not None
         assert api_db.bets is not None
         assert api_db.combos is not None
+        assert api_db.sport_catalog is not None
 
         # Check some specific endpoints
         assert api_db.auth.validate_user is not None
@@ -252,6 +283,27 @@ class TestAPIEndpointsDB:
         assert api_db.combos.delete_bet_combo is not None
         assert api_db.combos.add_bet_to_combo is not None
         assert api_db.combos.get_odds_combo is not None
+
+        # Verify sport_catalog endpoints
+        assert api_db.sport_catalog.get_sports is not None
+        assert api_db.sport_catalog.get_regions is not None
+        assert api_db.sport_catalog.get_tournaments is not None
+        assert api_db.sport_catalog.get_markets is not None
+
+    def test_default_factory_sport_catalog_urls(self):
+        api_db = APIEndpointsDB.default_factory("test_company")
+
+        # Verify sport_catalog endpoint URLs
+        assert "catalog/sports" in str(api_db.sport_catalog.get_sports.endpoint)
+        assert "catalog/regions" in str(api_db.sport_catalog.get_regions.endpoint)
+        assert "catalog/tournaments" in str(api_db.sport_catalog.get_tournaments.endpoint)
+        assert "catalog/markets" in str(api_db.sport_catalog.get_markets.endpoint)
+
+        # Verify all are GET methods
+        assert api_db.sport_catalog.get_sports.method == HTTPMethod.GET
+        assert api_db.sport_catalog.get_regions.method == HTTPMethod.GET
+        assert api_db.sport_catalog.get_tournaments.method == HTTPMethod.GET
+        assert api_db.sport_catalog.get_markets.method == HTTPMethod.GET
 
     def test_to_dynamodb_item(self):
         api_db = APIEndpointsDB.default_factory("test_company")
