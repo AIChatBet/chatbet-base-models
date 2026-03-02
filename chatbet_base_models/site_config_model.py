@@ -274,6 +274,10 @@ class FeaturesConfig(BaseModel):
         default=HourFormat.H24,
         description="Hour display format: '12h' or '24h'",
     )
+    skip_pre_auth_validation: Optional[bool] = Field(
+        default=False,
+        description="Skip validate_user calls before OTP flow (for providers that need a token to validate, e.g. Plannatech)",
+    )
 
 
 class Meta(BaseModel):
@@ -313,6 +317,7 @@ class SiteConfig(BaseModel):
             multigames_response=False,
             see_in_combo=False,
             hour_format=HourFormat.H24,
+            skip_pre_auth_validation=False,
         )
     )
     limits: MoneyLimits = Field(
