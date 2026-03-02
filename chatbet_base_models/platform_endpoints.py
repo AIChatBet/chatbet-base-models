@@ -84,6 +84,7 @@ class FixturesEndpoints(BaseModel):
 class TournamentsEndpoints(BaseModel):
     model_config = ConfigDict(extra="forbid")
     get_tournaments: Optional[Endpoint] = None
+    get_sport_tournaments: Optional[Endpoint] = None
 
 
 class OddsEndpoints(BaseModel):
