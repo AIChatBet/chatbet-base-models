@@ -195,10 +195,10 @@ class SportbookConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     # nombre tal y como lo has usado (lo mantengo "sportbook")
-    sportbook: str
-    config: ConfigUnion
+    sportbook: Optional[str] = None
+    config: Optional[ConfigUnion]
     description: Optional[str] = None
-    tournaments: List[Tournament] = Field(
+    tournaments: Optional[List[Tournament]] = Field(
         default_factory=lambda: _default_tournaments()
     )
     sports: Optional[SportsS3Reference] = None
