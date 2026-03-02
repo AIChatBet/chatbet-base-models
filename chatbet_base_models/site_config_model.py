@@ -29,6 +29,12 @@ class ValidationMethod(str, Enum):
     EMAIL = "email"
 
 
+class TwilioAuthChannel(str, Enum):
+    SMS = "sms"
+    WHATSAPP = "whatsapp"
+    EMAIL = "email"
+
+
 class ChatbetVersion(str, Enum):
     V1 = "v1"
     V2 = "v2"
@@ -124,6 +130,7 @@ class TwilioConfig(BaseModel):
     verify_service_sid: str
     auth_token: str
     account_sid: str
+    authentication_type: Optional[TwilioAuthChannel] = None
 
 
 class TelegramConfig(BaseModel):
