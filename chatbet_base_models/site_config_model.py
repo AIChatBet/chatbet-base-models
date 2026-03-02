@@ -171,7 +171,7 @@ class WhatsAppIntegration(BaseModel):
 
 class BitlyConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    bitly_url: HttpUrl
+    bitly_url: Optional[HttpUrl] = None
     access_token: Optional[str] = None
     phone_number: Optional[str] = None
     initial_message: Optional[str] = None
