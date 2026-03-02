@@ -107,9 +107,8 @@ class WhatsAppProvider(str, Enum):
 
 
 class MeilisearchIndexPaths(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="ignore")
     fixtures: str
-    sports: str
 
 
 class MeilisearchConfig(BaseModel):
@@ -334,7 +333,7 @@ class SiteConfig(BaseModel):
                 url="https://placeholder.com",
                 token="",
                 index=MeilisearchIndexPaths(
-                    fixtures="fixtures_index", sports="sports_index"
+                    fixtures="fixtures_index"
                 ),
             ),
             bitly=BitlyConfig(

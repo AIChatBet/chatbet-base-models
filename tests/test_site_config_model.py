@@ -153,15 +153,14 @@ class TestSessionConfig:
 
 class TestIntegrationConfigs:
     def test_meilisearch_index_paths(self):
-        paths = MeilisearchIndexPaths(fixtures="fixture_idx", sports="sports_idx")
+        paths = MeilisearchIndexPaths(fixtures="fixture_idx")
         assert paths.fixtures == "fixture_idx"
-        assert paths.sports == "sports_idx"
 
     def test_meilisearch_config(self):
         config = MeilisearchConfig(
             url="https://search.example.com",
             token="search_token",
-            index=MeilisearchIndexPaths(fixtures="fixtures", sports="sports"),
+            index=MeilisearchIndexPaths(fixtures="fixtures"),
         )
         assert str(config.url) == "https://search.example.com/"
         assert config.token == "search_token"
