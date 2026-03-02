@@ -196,7 +196,7 @@ class SportbookConfig(BaseModel):
 
     # nombre tal y como lo has usado (lo mantengo "sportbook")
     sportbook: Optional[str] = None
-    config: Optional[ConfigUnion]
+    config: Optional[ConfigUnion] = None
     description: Optional[str] = None
     tournaments: Optional[List[Tournament]] = Field(
         default_factory=lambda: _default_tournaments()
