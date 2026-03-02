@@ -108,6 +108,7 @@ class CombosEndpoints(BaseModel):
 
 class SportCatalogEndpoints(BaseModel):
     """Endpoints for Sport Catalog (Catálogo Deportivo)."""
+
     model_config = ConfigDict(extra="forbid")
     get_sports: Optional[Endpoint] = None
     get_regions: Optional[Endpoint] = None
@@ -175,6 +176,9 @@ class APIEndpointsDB(APIEndpoints):
             ),
             tournaments=TournamentsEndpoints(
                 get_tournaments=ep(f"{base_url}/tournaments", HTTPMethod.GET),
+                get_sport_tournaments=ep(
+                    f"{base_url}/sports/get/tournaments", HTTPMethod.GET
+                ),
             ),
             fixtures=FixturesEndpoints(
                 get_fixtures_by_sport=ep(
