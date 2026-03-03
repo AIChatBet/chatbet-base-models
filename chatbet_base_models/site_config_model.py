@@ -29,6 +29,12 @@ class ValidationMethod(str, Enum):
     EMAIL = "email"
 
 
+class TwilioAuthChannel(str, Enum):
+    SMS = "sms"
+    WHATSAPP = "whatsapp"
+    EMAIL = "email"
+
+
 class ChatbetVersion(str, Enum):
     V1 = "v1"
     V2 = "v2"
@@ -107,9 +113,8 @@ class WhatsAppProvider(str, Enum):
 
 
 class MeilisearchIndexPaths(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="ignore")
     fixtures: str
-    sports: str
 
 
 class MeilisearchConfig(BaseModel):
@@ -125,6 +130,7 @@ class TwilioConfig(BaseModel):
     verify_service_sid: str
     auth_token: str
     account_sid: str
+    authentication_type: Optional[TwilioAuthChannel] = None
 
 
 class TelegramConfig(BaseModel):
@@ -268,6 +274,10 @@ class FeaturesConfig(BaseModel):
         default=HourFormat.H24,
         description="Hour display format: '12h' or '24h'",
     )
+    skip_pre_auth_validation: Optional[bool] = Field(
+        default=False,
+        description="Skip validate_user calls before OTP flow (for providers that need a token to validate, e.g. Plannatech)",
+    )
 
 
 class Meta(BaseModel):
@@ -307,6 +317,7 @@ class SiteConfig(BaseModel):
             multigames_response=False,
             see_in_combo=False,
             hour_format=HourFormat.H24,
+            skip_pre_auth_validation=False,
         )
     )
     limits: MoneyLimits = Field(
@@ -334,7 +345,7 @@ class SiteConfig(BaseModel):
                 url="https://placeholder.com",
                 token="",
                 index=MeilisearchIndexPaths(
-                    fixtures="fixtures_index", sports="sports_index"
+                    fixtures="fixtures_index"
                 ),
             ),
             bitly=BitlyConfig(
