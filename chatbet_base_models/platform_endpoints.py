@@ -186,9 +186,7 @@ class APIEndpointsDB(APIEndpoints):
             sports=SportsEndpoints(
                 get_available_sports=ep(f"{base_url}/sports/available", HTTPMethod.GET),
                 list_sports=ep(f"{base_url}/sports/list", HTTPMethod.GET),
-                sports_priorities=ep(
-                    f"{base_url}/sports/priorities", HTTPMethod.GET
-                ),
+                sports_priorities=ep(f"{base_url}/sports/priorities", HTTPMethod.GET),
                 update_sports_priorities=ep(
                     f"{base_url}/sports/priorities", HTTPMethod.PUT
                 ),
@@ -198,8 +196,12 @@ class APIEndpointsDB(APIEndpoints):
                 get_sport_tournaments=ep(
                     f"{base_url}/sports/get/tournaments", HTTPMethod.GET
                 ),
-                get_tournaments_priorities=ep(f"{base_url}/tournaments/priorities", HTTPMethod.GET)
-                update_tournaments_priorities=ep(f"{base_url}/tournaments/priorities", HTTPMethod.PUT)
+                get_tournaments_priorities=ep(
+                    f"{base_url}/tournaments/priorities", HTTPMethod.GET
+                ),
+                update_tournaments_priorities=ep(
+                    f"{base_url}/tournaments/priorities", HTTPMethod.PUT
+                ),
             ),
             fixtures=FixturesEndpoints(
                 get_fixtures_by_sport=ep(
@@ -240,11 +242,15 @@ class APIEndpointsDB(APIEndpoints):
                 get_regions=ep(f"{base_url}/catalog/regions", HTTPMethod.GET),
                 update_regions=ep(f"{base_url}/catalog/regions", HTTPMethod.PUT),
                 get_tournaments=ep(f"{base_url}/catalog/tournaments", HTTPMethod.GET),
-                update_tournaments=ep(f"{base_url}/catalog/tournaments", HTTPMethod.PUT),
+                update_tournaments=ep(
+                    f"{base_url}/catalog/tournaments", HTTPMethod.PUT
+                ),
                 get_markets=ep(f"{base_url}/catalog/markets", HTTPMethod.GET),
                 update_markets=ep(f"{base_url}/catalog/markets", HTTPMethod.PUT),
                 search_regions=ep(f"{base_url}/catalog/search/regions", HTTPMethod.GET),
-                search_tournaments=ep(f"{base_url}/catalog/search/tournaments", HTTPMethod.GET),
+                search_tournaments=ep(
+                    f"{base_url}/catalog/search/tournaments", HTTPMethod.GET
+                ),
                 search_markets=ep(f"{base_url}/catalog/search/markets", HTTPMethod.GET),
             ),
         )
