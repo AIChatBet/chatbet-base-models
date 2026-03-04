@@ -284,6 +284,7 @@ class Meta(BaseModel):
     model_config = ConfigDict(extra="forbid")
     schema_version: str = "1.0.0"
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 
 # ==========================="
@@ -352,6 +353,12 @@ class SiteConfig(BaseModel):
                 phone_number="",
                 initial_message="",
             ),
+        )
+    )
+    metadata: Optional[Meta] = Field(
+        default_factory=lambda: Meta(
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow(),
         )
     )
 
