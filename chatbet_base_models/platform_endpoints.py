@@ -234,7 +234,7 @@ class APIEndpointsDB(APIEndpoints):
             bets=BetsEndpoints(
                 place_bet=ep(f"{base_url}/bets/place", HTTPMethod.POST),
             ),
-            bets=TransactionsEndpoints(
+            transactions=TransactionsEndpoints(
                 transactions=ep(f"{base_url}/transactions", HTTPMethod.POST),
             ),
             combos=CombosEndpoints(
