@@ -355,12 +355,6 @@ class SiteConfig(BaseModel):
             ),
         )
     )
-    metadata: Optional[Meta] = Field(
-        default_factory=lambda: Meta(
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
-        )
-    )
 
     @classmethod
     def default_factory(cls, site_name: str, company_id: str) -> SiteConfig:
