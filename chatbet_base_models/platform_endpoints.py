@@ -102,6 +102,11 @@ class BetsEndpoints(BaseModel):
     place_bet: Optional[Endpoint] = None
 
 
+class TransactionsEndpoints(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    transactions: Optional[Endpoint] = None
+
+
 class CombosEndpoints(BaseModel):
     model_config = ConfigDict(extra="forbid")
     place_combo: Optional[Endpoint] = None
@@ -142,6 +147,7 @@ class APIEndpoints(BaseModel):
     fixtures: Optional[FixturesEndpoints] = None
     odds: Optional[OddsEndpoints] = None
     bets: Optional[BetsEndpoints] = None
+    transactions: Optional[TransactionsEndpoints] = None
     combos: Optional[CombosEndpoints] = None
     sport_catalog: Optional[SportCatalogEndpoints] = None
 
@@ -227,6 +233,9 @@ class APIEndpointsDB(APIEndpoints):
             ),
             bets=BetsEndpoints(
                 place_bet=ep(f"{base_url}/bets/place", HTTPMethod.POST),
+            ),
+            bets=TransactionsEndpoints(
+                transactions=ep(f"{base_url}/transactions", HTTPMethod.POST),
             ),
             combos=CombosEndpoints(
                 place_combo=ep(f"{base_url}/combos/place", HTTPMethod.POST),
