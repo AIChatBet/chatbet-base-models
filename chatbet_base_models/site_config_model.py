@@ -265,7 +265,7 @@ class FeaturesConfig(BaseModel):
     )
     validation: ValidationMethod
     combos: bool = Field(description="Enable or disable combos in this configuration")
-    chatbet_version: ChatbetVersion
+    chatbet_version: Optional[ChatbetVersion] = None
     multigames_response: Optional[bool] = Field(
         description="Enable or disable multi-games response"
     )
@@ -344,9 +344,7 @@ class SiteConfig(BaseModel):
             meilisearch=MeilisearchConfig(
                 url="https://placeholder.com",
                 token="",
-                index=MeilisearchIndexPaths(
-                    fixtures="fixtures_index"
-                ),
+                index=MeilisearchIndexPaths(fixtures="fixtures_index"),
             ),
             bitly=BitlyConfig(
                 bitly_url="https://api-ssl.bitly.com/v4",
