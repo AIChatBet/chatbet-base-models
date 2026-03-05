@@ -69,6 +69,8 @@ class SportsEndpoints(BaseModel):
     model_config = ConfigDict(extra="forbid")
     get_available_sports: Optional[Endpoint] = None
     list_sports: Optional[Endpoint] = None
+    sports_priorities: Optional[Endpoint] = None
+    update_sports_priorities: Optional[Endpoint] = None
 
 
 class FixturesEndpoints(BaseModel):
@@ -85,6 +87,8 @@ class TournamentsEndpoints(BaseModel):
     model_config = ConfigDict(extra="forbid")
     get_tournaments: Optional[Endpoint] = None
     get_sport_tournaments: Optional[Endpoint] = None
+    get_tournaments_priorities: Optional[Endpoint] = None
+    update_tournaments_priorities: Optional[Endpoint] = None
 
 
 class OddsEndpoints(BaseModel):
@@ -96,6 +100,11 @@ class OddsEndpoints(BaseModel):
 class BetsEndpoints(BaseModel):
     model_config = ConfigDict(extra="forbid")
     place_bet: Optional[Endpoint] = None
+
+
+class TransactionsEndpoints(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    transactions: Optional[Endpoint] = None
 
 
 class CombosEndpoints(BaseModel):
@@ -112,9 +121,17 @@ class SportCatalogEndpoints(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
     get_sports: Optional[Endpoint] = None
+    create_sports: Optional[Endpoint] = None
+    update_sports: Optional[Endpoint] = None
     get_regions: Optional[Endpoint] = None
+    update_regions: Optional[Endpoint] = None
     get_tournaments: Optional[Endpoint] = None
+    update_tournaments: Optional[Endpoint] = None
     get_markets: Optional[Endpoint] = None
+    update_markets: Optional[Endpoint] = None
+    search_regions: Optional[Endpoint] = None
+    search_tournaments: Optional[Endpoint] = None
+    search_markets: Optional[Endpoint] = None
 
 
 # ======================
@@ -130,6 +147,7 @@ class APIEndpoints(BaseModel):
     fixtures: Optional[FixturesEndpoints] = None
     odds: Optional[OddsEndpoints] = None
     bets: Optional[BetsEndpoints] = None
+    transactions: Optional[TransactionsEndpoints] = None
     combos: Optional[CombosEndpoints] = None
     sport_catalog: Optional[SportCatalogEndpoints] = None
 
@@ -174,11 +192,21 @@ class APIEndpointsDB(APIEndpoints):
             sports=SportsEndpoints(
                 get_available_sports=ep(f"{base_url}/sports/available", HTTPMethod.GET),
                 list_sports=ep(f"{base_url}/sports/list", HTTPMethod.GET),
+                sports_priorities=ep(f"{base_url}/sports/priorities", HTTPMethod.GET),
+                update_sports_priorities=ep(
+                    f"{base_url}/sports/priorities", HTTPMethod.PUT
+                ),
             ),
             tournaments=TournamentsEndpoints(
                 get_tournaments=ep(f"{base_url}/tournaments", HTTPMethod.GET),
                 get_sport_tournaments=ep(
                     f"{base_url}/sports/get/tournaments", HTTPMethod.GET
+                ),
+                get_tournaments_priorities=ep(
+                    f"{base_url}/tournaments/priorities", HTTPMethod.GET
+                ),
+                update_tournaments_priorities=ep(
+                    f"{base_url}/tournaments/priorities", HTTPMethod.PUT
                 ),
             ),
             fixtures=FixturesEndpoints(
@@ -206,6 +234,9 @@ class APIEndpointsDB(APIEndpoints):
             bets=BetsEndpoints(
                 place_bet=ep(f"{base_url}/bets/place", HTTPMethod.POST),
             ),
+            transactions=TransactionsEndpoints(
+                transactions=ep(f"{base_url}/transactions", HTTPMethod.POST),
+            ),
             combos=CombosEndpoints(
                 place_combo=ep(f"{base_url}/combos/place", HTTPMethod.POST),
                 get_combo_profit=ep(f"{base_url}/combos/profit", HTTPMethod.POST),
@@ -215,9 +246,21 @@ class APIEndpointsDB(APIEndpoints):
             ),
             sport_catalog=SportCatalogEndpoints(
                 get_sports=ep(f"{base_url}/catalog/sports", HTTPMethod.GET),
+                create_sports=ep(f"{base_url}/catalog/sports", HTTPMethod.POST),
+                update_sports=ep(f"{base_url}/catalog/sports", HTTPMethod.PUT),
                 get_regions=ep(f"{base_url}/catalog/regions", HTTPMethod.GET),
+                update_regions=ep(f"{base_url}/catalog/regions", HTTPMethod.PUT),
                 get_tournaments=ep(f"{base_url}/catalog/tournaments", HTTPMethod.GET),
+                update_tournaments=ep(
+                    f"{base_url}/catalog/tournaments", HTTPMethod.PUT
+                ),
                 get_markets=ep(f"{base_url}/catalog/markets", HTTPMethod.GET),
+                update_markets=ep(f"{base_url}/catalog/markets", HTTPMethod.PUT),
+                search_regions=ep(f"{base_url}/catalog/search/regions", HTTPMethod.GET),
+                search_tournaments=ep(
+                    f"{base_url}/catalog/search/tournaments", HTTPMethod.GET
+                ),
+                search_markets=ep(f"{base_url}/catalog/search/markets", HTTPMethod.GET),
             ),
         )
 
