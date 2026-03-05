@@ -51,6 +51,7 @@ from .platform_endpoints import (
 from .site_config_model import (
     OddType,
     ValidationMethod,
+    TwilioAuthChannel,
     ChatbetVersion,
     HourFormat,
     AliasProbabilities,
@@ -148,6 +149,7 @@ __all__ = [
     # Site Configuration
     "OddType",
     "ValidationMethod",
+    "TwilioAuthChannel",
     "ChatbetVersion",
     "HourFormat",
     "AliasProbabilities",

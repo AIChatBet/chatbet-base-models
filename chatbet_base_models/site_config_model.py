@@ -29,6 +29,12 @@ class ValidationMethod(str, Enum):
     EMAIL = "email"
 
 
+class TwilioAuthChannel(str, Enum):
+    SMS = "sms"
+    WHATSAPP = "whatsapp"
+    EMAIL = "email"
+
+
 class ChatbetVersion(str, Enum):
     V1 = "v1"
     V2 = "v2"
@@ -107,9 +113,8 @@ class WhatsAppProvider(str, Enum):
 
 
 class MeilisearchIndexPaths(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="ignore")
     fixtures: str
-    sports: str
 
 
 class MeilisearchConfig(BaseModel):
@@ -125,6 +130,7 @@ class TwilioConfig(BaseModel):
     verify_service_sid: str
     auth_token: str
     account_sid: str
+    authentication_type: Optional[TwilioAuthChannel] = None
 
 
 class TelegramConfig(BaseModel):
@@ -259,7 +265,7 @@ class FeaturesConfig(BaseModel):
     )
     validation: ValidationMethod
     combos: bool = Field(description="Enable or disable combos in this configuration")
-    chatbet_version: ChatbetVersion
+    chatbet_version: Optional[ChatbetVersion] = None
     multigames_response: Optional[bool] = Field(
         description="Enable or disable multi-games response"
     )
@@ -268,12 +274,17 @@ class FeaturesConfig(BaseModel):
         default=HourFormat.H24,
         description="Hour display format: '12h' or '24h'",
     )
+    skip_pre_auth_validation: Optional[bool] = Field(
+        default=False,
+        description="Skip validate_user calls before OTP flow (for providers that need a token to validate, e.g. Plannatech)",
+    )
 
 
 class Meta(BaseModel):
     model_config = ConfigDict(extra="forbid")
     schema_version: str = "1.0.0"
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 
 # ==========================="
@@ -307,6 +318,7 @@ class SiteConfig(BaseModel):
             multigames_response=False,
             see_in_combo=False,
             hour_format=HourFormat.H24,
+            skip_pre_auth_validation=False,
         )
     )
     limits: MoneyLimits = Field(
@@ -333,9 +345,7 @@ class SiteConfig(BaseModel):
             meilisearch=MeilisearchConfig(
                 url="https://placeholder.com",
                 token="",
-                index=MeilisearchIndexPaths(
-                    fixtures="fixtures_index", sports="sports_index"
-                ),
+                index=MeilisearchIndexPaths(fixtures="fixtures_index"),
             ),
             bitly=BitlyConfig(
                 bitly_url="https://api-ssl.bitly.com/v4",

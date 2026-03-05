@@ -5,6 +5,7 @@ from decimal import Decimal
 from chatbet_base_models.site_config_model import (
     OddType,
     ValidationMethod,
+    TwilioAuthChannel,
     ChatbetVersion,
     AliasProbabilities,
     MoneyLimits,
@@ -36,6 +37,11 @@ class TestEnums:
     def test_validation_method_enum(self):
         assert ValidationMethod.PHONE == "phone"
         assert ValidationMethod.EMAIL == "email"
+
+    def test_twilio_auth_channel_enum(self):
+        assert TwilioAuthChannel.SMS == "sms"
+        assert TwilioAuthChannel.WHATSAPP == "whatsapp"
+        assert TwilioAuthChannel.EMAIL == "email"
 
     def test_chatbet_version_enum(self):
         assert ChatbetVersion.V1 == "v1"
@@ -153,15 +159,14 @@ class TestSessionConfig:
 
 class TestIntegrationConfigs:
     def test_meilisearch_index_paths(self):
-        paths = MeilisearchIndexPaths(fixtures="fixture_idx", sports="sports_idx")
+        paths = MeilisearchIndexPaths(fixtures="fixture_idx")
         assert paths.fixtures == "fixture_idx"
-        assert paths.sports == "sports_idx"
 
     def test_meilisearch_config(self):
         config = MeilisearchConfig(
             url="https://search.example.com",
             token="search_token",
-            index=MeilisearchIndexPaths(fixtures="fixtures", sports="sports"),
+            index=MeilisearchIndexPaths(fixtures="fixtures"),
         )
         assert str(config.url) == "https://search.example.com/"
         assert config.token == "search_token"
@@ -186,6 +191,50 @@ class TestIntegrationConfigs:
             account_sid="ACxxxxxxx",
         )
         assert config.enabled is False
+
+    def test_twilio_config_without_authentication_type(self):
+        config = TwilioConfig(
+            verify_service_sid="VAxxxxxxx",
+            auth_token="auth_token",
+            account_sid="ACxxxxxxx",
+        )
+        assert config.authentication_type is None
+
+    def test_twilio_config_with_authentication_type_sms(self):
+        config = TwilioConfig(
+            verify_service_sid="VAxxxxxxx",
+            auth_token="auth_token",
+            account_sid="ACxxxxxxx",
+            authentication_type="sms",
+        )
+        assert config.authentication_type == TwilioAuthChannel.SMS
+
+    def test_twilio_config_with_authentication_type_whatsapp(self):
+        config = TwilioConfig(
+            verify_service_sid="VAxxxxxxx",
+            auth_token="auth_token",
+            account_sid="ACxxxxxxx",
+            authentication_type="whatsapp",
+        )
+        assert config.authentication_type == TwilioAuthChannel.WHATSAPP
+
+    def test_twilio_config_with_authentication_type_email(self):
+        config = TwilioConfig(
+            verify_service_sid="VAxxxxxxx",
+            auth_token="auth_token",
+            account_sid="ACxxxxxxx",
+            authentication_type="email",
+        )
+        assert config.authentication_type == TwilioAuthChannel.EMAIL
+
+    def test_twilio_config_invalid_authentication_type(self):
+        with pytest.raises(ValueError):
+            TwilioConfig(
+                verify_service_sid="VAxxxxxxx",
+                auth_token="auth_token",
+                account_sid="ACxxxxxxx",
+                authentication_type="telegram",
+            )
 
     def test_telegram_config(self):
         config = TelegramConfig(token="bot_token")
@@ -504,3 +553,16 @@ class TestSiteConfigDB:
         assert "telegram" in item["integrations"]
         # Decimal is kept as Decimal object in DynamoDB serialization
         # assert isinstance(item["limits"]["min_bet_amount"], str)  # Decimal as string
+
+    def test_to_dynamodb_item_with_authentication_type(self):
+        config_db = SiteConfigDB.default_factory("Test Site", "test123")
+        config_db.integrations.twilio.authentication_type = TwilioAuthChannel.WHATSAPP
+        item = config_db.to_dynamodb_item()
+
+        assert item["integrations"]["twilio"]["authentication_type"] == "whatsapp"
+
+    def test_to_dynamodb_item_without_authentication_type(self):
+        config_db = SiteConfigDB.default_factory("Test Site", "test123")
+        item = config_db.to_dynamodb_item()
+
+        assert item["integrations"]["twilio"]["authentication_type"] is None
