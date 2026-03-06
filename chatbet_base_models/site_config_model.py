@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from enum import Enum
-from typing import Optional, Any, Union, Annotated, Literal
+from typing import Optional, Any, Union, Annotated, Literal, List
 
 from pydantic import (
     BaseModel,
@@ -214,6 +214,41 @@ class Integrations(BaseModel):
 
 
 # ==========================="
+# Personality Config
+# ==========================="
+
+
+class PersonalityArchetype(str, Enum):
+    FRIENDLY_EXPERT = "friendly_expert"
+    ENTHUSIASTIC_FAN = "enthusiastic_fan"
+    COOL_ANALYST = "cool_analyst"
+    MOTIVATIONAL_COACH = "motivational_coach"
+
+
+class PersonalityConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    bot_name: str = Field(default="ChatBet", min_length=2, max_length=20)
+    formality_level: int = Field(default=2, ge=1, le=5)
+    emoji_level: int = Field(default=2, ge=1, le=3)
+    response_length: int = Field(default=1, ge=1, le=3)
+    personality_archetype: PersonalityArchetype = Field(default=PersonalityArchetype.FRIENDLY_EXPERT)
+    welcome_message: Optional[str] = Field(default=None, max_length=500)
+    waiting_phrases: Optional[List[str]] = Field(default=None)
+
+    @field_validator("waiting_phrases")
+    @classmethod
+    def _validate_waiting_phrases(cls, v):
+        if v is None:
+            return v
+        if not (3 <= len(v) <= 5):
+            raise ValueError("waiting_phrases must have between 3 and 5 items")
+        for phrase in v:
+            if len(phrase) > 100:
+                raise ValueError("Each waiting phrase must be at most 100 characters")
+        return v
+
+
+# ==========================="
 # Top-level sections
 # ==========================="
 
@@ -334,6 +369,7 @@ class SiteConfig(BaseModel):
     session: SessionConfig = Field(
         default_factory=SessionConfig, description="Session configuration settings"
     )
+    personality: Optional[PersonalityConfig] = Field(default_factory=PersonalityConfig)
     integrations: Integrations = Field(
         default_factory=lambda: Integrations(
             telegram=TelegramConfig(token=""),
