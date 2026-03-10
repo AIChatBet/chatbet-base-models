@@ -225,6 +225,17 @@ class PersonalityArchetype(str, Enum):
     MOTIVATIONAL_COACH = "motivational_coach"
 
 
+import re as _re
+
+_HTML_PATTERN = _re.compile(r"<[^>]+>|javascript\s*:|on\w+\s*=", _re.IGNORECASE)
+
+
+def _reject_html(value: str, field: str) -> str:
+    if _HTML_PATTERN.search(value):
+        raise ValueError(f"{field} must not contain HTML tags or scripts")
+    return value
+
+
 class PersonalityConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
     bot_name: str = Field(default="ChatBet", min_length=2, max_length=20)
@@ -237,6 +248,18 @@ class PersonalityConfig(BaseModel):
     welcome_message: Optional[str] = Field(default=None, max_length=500)
     waiting_phrases: Optional[List[str]] = Field(default=None)
 
+    @field_validator("bot_name")
+    @classmethod
+    def _validate_bot_name(cls, v):
+        return _reject_html(v, "bot_name")
+
+    @field_validator("welcome_message")
+    @classmethod
+    def _validate_welcome_message(cls, v):
+        if v is None:
+            return v
+        return _reject_html(v, "welcome_message")
+
     @field_validator("waiting_phrases")
     @classmethod
     def _validate_waiting_phrases(cls, v):
@@ -247,6 +270,7 @@ class PersonalityConfig(BaseModel):
         for phrase in v:
             if len(phrase) > 100:
                 raise ValueError("Each waiting phrase must be at most 100 characters")
+            _reject_html(phrase, "waiting_phrases")
         return v
 
 
