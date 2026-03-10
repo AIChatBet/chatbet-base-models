@@ -231,7 +231,9 @@ class PersonalityConfig(BaseModel):
     formality_level: int = Field(default=2, ge=1, le=5)
     emoji_level: int = Field(default=2, ge=1, le=3)
     response_length: int = Field(default=1, ge=1, le=3)
-    personality_archetype: PersonalityArchetype = Field(default=PersonalityArchetype.FRIENDLY_EXPERT)
+    personality_archetype: PersonalityArchetype = Field(
+        default=PersonalityArchetype.FRIENDLY_EXPERT
+    )
     welcome_message: Optional[str] = Field(default=None, max_length=500)
     waiting_phrases: Optional[List[str]] = Field(default=None)
 
@@ -313,6 +315,10 @@ class FeaturesConfig(BaseModel):
         default=False,
         description="Skip validate_user calls before OTP flow (for providers that need a token to validate, e.g. Plannatech)",
     )
+    live: Optional[bool] = Field(
+        default=False,
+        description="Enable or disable live in this configuration",
+    )
 
 
 class Meta(BaseModel):
@@ -354,6 +360,7 @@ class SiteConfig(BaseModel):
             see_in_combo=False,
             hour_format=HourFormat.H24,
             skip_pre_auth_validation=False,
+            live=False,
         )
     )
     limits: MoneyLimits = Field(

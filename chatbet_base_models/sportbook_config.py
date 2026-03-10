@@ -164,6 +164,22 @@ class IsolutionsConfig(BaseModel):
     last_server_date: Optional[str] = None
 
 
+class BetbyConfig(BaseModel):
+    """Configuration for Betby sportbook provider.
+
+    Authentication uses JWT ES256 signed by the operator.
+    The private key is stored in AWS SSM Parameter Store.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    provider: Literal["betby"] = "betby"
+    brand_id: str
+    api_url: HttpUrl
+    private_key_ssm_param: str  # AWS SSM parameter for ES256 private key
+    check_fixture_availability: Optional[bool] = False
+
+
 ConfigUnion = Annotated[
     Union[
         Betsw3Config,
@@ -172,6 +188,7 @@ ConfigUnion = Annotated[
         KambiConfig,
         PlannatechConfig,
         IsolutionsConfig,
+        BetbyConfig,
     ],
     Field(discriminator="provider"),
 ]
@@ -402,6 +419,31 @@ class SportbookConfig(BaseModel):
             updated_at=now,
         )
 
+    @classmethod
+    def from_minimal_betby(
+        cls,
+        *,
+        brand_id: str = "",
+        api_url: str = "https://api.betby.com/",
+        private_key_ssm_param: str = "",
+        tournaments: Optional[List[Tournament]] = None,
+        check_fixture_availability: Optional[bool] = False,
+    ) -> "SportbookConfig":
+        cfg = BetbyConfig(
+            brand_id=brand_id,
+            api_url=api_url,
+            private_key_ssm_param=private_key_ssm_param,
+            check_fixture_availability=check_fixture_availability,
+        )
+        now = datetime.now(timezone.utc)
+        return cls(
+            sportbook="Betby",
+            config=cfg,
+            tournaments=tournaments or _default_tournaments(),
+            created_at=now,
+            updated_at=now,
+        )
+
     # ---------- utilidades ----------
     def touch(self) -> None:
         self.updated_at = datetime.now(timezone.utc)
@@ -510,6 +552,17 @@ class SportbookConfigDB(SportbookConfig):
         **kwargs,
     ) -> "SportbookConfigDB":
         base = SportbookConfig.from_minimal_isolutions(**kwargs)
+        return cls(
+            **base.model_dump(), PK=f"company#{company_id}", SK="sportbook_config"
+        )
+
+    @classmethod
+    def from_minimal_betby(
+        cls,
+        company_id: str,
+        **kwargs,
+    ) -> "SportbookConfigDB":
+        base = SportbookConfig.from_minimal_betby(**kwargs)
         return cls(
             **base.model_dump(), PK=f"company#{company_id}", SK="sportbook_config"
         )
