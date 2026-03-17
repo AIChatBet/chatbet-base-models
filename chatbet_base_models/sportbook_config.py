@@ -174,6 +174,7 @@ class BetbyConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     provider: Literal["betby"] = "betby"
+    operator_id: str
     brand_id: str
     api_url: HttpUrl
     private_key_ssm_param: str  # AWS SSM parameter for ES256 private key
@@ -423,6 +424,7 @@ class SportbookConfig(BaseModel):
     def from_minimal_betby(
         cls,
         *,
+        operator_id: str = "",
         brand_id: str = "",
         api_url: str = "https://api.betby.com/",
         private_key_ssm_param: str = "",
@@ -430,6 +432,7 @@ class SportbookConfig(BaseModel):
         check_fixture_availability: Optional[bool] = False,
     ) -> "SportbookConfig":
         cfg = BetbyConfig(
+            operator_id=operator_id,
             brand_id=brand_id,
             api_url=api_url,
             private_key_ssm_param=private_key_ssm_param,
