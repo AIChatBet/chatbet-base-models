@@ -63,6 +63,7 @@ class AuthEndpoints(BaseModel):
 class UsersEndpoints(BaseModel):
     model_config = ConfigDict(extra="forbid")
     get_user_balance: Optional[Endpoint] = None
+    bonus_boost: Optional[Endpoint] = None
 
 
 class SportsEndpoints(BaseModel):
