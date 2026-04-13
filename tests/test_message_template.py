@@ -1320,6 +1320,8 @@ class TestLabelMessagesNewFields:
         "select_link_label",
         "select_tutorial_label",
         "no_tutorials_label",
+        "combo_no_bets_added",
+        "combo_partial_bets_warning",
     ]
 
     def test_each_new_field_accepts_message_item(self):
@@ -1383,3 +1385,7 @@ class TestLabelMessagesNewFields:
         assert labels.my_combos_label.text == "My Combos"
         assert labels.no_tutorials_label.text == "No tutorials available at the moment."
         assert labels.edit_bet_label_text.text == "Edit bet"
+        assert labels.combo_no_bets_added.text == "Could not add any bet from the combo."
+        assert labels.combo_partial_bets_warning.text.startswith(
+            "\u26a0\ufe0f"
+        )
