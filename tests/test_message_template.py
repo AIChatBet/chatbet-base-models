@@ -1,9 +1,12 @@
 import pytest
 from datetime import datetime
 
+from pydantic import ValidationError
+
 from chatbet_base_models.message_template import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
+    LabelMessages,
     MessageItem,
     OnboardingMessages,
     ValidationMessages,
@@ -1295,3 +1298,88 @@ class TestMessageTemplatesWithLinks:
             link.title == "Support" for link in templates.links.links
         )  # From required defaults
         assert any(link.title == "FAQ" for link in templates.links.links)
+
+
+class TestLabelMessagesNewFields:
+    """Tests for the 16 new fields added to LabelMessages."""
+
+    NEW_FIELDS = [
+        "back_option",
+        "home_page_text",
+        "profit_text",
+        "remove_bet_label",
+        "add_another_bet_label",
+        "confirm_bet_label",
+        "remove_another_bet_label",
+        "session_expired",
+        "still_processing",
+        "authenticated",
+        "expired_button",
+        "you_selected_prefix",
+        "my_combos_label",
+        "select_link_label",
+        "select_tutorial_label",
+        "no_tutorials_label",
+    ]
+
+    def test_each_new_field_accepts_message_item(self):
+        """Each new field should accept a MessageItem value."""
+        for field_name in self.NEW_FIELDS:
+            labels = LabelMessages(**{field_name: MessageItem(text="test")})
+            value = getattr(labels, field_name)
+            assert value is not None
+            assert value.text == "test"
+
+    def test_each_new_field_accepts_none(self):
+        """Each new field should accept None (default)."""
+        labels = LabelMessages()
+        for field_name in self.NEW_FIELDS:
+            assert getattr(labels, field_name) is None
+
+    def test_model_validate_coerces_plain_string_to_message_item(self):
+        """model_validate should coerce a plain string to MessageItem.text."""
+        for field_name in self.NEW_FIELDS:
+            labels = LabelMessages.model_validate({field_name: "hello"})
+            value = getattr(labels, field_name)
+            assert isinstance(value, MessageItem)
+            assert value.text == "hello"
+
+    def test_extra_fields_raise_validation_error(self):
+        """Extra fields not in the model should raise ValidationError."""
+        with pytest.raises(ValidationError):
+            LabelMessages(nonexistent_field=MessageItem(text="x"))
+
+    def test_from_minimal_labels_is_not_none(self):
+        """from_minimal() should return non-None labels (regression guard)."""
+        templates = MessageTemplates.from_minimal()
+        assert templates.labels is not None
+
+    def test_from_minimal_session_expired_text(self):
+        """from_minimal().labels.session_expired.text should match the English default."""
+        templates = MessageTemplates.from_minimal()
+        expected = (
+            "Welcome back! \U0001f44b We've cleared your current betslip "
+            "so you can start fresh. Your account and chat history are still saved."
+        )
+        assert templates.labels.session_expired.text == expected
+
+    def test_from_minimal_all_new_fields_populated(self):
+        """from_minimal() should populate every new label field."""
+        templates = MessageTemplates.from_minimal()
+        for field_name in self.NEW_FIELDS:
+            value = getattr(templates.labels, field_name)
+            assert value is not None, f"from_minimal() labels.{field_name} is None"
+            assert isinstance(value, MessageItem)
+            assert value.text, f"from_minimal() labels.{field_name}.text is empty"
+
+    def test_from_minimal_specific_defaults(self):
+        """Spot-check a few specific default values from from_minimal()."""
+        labels = MessageTemplates.from_minimal().labels
+        assert labels.back_option.text == "<< Back"
+        assert labels.home_page_text.text == "Go to website \U0001f310"
+        assert labels.profit_text.text == "Bet \U0001f911"
+        assert labels.confirm_bet_label.text == "Confirm bet"
+        assert labels.authenticated.text == "You're now authenticated \u2705"
+        assert labels.my_combos_label.text == "My Combos"
+        assert labels.no_tutorials_label.text == "No tutorials available at the moment."
+        assert labels.edit_bet_label_text.text == "Edit bet"
