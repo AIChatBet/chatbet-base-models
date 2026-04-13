@@ -1301,7 +1301,7 @@ class TestMessageTemplatesWithLinks:
 
 
 class TestLabelMessagesNewFields:
-    """Tests for the 16 new fields added to LabelMessages."""
+    """Tests for the 18 new fields added to LabelMessages."""
 
     NEW_FIELDS = [
         "back_option",
