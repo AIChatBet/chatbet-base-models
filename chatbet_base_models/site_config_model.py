@@ -422,6 +422,9 @@ class SiteConfig(BaseModel):
             ),
         )
     )
+    api_key: Optional[str] = Field(
+        default=None, description="API key for public endpoints"
+    )
 
     @classmethod
     def default_factory(cls, site_name: str, company_id: str) -> SiteConfig:
@@ -436,7 +439,6 @@ class SiteConfigDB(SiteConfig):
     SK: Optional[str] = Field(default=None, description="Sort key")
     created_at: Optional[datetime] = Field(default_factory=datetime.utcnow)
     updated_at: Optional[datetime] = Field(default_factory=datetime.utcnow)
-    api_key: Optional[str] = Field(default=None, description="API key for public endpoints")
 
     @classmethod
     def default_factory(cls, site_name: str, company_id: str) -> SiteConfigDB:
