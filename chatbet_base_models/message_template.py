@@ -564,6 +564,12 @@ class LabelMessages(BaseModel):
     no_tutorials_label: Optional[MessageItem] = None
     combo_no_bets_added: Optional[MessageItem] = None
     combo_partial_bets_warning: Optional[MessageItem] = None
+    post_bet_menu_text: Optional[MessageItem] = None
+    select_sport_fallback: Optional[MessageItem] = None
+    greeting_menu_fallback: Optional[MessageItem] = None
+    more_options_label: Optional[MessageItem] = None
+    account_locked_text: Optional[MessageItem] = None
+    invalid_otp_text: Optional[MessageItem] = None
 
     @classmethod
     def model_validate(cls, obj):
@@ -1255,6 +1261,14 @@ class MessageTemplates(BaseModel):
                 combo_partial_bets_warning=MessageItem(
                     text="⚠️ {ADDED} of {TOTAL} bets were added to the combo.\n\nBets added:\n{PICKS}\n\nBets that failed:\n{FAILED}\n\nYou can proceed with the successful bets or remove the combo."
                 ),
+                post_bet_menu_text=MessageItem(
+                    text="What would you like to do?"
+                ),
+                select_sport_fallback=MessageItem(text="Select a sport"),
+                greeting_menu_fallback=MessageItem(text="Menu"),
+                more_options_label=MessageItem(text="More options"),
+                account_locked_text=MessageItem(text="Account locked"),
+                invalid_otp_text=MessageItem(text="Invalid OTP"),
             ),
             end=EndMessages(
                 end_conversation=MessageItem(text="Bye!"),
