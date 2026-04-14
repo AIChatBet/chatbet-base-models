@@ -1322,6 +1322,12 @@ class TestLabelMessagesNewFields:
         "no_tutorials_label",
         "combo_no_bets_added",
         "combo_partial_bets_warning",
+        "post_bet_menu_text",
+        "select_sport_fallback",
+        "greeting_menu_fallback",
+        "more_options_label",
+        "account_locked_text",
+        "invalid_otp_text",
     ]
 
     def test_each_new_field_accepts_message_item(self):
@@ -1389,3 +1395,9 @@ class TestLabelMessagesNewFields:
         assert labels.combo_partial_bets_warning.text.startswith(
             "\u26a0\ufe0f"
         )
+        assert labels.post_bet_menu_text.text == "What would you like to do?"
+        assert labels.select_sport_fallback.text == "Select a sport"
+        assert labels.greeting_menu_fallback.text == "Menu"
+        assert labels.more_options_label.text == "More options"
+        assert labels.account_locked_text.text == "Account locked"
+        assert labels.invalid_otp_text.text == "Invalid OTP"
