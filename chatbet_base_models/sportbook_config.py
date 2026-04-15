@@ -162,6 +162,7 @@ class IsolutionsConfig(BaseModel):
     fetch_interval_seconds: int = 60
     check_fixture_availability: Optional[bool] = False
     last_server_date: Optional[str] = None
+    application_code: Optional[str] = None
 
 
 class BetbyConfig(BaseModel):
