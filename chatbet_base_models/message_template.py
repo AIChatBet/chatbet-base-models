@@ -546,6 +546,30 @@ class LabelMessages(BaseModel):
     tournaments_back_options: Optional[MessageItem] = None
     matches_back_options: Optional[MessageItem] = None
     edit_bet_label_text: Optional[MessageItem] = None
+    back_option: Optional[MessageItem] = None
+    home_page_text: Optional[MessageItem] = None
+    profit_text: Optional[MessageItem] = None
+    remove_bet_label: Optional[MessageItem] = None
+    add_another_bet_label: Optional[MessageItem] = None
+    confirm_bet_label: Optional[MessageItem] = None
+    remove_another_bet_label: Optional[MessageItem] = None
+    session_expired: Optional[MessageItem] = None
+    still_processing: Optional[MessageItem] = None
+    authenticated: Optional[MessageItem] = None
+    expired_button: Optional[MessageItem] = None
+    you_selected_prefix: Optional[MessageItem] = None
+    my_combos_label: Optional[MessageItem] = None
+    select_link_label: Optional[MessageItem] = None
+    select_tutorial_label: Optional[MessageItem] = None
+    no_tutorials_label: Optional[MessageItem] = None
+    combo_no_bets_added: Optional[MessageItem] = None
+    combo_partial_bets_warning: Optional[MessageItem] = None
+    post_bet_menu_text: Optional[MessageItem] = None
+    select_sport_fallback: Optional[MessageItem] = None
+    greeting_menu_fallback: Optional[MessageItem] = None
+    more_options_label: Optional[MessageItem] = None
+    account_locked_text: Optional[MessageItem] = None
+    invalid_otp_text: Optional[MessageItem] = None
 
     @classmethod
     def model_validate(cls, obj):
@@ -1204,6 +1228,47 @@ class MessageTemplates(BaseModel):
                 sports_back_options=MessageItem(text="<< Prev sports"),
                 tournaments_back_options=MessageItem(text="<< Prev tournaments"),
                 matches_back_options=MessageItem(text="<< Prev matches"),
+                edit_bet_label_text=MessageItem(text="Edit bet"),
+                back_option=MessageItem(text="<< Back"),
+                home_page_text=MessageItem(text="Go to website \U0001f310"),
+                profit_text=MessageItem(text="Bet \U0001f911"),
+                remove_bet_label=MessageItem(text="Remove bet"),
+                add_another_bet_label=MessageItem(text="Add another bet"),
+                confirm_bet_label=MessageItem(text="Confirm bet"),
+                remove_another_bet_label=MessageItem(text="Remove another bet"),
+                session_expired=MessageItem(
+                    text="Welcome back! \U0001f44b We've cleared your current betslip so you can start fresh. Your account and chat history are still saved."
+                ),
+                still_processing=MessageItem(
+                    text="I'm still processing your previous message, please give me a moment."
+                ),
+                authenticated=MessageItem(text="You're now authenticated \u2705"),
+                expired_button=MessageItem(
+                    text="This button has expired. Please start again from the menu."
+                ),
+                you_selected_prefix=MessageItem(text="You selected:"),
+                my_combos_label=MessageItem(text="My Combos"),
+                select_link_label=MessageItem(text="Select a link:"),
+                select_tutorial_label=MessageItem(
+                    text="Select a tutorial to watch:"
+                ),
+                no_tutorials_label=MessageItem(
+                    text="No tutorials available at the moment."
+                ),
+                combo_no_bets_added=MessageItem(
+                    text="Could not add any bet from the combo."
+                ),
+                combo_partial_bets_warning=MessageItem(
+                    text="⚠️ {ADDED} of {TOTAL} bets were added to the combo.\n\nBets added:\n{PICKS}\n\nBets that failed:\n{FAILED}\n\nYou can proceed with the successful bets or remove the combo."
+                ),
+                post_bet_menu_text=MessageItem(
+                    text="What would you like to do?"
+                ),
+                select_sport_fallback=MessageItem(text="Select a sport"),
+                greeting_menu_fallback=MessageItem(text="Menu"),
+                more_options_label=MessageItem(text="More options"),
+                account_locked_text=MessageItem(text="Account locked"),
+                invalid_otp_text=MessageItem(text="Invalid OTP"),
             ),
             end=EndMessages(
                 end_conversation=MessageItem(text="Bye!"),

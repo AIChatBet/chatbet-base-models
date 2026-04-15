@@ -422,6 +422,9 @@ class SiteConfig(BaseModel):
             ),
         )
     )
+    api_key: Optional[str] = Field(
+        default=None, description="API key for public endpoints"
+    )
 
     @classmethod
     def default_factory(cls, site_name: str, company_id: str) -> SiteConfig:
