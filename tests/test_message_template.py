@@ -1,5 +1,5 @@
 import pytest
-from datetime import datetime
+from datetime import datetime, timezone
 
 from pydantic import ValidationError
 
@@ -347,6 +347,7 @@ class TestMessageTemplates:
 
     def test_touch_method(self):
         templates = MessageTemplates()
+        templates.updated_at = datetime(2020, 1, 1, tzinfo=timezone.utc)
         original_time = templates.updated_at
         templates.touch()
         assert templates.updated_at > original_time
@@ -1257,6 +1258,7 @@ class TestMessageTemplatesWithLinks:
     def test_touch_method_works_with_links(self):
         """Test that touch() method works with links present"""
         templates = MessageTemplates.from_minimal()
+        templates.updated_at = datetime(2020, 1, 1, tzinfo=timezone.utc)
         original_time = templates.updated_at
         templates.touch()
         assert templates.updated_at > original_time
