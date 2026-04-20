@@ -256,24 +256,25 @@ class TestIntegrationConfigs:
 
     def test_whatsapp_config(self):
         config = WhatsAppConfig(
-            phone_id="phone123", auth_token="auth_token", connection_token="conn_token"
+            phone_id="phone123", auth_token="auth_token", hub_verify_token="verify_token"
         )
         assert config.provider == "meta"
         assert config.phone_id == "phone123"
         assert config.auth_token == "auth_token"
-        assert config.connection_token == "conn_token"
-        assert config.app_id is None
+        assert config.hub_verify_token == "verify_token"
+        assert config.waba_id is None
         assert config.webhook_url is None
 
     def test_whatsapp_config_with_optional_fields(self):
         config = WhatsAppConfig(
             phone_id="phone123",
             auth_token="auth_token",
-            connection_token="conn_token",
-            app_id="app123",
+            hub_verify_token="verify_token",
+            waba_id="waba123",
             webhook_url="https://example.com/webhook",
         )
-        assert config.app_id == "app123"
+        assert config.hub_verify_token == "verify_token"
+        assert config.waba_id == "waba123"
         assert config.webhook_url == "https://example.com/webhook"
 
 
@@ -286,7 +287,7 @@ class TestWhatsAppIntegration:
 
     def test_whatsapp_integration_with_meta(self):
         meta_config = WhatsAppConfig(
-            phone_id="phone123", auth_token="auth_token", connection_token="conn_token"
+            phone_id="phone123", auth_token="auth_token"
         )
         integration = WhatsAppIntegration(enabled=False, config=meta_config)
         assert integration.enabled is False
