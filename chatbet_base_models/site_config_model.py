@@ -157,8 +157,8 @@ class WhatsAppConfig(BaseModel):
     )
     phone_id: str
     auth_token: str
-    connection_token: str
-    app_id: Optional[str] = None  # Optional for backward compatibility
+    hub_verify_token: Optional[str] = None
+    waba_id: Optional[str] = None  # Optional for backward compatibility
     webhook_url: Optional[str] = None
 
 
