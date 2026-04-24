@@ -157,8 +157,14 @@ class WhatsAppConfig(BaseModel):
     )
     phone_id: str
     auth_token: str
+    # Legacy fields (pre hub_verify_token migration) — kept Optional so existing
+    # DynamoDB configs still validate while backoffice/bot migrate to the new
+    # names. Remove once every stored config has been updated.
+    connection_token: Optional[str] = None
+    app_id: Optional[str] = None
+    # Current fields for Meta webhook validation
     hub_verify_token: Optional[str] = None
-    waba_id: Optional[str] = None  # Optional for backward compatibility
+    waba_id: Optional[str] = None
     webhook_url: Optional[str] = None
 
 
