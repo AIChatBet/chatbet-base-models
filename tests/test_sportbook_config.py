@@ -543,6 +543,7 @@ class TestSportbookConfig:
         )
 
         sportbook = SportbookConfig(sportbook="Betsw3", config=config)
+        sportbook.updated_at = datetime(2020, 1, 1, tzinfo=timezone.utc)
         original_time = sportbook.updated_at
 
         sportbook.touch()

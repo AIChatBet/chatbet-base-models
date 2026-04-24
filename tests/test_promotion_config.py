@@ -370,6 +370,7 @@ class TestPromotionsConfig:
     def test_touch_updates_timestamp(self):
         """Test touch() method"""
         config = PromotionsConfig.from_minimal()
+        config.updated_at = datetime(2020, 1, 1, tzinfo=timezone.utc)
         original = config.updated_at
         config.touch()
         assert config.updated_at > original
@@ -377,6 +378,7 @@ class TestPromotionsConfig:
     def test_add_promotion_calls_touch(self):
         """Test that add_promotion updates timestamp"""
         config = PromotionsConfig.from_minimal()
+        config.updated_at = datetime(2020, 1, 1, tzinfo=timezone.utc)
         original = config.updated_at
         now = datetime.now(timezone.utc)
 
@@ -401,6 +403,7 @@ class TestPromotionsConfig:
             details="Details",
         )
 
+        config.updated_at = datetime(2020, 1, 1, tzinfo=timezone.utc)
         original = config.updated_at
         config.remove_promotion(promo.promotion_id)
         assert config.updated_at > original
