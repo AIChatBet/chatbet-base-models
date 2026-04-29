@@ -667,6 +667,14 @@ class LinkItem(BaseModel):
     message_text: str = Field(min_length=1, max_length=5000)
     button_label: str = Field(min_length=1, max_length=100)
     button_url: str = Field(min_length=1, max_length=2000)
+    follow_up: Optional[MessageItem] = Field(
+        default=None,
+        description=(
+            "Optional follow-up message sent immediately after the link "
+            "message (CU-86ah4m4zy). Operator-managed via Backoffice. "
+            "When None, no follow-up is sent (preserves current behavior)."
+        ),
+    )
 
     @field_validator("title")
     @classmethod
