@@ -512,6 +512,67 @@ class TestLinkItem:
                 extra_field="not allowed",
             )
 
+    def test_follow_up_defaults_to_none(self):
+        """CU-86ah4m4zy: follow_up is optional and defaults to None so
+        operators that haven't configured a follow-up message keep the
+        existing single-message redirection behavior."""
+        link = LinkItem(
+            title="Support",
+            message_text="Need help?",
+            button_label="Contact Support",
+            button_url="https://example.com/support",
+        )
+        assert link.follow_up is None
+
+    def test_follow_up_accepts_message_item_with_reply_markup(self):
+        """CU-86ah4m4zy: follow_up accepts a MessageItem with text and
+        an inline_keyboard so the bot can chain a second message after
+        the link with operator-defined buttons."""
+        link = LinkItem(
+            title="Support",
+            message_text="Need help?",
+            button_label="Contact Support",
+            button_url="https://example.com/support",
+            follow_up=MessageItem(
+                text="Anything else?",
+                reply_markup=InlineKeyboardMarkup(
+                    inline_keyboard=[
+                        [
+                            InlineKeyboardButton(
+                                text="Menu", callback_data="menu"
+                            ),
+                            InlineKeyboardButton(
+                                text="Bet", callback_data="bet"
+                            ),
+                        ]
+                    ]
+                ),
+            ),
+        )
+        assert link.follow_up is not None
+        assert link.follow_up.text == "Anything else?"
+        assert link.follow_up.reply_markup is not None
+        rows = link.follow_up.reply_markup.inline_keyboard
+        assert len(rows) == 1
+        callbacks = sorted(btn.callback_data for btn in rows[0])
+        assert callbacks == ["bet", "menu"]
+
+    def test_follow_up_serializes_and_round_trips(self):
+        """``model_dump`` preserves follow_up so DynamoDB persistence
+        and BO round-tripping work end-to-end."""
+        original = LinkItem(
+            title="Support",
+            message_text="Need help?",
+            button_label="Contact Support",
+            button_url="https://example.com/support",
+            follow_up=MessageItem(text="See you soon!"),
+        )
+        dumped = original.model_dump()
+        assert dumped["follow_up"]["text"] == "See you soon!"
+        assert dumped["follow_up"].get("reply_markup") is None
+        rebuilt = LinkItem.model_validate(dumped)
+        assert rebuilt == original
+
 
 class TestLinksMessages:
     """Test links messages container"""
