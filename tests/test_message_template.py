@@ -160,6 +160,105 @@ class TestValidationMessages:
         assert validation.send_otp.text == "OTP sent"
 
 
+# Password-auth POC templates — keys live under `validation.*` alongside OTP
+# templates (sibling auth namespace). See SDD change `password-auth-poc`.
+PASSWORD_TEMPLATE_KEYS = (
+    "password_required",
+    "password_form_invalid",
+    "password_failed",
+    "password_already_registered",
+    "password_ok_register",
+    "password_ok_login",
+)
+
+
+class TestValidationMessagesPasswordTemplates:
+    """Validate the password-auth POC templates added under ValidationMessages."""
+
+    def test_password_templates_default_to_none_on_bare_validation_messages(self):
+        validation = ValidationMessages()
+        for key in PASSWORD_TEMPLATE_KEYS:
+            assert getattr(validation, key) is None, (
+                f"{key} must default to None when not provided"
+            )
+
+    def test_from_minimal_provides_password_template_defaults(self):
+        templates = MessageTemplates.from_minimal()
+        assert templates.validation is not None
+        assert (
+            templates.validation.password_required.text
+            == "Para continuar, completá el formulario rápido 👇"
+        )
+        assert (
+            templates.validation.password_form_invalid.text
+            == "Faltan datos en el formulario. Volvé a intentar."
+        )
+        assert (
+            templates.validation.password_failed.text
+            == "No pudimos validar tus datos. Verificá e intentá de nuevo."
+        )
+        assert (
+            templates.validation.password_already_registered.text
+            == "Esta cuenta ya está registrada. Iniciá sesión."
+        )
+        assert templates.validation.password_ok_register.text == "✅ ¡Cuenta creada!"
+        assert templates.validation.password_ok_login.text == "✅ ¡Sesión iniciada!"
+
+    def test_password_templates_override_via_constructor(self):
+        validation = ValidationMessages(
+            password_required=MessageItem(text="Custom required"),
+            password_form_invalid=MessageItem(text="Custom invalid"),
+            password_failed=MessageItem(text="Custom failed"),
+            password_already_registered=MessageItem(text="Custom already"),
+            password_ok_register=MessageItem(text="Custom ok register"),
+            password_ok_login=MessageItem(text="Custom ok login"),
+        )
+        assert validation.password_required.text == "Custom required"
+        assert validation.password_form_invalid.text == "Custom invalid"
+        assert validation.password_failed.text == "Custom failed"
+        assert validation.password_already_registered.text == "Custom already"
+        assert validation.password_ok_register.text == "Custom ok register"
+        assert validation.password_ok_login.text == "Custom ok login"
+
+    def test_password_templates_override_via_model_validate_string_coercion(self):
+        """Plain strings must coerce to MessageItem({"text": ...}) for the new keys
+        (matches the existing convention used by every sibling field)."""
+        data = {
+            "password_required": "Form please",
+            "password_form_invalid": "Bad form",
+            "password_failed": "Auth failed",
+            "password_already_registered": "Already registered",
+            "password_ok_register": "Register OK",
+            "password_ok_login": "Login OK",
+        }
+        validation = ValidationMessages.model_validate(data)
+        assert validation.password_required.text == "Form please"
+        assert validation.password_form_invalid.text == "Bad form"
+        assert validation.password_failed.text == "Auth failed"
+        assert validation.password_already_registered.text == "Already registered"
+        assert validation.password_ok_register.text == "Register OK"
+        assert validation.password_ok_login.text == "Login OK"
+
+    def test_password_templates_unknown_key_rejected(self):
+        """`extra=forbid` must keep working — typos must be caught at parse time."""
+        with pytest.raises(ValidationError):
+            ValidationMessages.model_validate(
+                {"password_unknown_key": "should not be accepted"}
+            )
+
+    def test_password_templates_serialize_in_dynamodb_item(self):
+        templates = MessageTemplates.from_minimal()
+        item = templates.to_dynamodb_item()
+        assert "validation" in item
+        for key in PASSWORD_TEMPLATE_KEYS:
+            assert key in item["validation"], (
+                f"{key} must be present in DynamoDB serialization"
+            )
+            assert item["validation"][key]["text"], (
+                f"{key} must have non-empty text in DynamoDB serialization"
+            )
+
+
 class TestMenuMessages:
     def test_create_menu_messages(self):
         menu = MenuMessages(
