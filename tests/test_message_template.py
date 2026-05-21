@@ -1464,3 +1464,35 @@ class TestLabelMessagesNewFields:
         assert labels.more_options_label.text == "More options"
         assert labels.account_locked_text.text == "Account locked"
         assert labels.invalid_otp_text.text == "Invalid OTP"
+
+
+class TestLabelMessagesMarketPaginationFields:
+    """Tests for market-pagination label fields used by the WhatsApp adapter.
+
+    These keys are consumed by ``bet-bot``'s WhatsApp market pagination so the
+    "options inside a market" screens (over/under, spread, ...) ship copy that
+    matches the screen context — distinct from the FIXTURE pagination labels
+    (``matches_back_options`` / ``matches_more_options``).
+    """
+
+    MARKET_FIELDS = ("markets_back_options", "markets_more_options")
+
+    def test_market_fields_accept_message_item(self):
+        for field_name in self.MARKET_FIELDS:
+            labels = LabelMessages(**{field_name: MessageItem(text="custom")})
+            value = getattr(labels, field_name)
+            assert value is not None
+            assert value.text == "custom"
+
+    def test_market_fields_default_to_none(self):
+        labels = LabelMessages()
+        for field_name in self.MARKET_FIELDS:
+            assert getattr(labels, field_name) is None
+
+    def test_market_fields_present_in_from_minimal(self):
+        templates = MessageTemplates.from_minimal()
+        assert templates.labels is not None
+        assert templates.labels.markets_back_options is not None
+        assert templates.labels.markets_more_options is not None
+        assert templates.labels.markets_back_options.text
+        assert templates.labels.markets_more_options.text
