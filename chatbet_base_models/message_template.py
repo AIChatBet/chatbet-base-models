@@ -550,9 +550,11 @@ class LabelMessages(BaseModel):
     sports_more_options: Optional[MessageItem] = None
     tournaments_more_options: Optional[MessageItem] = None
     matches_more_options: Optional[MessageItem] = None
+    markets_more_options: Optional[MessageItem] = None
     sports_back_options: Optional[MessageItem] = None
     tournaments_back_options: Optional[MessageItem] = None
     matches_back_options: Optional[MessageItem] = None
+    markets_back_options: Optional[MessageItem] = None
     edit_bet_label_text: Optional[MessageItem] = None
     back_option: Optional[MessageItem] = None
     home_page_text: Optional[MessageItem] = None
@@ -1259,9 +1261,11 @@ class MessageTemplates(BaseModel):
                 sports_more_options=MessageItem(text="More sports >>"),
                 tournaments_more_options=MessageItem(text="More tournaments >>"),
                 matches_more_options=MessageItem(text="More matches >>"),
+                markets_more_options=MessageItem(text="Siguiente →"),
                 sports_back_options=MessageItem(text="<< Prev sports"),
                 tournaments_back_options=MessageItem(text="<< Prev tournaments"),
                 matches_back_options=MessageItem(text="<< Prev matches"),
+                markets_back_options=MessageItem(text="← Anterior"),
                 edit_bet_label_text=MessageItem(text="Edit bet"),
                 back_option=MessageItem(text="<< Back"),
                 home_page_text=MessageItem(text="Go to website \U0001f310"),
