@@ -188,6 +188,14 @@ class ValidationMessages(BaseModel):
     error_otp: Optional[MessageItem] = None
     blocked_otp: Optional[MessageItem] = None
     blocked_user: Optional[MessageItem] = None
+    # Password-auth POC templates (sibling to OTP templates).
+    # See SDD change `password-auth-poc`.
+    password_required: Optional[MessageItem] = None
+    password_form_invalid: Optional[MessageItem] = None
+    password_failed: Optional[MessageItem] = None
+    password_already_registered: Optional[MessageItem] = None
+    password_ok_register: Optional[MessageItem] = None
+    password_ok_login: Optional[MessageItem] = None
 
     @classmethod
     def model_validate(cls, obj):
@@ -231,6 +239,7 @@ class RegistrationMessages(BaseModel):
     model_config = ConfigDict(extra="forbid")
     not_registered_user: Optional[MessageItem] = None
     not_registered_user_country: Optional[MessageItem] = None
+    account_not_found: Optional[MessageItem] = None
 
     @classmethod
     def model_validate(cls, obj):
@@ -945,11 +954,32 @@ class MessageTemplates(BaseModel):
                 blocked_user=MessageItem(
                     text="Sorry, I can't help you, you are blocked",
                 ),
+                password_required=MessageItem(
+                    text="Para continuar, completá el formulario rápido 👇",
+                ),
+                password_form_invalid=MessageItem(
+                    text="Faltan datos en el formulario. Volvé a intentar.",
+                ),
+                password_failed=MessageItem(
+                    text="No pudimos validar tus datos. Verificá e intentá de nuevo.",
+                ),
+                password_already_registered=MessageItem(
+                    text="Esta cuenta ya está registrada. Iniciá sesión.",
+                ),
+                password_ok_register=MessageItem(
+                    text="✅ ¡Cuenta creada!",
+                ),
+                password_ok_login=MessageItem(
+                    text="✅ ¡Sesión iniciada!",
+                ),
             ),
             registration=RegistrationMessages(
                 not_registered_user=MessageItem(text="You are not registered."),
                 not_registered_user_country=MessageItem(
                     text="You are in the wrong country."
+                ),
+                account_not_found=MessageItem(
+                    text="We couldn't find an account with that information. Would you like to create a new one?"
                 ),
             ),
             menu=MenuMessages(
