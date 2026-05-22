@@ -239,6 +239,7 @@ class RegistrationMessages(BaseModel):
     model_config = ConfigDict(extra="forbid")
     not_registered_user: Optional[MessageItem] = None
     not_registered_user_country: Optional[MessageItem] = None
+    account_not_found: Optional[MessageItem] = None
 
     @classmethod
     def model_validate(cls, obj):
@@ -976,6 +977,9 @@ class MessageTemplates(BaseModel):
                 not_registered_user=MessageItem(text="You are not registered."),
                 not_registered_user_country=MessageItem(
                     text="You are in the wrong country."
+                ),
+                account_not_found=MessageItem(
+                    text="We couldn't find an account with that information. Would you like to create a new one?"
                 ),
             ),
             menu=MenuMessages(
