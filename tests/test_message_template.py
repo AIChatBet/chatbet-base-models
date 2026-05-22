@@ -9,6 +9,7 @@ from chatbet_base_models.message_template import (
     LabelMessages,
     MessageItem,
     OnboardingMessages,
+    RegistrationMessages,
     ValidationMessages,
     MenuMessages,
     BetsMessages,
@@ -257,6 +258,58 @@ class TestValidationMessagesPasswordTemplates:
             assert item["validation"][key]["text"], (
                 f"{key} must have non-empty text in DynamoDB serialization"
             )
+
+
+class TestRegistrationMessages:
+    def test_create_registration_messages_with_all_fields(self):
+        registration = RegistrationMessages(
+            not_registered_user=MessageItem(text="You are not registered."),
+            not_registered_user_country=MessageItem(
+                text="You are in the wrong country."
+            ),
+            account_not_found=MessageItem(
+                text="We couldn't find an account with that information."
+            ),
+        )
+        assert registration.not_registered_user.text == "You are not registered."
+        assert (
+            registration.not_registered_user_country.text
+            == "You are in the wrong country."
+        )
+        assert (
+            registration.account_not_found.text
+            == "We couldn't find an account with that information."
+        )
+
+    def test_account_not_found_defaults_to_none(self):
+        registration = RegistrationMessages()
+        assert registration.account_not_found is None
+
+    def test_extra_keys_are_forbidden(self):
+        with pytest.raises(ValidationError):
+            RegistrationMessages(unknown_field=MessageItem(text="x"))
+
+    def test_from_minimal_seeds_account_not_found(self):
+        templates = MessageTemplates.from_minimal()
+        assert templates.registration.account_not_found is not None
+        assert templates.registration.account_not_found.text == (
+            "We couldn't find an account with that information. "
+            "Would you like to create a new one?"
+        )
+
+    def test_round_trip_through_dynamodb_item(self):
+        templates = MessageTemplates.from_minimal()
+        item = templates.to_dynamodb_item()
+        assert "registration" in item
+        assert "account_not_found" in item["registration"]
+        assert item["registration"]["account_not_found"]["text"]
+
+        restored = MessageTemplates(**item)
+        assert restored.registration.account_not_found is not None
+        assert (
+            restored.registration.account_not_found.text
+            == templates.registration.account_not_found.text
+        )
 
 
 class TestMenuMessages:
