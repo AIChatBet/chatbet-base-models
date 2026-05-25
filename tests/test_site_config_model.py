@@ -459,6 +459,44 @@ class TestFeaturesConfig:
         )
         assert features_momio.alias_probabilities == AliasProbabilities.MOMIO
 
+    def test_features_config_default_fixture_range_days(self):
+        features = FeaturesConfig(
+            odd_type=OddType.DECIMAL,
+            validation=ValidationMethod.EMAIL,
+            combos=True,
+            chatbet_version=ChatbetVersion.V2,
+            multigames_response=True,
+            see_in_combo=True,
+        )
+        assert features.fixture_range_days == 7
+
+    def test_features_config_custom_fixture_range_days(self):
+        features = FeaturesConfig(
+            odd_type=OddType.DECIMAL,
+            validation=ValidationMethod.EMAIL,
+            combos=True,
+            chatbet_version=ChatbetVersion.V2,
+            multigames_response=True,
+            see_in_combo=True,
+            fixture_range_days=30,
+        )
+        assert features.fixture_range_days == 30
+
+    def test_features_config_invalid_fixture_range_days(self):
+        from pydantic import ValidationError
+
+        for invalid in (0, -1, 366, 1000):
+            with pytest.raises(ValidationError):
+                FeaturesConfig(
+                    odd_type=OddType.DECIMAL,
+                    validation=ValidationMethod.EMAIL,
+                    combos=True,
+                    chatbet_version=ChatbetVersion.V2,
+                    multigames_response=True,
+                    see_in_combo=True,
+                    fixture_range_days=invalid,
+                )
+
 
 class TestMeta:
     def test_create_meta_with_defaults(self):
