@@ -349,6 +349,17 @@ class FeaturesConfig(BaseModel):
         default=False,
         description="Enable or disable live in this configuration",
     )
+    fixture_range_days: Optional[int] = Field(
+        default=7,
+        ge=1,
+        le=365,
+        description=(
+            "Window in days for DynamoDB fixture listing queries. "
+            "Wider values let long-horizon tournaments (e.g. World Cup) "
+            "surface earlier; narrower values keep result sets smaller. "
+            "Default 7 preserves legacy behavior."
+        ),
+    )
 
 
 class Meta(BaseModel):
@@ -422,6 +433,7 @@ class SiteConfig(BaseModel):
             hour_format=HourFormat.H24,
             skip_pre_auth_validation=False,
             live=False,
+            fixture_range_days=7,
         )
     )
     limits: MoneyLimits = Field(
