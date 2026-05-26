@@ -342,6 +342,7 @@ class CombosMessages(BaseModel):
     combos_confirm_add_recommended: Optional[MessageItem] = None
     delete_bet_from_combo: Optional[MessageItem] = None
     replace_bet_from_combo: Optional[MessageItem] = None
+    min_legs_warning: Optional[MessageItem] = None
     combo_not_allowed_not_combinable: Optional[MessageItem] = MessageItem(
         text="This combo cannot be combined with other offers."
     )
@@ -1217,6 +1218,9 @@ class MessageTemplates(BaseModel):
                             ]
                         ]
                     ),
+                ),
+                min_legs_warning=MessageItem(
+                    text="⚠️ A parlay needs at least {MIN_LEGS} selections. Add another selection to continue."
                 ),
             ),
             errors=ErrorMessages(
