@@ -349,6 +349,17 @@ class FeaturesConfig(BaseModel):
         default=False,
         description="Enable or disable live in this configuration",
     )
+    fixture_range_days: Optional[int] = Field(
+        default=None,
+        description="Number of days ahead to fetch fixtures",
+    )
+
+
+class AuthConfig(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    method: Optional[str] = Field(default=None, description="Auth method, e.g. 'otp' or 'password'")
+    flow_id: Optional[str] = None
+    forgot_password_url: Optional[str] = None
 
 
 class Meta(BaseModel):
@@ -430,6 +441,9 @@ class SiteConfig(BaseModel):
     )
     api_key: Optional[str] = Field(
         default=None, description="API key for public endpoints"
+    )
+    auth: Optional[AuthConfig] = Field(
+        default=None, description="Authentication flow configuration"
     )
 
     @classmethod

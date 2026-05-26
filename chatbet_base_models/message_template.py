@@ -336,6 +336,7 @@ class CombosMessages(BaseModel):
     combo_not_allowed_not_combinable: Optional[MessageItem] = MessageItem(
         text="This combo cannot be combined with other offers."
     )
+    min_legs_warning: Optional[MessageItem] = None
 
     @field_validator("combos_recommendation")
     @classmethod
