@@ -188,6 +188,14 @@ class ValidationMessages(BaseModel):
     error_otp: Optional[MessageItem] = None
     blocked_otp: Optional[MessageItem] = None
     blocked_user: Optional[MessageItem] = None
+    # Password-auth POC templates (sibling to OTP templates).
+    # See SDD change `password-auth-poc`.
+    password_required: Optional[MessageItem] = None
+    password_form_invalid: Optional[MessageItem] = None
+    password_failed: Optional[MessageItem] = None
+    password_already_registered: Optional[MessageItem] = None
+    password_ok_register: Optional[MessageItem] = None
+    password_ok_login: Optional[MessageItem] = None
 
     @classmethod
     def model_validate(cls, obj):
@@ -231,6 +239,7 @@ class RegistrationMessages(BaseModel):
     model_config = ConfigDict(extra="forbid")
     not_registered_user: Optional[MessageItem] = None
     not_registered_user_country: Optional[MessageItem] = None
+    account_not_found: Optional[MessageItem] = None
 
     @classmethod
     def model_validate(cls, obj):
@@ -333,6 +342,7 @@ class CombosMessages(BaseModel):
     combos_confirm_add_recommended: Optional[MessageItem] = None
     delete_bet_from_combo: Optional[MessageItem] = None
     replace_bet_from_combo: Optional[MessageItem] = None
+    min_legs_warning: Optional[MessageItem] = None
     combo_not_allowed_not_combinable: Optional[MessageItem] = MessageItem(
         text="This combo cannot be combined with other offers."
     )
@@ -542,9 +552,11 @@ class LabelMessages(BaseModel):
     sports_more_options: Optional[MessageItem] = None
     tournaments_more_options: Optional[MessageItem] = None
     matches_more_options: Optional[MessageItem] = None
+    markets_more_options: Optional[MessageItem] = None
     sports_back_options: Optional[MessageItem] = None
     tournaments_back_options: Optional[MessageItem] = None
     matches_back_options: Optional[MessageItem] = None
+    markets_back_options: Optional[MessageItem] = None
     edit_bet_label_text: Optional[MessageItem] = None
     back_option: Optional[MessageItem] = None
     home_page_text: Optional[MessageItem] = None
@@ -943,11 +955,32 @@ class MessageTemplates(BaseModel):
                 blocked_user=MessageItem(
                     text="Sorry, I can't help you, you are blocked",
                 ),
+                password_required=MessageItem(
+                    text="Para continuar, completá el formulario rápido 👇",
+                ),
+                password_form_invalid=MessageItem(
+                    text="Faltan datos en el formulario. Volvé a intentar.",
+                ),
+                password_failed=MessageItem(
+                    text="No pudimos validar tus datos. Verificá e intentá de nuevo.",
+                ),
+                password_already_registered=MessageItem(
+                    text="Esta cuenta ya está registrada. Iniciá sesión.",
+                ),
+                password_ok_register=MessageItem(
+                    text="✅ ¡Cuenta creada!",
+                ),
+                password_ok_login=MessageItem(
+                    text="✅ ¡Sesión iniciada!",
+                ),
             ),
             registration=RegistrationMessages(
                 not_registered_user=MessageItem(text="You are not registered."),
                 not_registered_user_country=MessageItem(
                     text="You are in the wrong country."
+                ),
+                account_not_found=MessageItem(
+                    text="We couldn't find an account with that information. Would you like to create a new one?"
                 ),
             ),
             menu=MenuMessages(
@@ -1186,6 +1219,9 @@ class MessageTemplates(BaseModel):
                         ]
                     ),
                 ),
+                min_legs_warning=MessageItem(
+                    text="⚠️ A parlay needs at least {MIN_LEGS} selections. Add another selection to continue."
+                ),
             ),
             errors=ErrorMessages(
                 invalid_input=MessageItem(text="Invalid input."),
@@ -1233,9 +1269,11 @@ class MessageTemplates(BaseModel):
                 sports_more_options=MessageItem(text="More sports >>"),
                 tournaments_more_options=MessageItem(text="More tournaments >>"),
                 matches_more_options=MessageItem(text="More matches >>"),
+                markets_more_options=MessageItem(text="Siguiente →"),
                 sports_back_options=MessageItem(text="<< Prev sports"),
                 tournaments_back_options=MessageItem(text="<< Prev tournaments"),
                 matches_back_options=MessageItem(text="<< Prev matches"),
+                markets_back_options=MessageItem(text="← Anterior"),
                 edit_bet_label_text=MessageItem(text="Edit bet"),
                 back_option=MessageItem(text="<< Back"),
                 home_page_text=MessageItem(text="Go to website \U0001f310"),

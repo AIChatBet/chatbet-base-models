@@ -349,6 +349,17 @@ class FeaturesConfig(BaseModel):
         default=False,
         description="Enable or disable live in this configuration",
     )
+    fixture_range_days: Optional[int] = Field(
+        default=7,
+        ge=1,
+        le=365,
+        description=(
+            "Window in days for DynamoDB fixture listing queries. "
+            "Wider values let long-horizon tournaments (e.g. World Cup) "
+            "surface earlier; narrower values keep result sets smaller. "
+            "Default 7 preserves legacy behavior."
+        ),
+    )
 
 
 class Meta(BaseModel):
@@ -356,6 +367,37 @@ class Meta(BaseModel):
     schema_version: str = "1.0.0"
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+# ==========================="
+# Auth Config
+# ==========================="
+
+
+class AuthConfig(BaseModel):
+    """Operator-level authentication configuration.
+
+    Defaults to OTP for backward compatibility with existing operators.
+    When ``method == "password"``, ``flow_id`` is required and the
+    operator's WhatsApp provider must be ``meta`` (Cloud API). The
+    provider compatibility check lives on ``SiteConfig`` because it
+    needs access to the sibling ``integrations`` block.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    method: Literal["otp", "password"] = Field(
+        default="otp",
+        description="Auth method: 'otp' (legacy default) or 'password' (WhatsApp Flow form)",
+    )
+    flow_id: str | None = Field(
+        default=None,
+        description="Meta WhatsApp Flow ID (required when method='password')",
+    )
+    forgot_password_url: HttpUrl | None = Field(
+        default=None,
+        description="Optional forgot-password URL — reserved for Phase 2 (deferred).",
+    )
 
 
 # ==========================="
@@ -391,6 +433,7 @@ class SiteConfig(BaseModel):
             hour_format=HourFormat.H24,
             skip_pre_auth_validation=False,
             live=False,
+            fixture_range_days=7,
         )
     )
     limits: MoneyLimits = Field(
@@ -431,6 +474,48 @@ class SiteConfig(BaseModel):
     api_key: Optional[str] = Field(
         default=None, description="API key for public endpoints"
     )
+    auth: AuthConfig = Field(
+        default_factory=AuthConfig,
+        description=(
+            "Operator-level auth configuration. Default factory ⇒ method='otp' so "
+            "operators without an explicit auth block keep the legacy OTP path."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def _validate_auth_compatibility(self) -> "SiteConfig":
+        """Cross-field validation between ``auth`` and ``integrations``.
+
+        Two rules:
+        1. ``auth.method == 'password'`` requires ``auth.flow_id`` to be set
+           (Meta WhatsApp Flows cannot be sent without a published flow id).
+        2. ``auth.method == 'password'`` is incompatible with WhatsApp
+           provider ``whapi`` — Flow messages (``interactive.type='flow'``)
+           require Cloud API (``provider='meta'``). Skipped when no
+           WhatsApp integration is configured at all.
+        """
+        if self.auth.method != "password":
+            return self
+
+        if self.auth.flow_id is None:
+            raise ValueError(
+                "auth.method='password' requires auth.flow_id to be set"
+            )
+
+        whatsapp = self.integrations.whatsapp if self.integrations else None
+        if whatsapp is None:
+            # No WhatsApp configured — nothing to validate against.
+            return self
+
+        provider = getattr(whatsapp.config, "provider", None)
+        if provider == "whapi":
+            raise ValueError(
+                "auth.method='password' is incompatible with WhatsApp "
+                "provider 'whapi' — Flows require WhatsApp Cloud API "
+                "(provider='meta')"
+            )
+
+        return self
 
     @classmethod
     def default_factory(cls, site_name: str, company_id: str) -> SiteConfig:

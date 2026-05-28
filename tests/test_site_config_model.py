@@ -2,6 +2,8 @@ import pytest
 from datetime import datetime
 from decimal import Decimal
 
+from pydantic import ValidationError
+
 from chatbet_base_models.site_config_model import (
     OddType,
     ValidationMethod,
@@ -24,6 +26,7 @@ from chatbet_base_models.site_config_model import (
     LocaleConfig,
     FeaturesConfig,
     Meta,
+    AuthConfig,
     SiteConfig,
     SiteConfigDB,
 )
@@ -456,6 +459,44 @@ class TestFeaturesConfig:
         )
         assert features_momio.alias_probabilities == AliasProbabilities.MOMIO
 
+    def test_features_config_default_fixture_range_days(self):
+        features = FeaturesConfig(
+            odd_type=OddType.DECIMAL,
+            validation=ValidationMethod.EMAIL,
+            combos=True,
+            chatbet_version=ChatbetVersion.V2,
+            multigames_response=True,
+            see_in_combo=True,
+        )
+        assert features.fixture_range_days == 7
+
+    def test_features_config_custom_fixture_range_days(self):
+        features = FeaturesConfig(
+            odd_type=OddType.DECIMAL,
+            validation=ValidationMethod.EMAIL,
+            combos=True,
+            chatbet_version=ChatbetVersion.V2,
+            multigames_response=True,
+            see_in_combo=True,
+            fixture_range_days=30,
+        )
+        assert features.fixture_range_days == 30
+
+    def test_features_config_invalid_fixture_range_days(self):
+        from pydantic import ValidationError
+
+        for invalid in (0, -1, 366, 1000):
+            with pytest.raises(ValidationError):
+                FeaturesConfig(
+                    odd_type=OddType.DECIMAL,
+                    validation=ValidationMethod.EMAIL,
+                    combos=True,
+                    chatbet_version=ChatbetVersion.V2,
+                    multigames_response=True,
+                    see_in_combo=True,
+                    fixture_range_days=invalid,
+                )
+
 
 class TestMeta:
     def test_create_meta_with_defaults(self):
@@ -567,3 +608,168 @@ class TestSiteConfigDB:
         item = config_db.to_dynamodb_item()
 
         assert item["integrations"]["twilio"]["authentication_type"] is None
+
+
+# ==========================="
+# AuthConfig + SiteConfig auth validators
+# ==========================="
+
+
+def _identity_factory():
+    return Identity(
+        site_name="Test Site",
+        company_id="test123",
+        site_url="https://test.example.com",
+    )
+
+
+def _meta_whatsapp_integration():
+    """WhatsApp integration with Meta Cloud API provider (compatible with password)."""
+    return WhatsAppIntegration(
+        enabled=True,
+        config=WhatsAppConfig(
+            provider="meta",
+            phone_id="phone-123",
+            auth_token="token-abc",
+        ),
+    )
+
+
+def _whapi_whatsapp_integration():
+    """WhatsApp integration with WHAPI provider (incompatible with password)."""
+    return WhatsAppIntegration(
+        enabled=True,
+        config=WhapiConfig(
+            provider="whapi",
+            api_url="https://placeholder.com",
+            token="",
+        ),
+    )
+
+
+def _site_config_with_integrations(*, whatsapp=None, **overrides) -> SiteConfig:
+    """Build a SiteConfig with explicit Integrations (whatsapp can be None or absent)."""
+    integrations_kwargs = {}
+    if whatsapp is not None:
+        integrations_kwargs["whatsapp"] = whatsapp
+    integrations = Integrations(**integrations_kwargs)
+    return SiteConfig(
+        identity=_identity_factory(),
+        integrations=integrations,
+        **overrides,
+    )
+
+
+class TestAuthConfig:
+    """Unit tests for the AuthConfig model itself (no SiteConfig context)."""
+
+    def test_auth_config_defaults_otp_for_backward_compat(self):
+        """1) Default AuthConfig() ⇒ method='otp', flow_id=None, forgot_password_url=None."""
+        cfg = AuthConfig()
+        assert cfg.method == "otp"
+        assert cfg.flow_id is None
+        assert cfg.forgot_password_url is None
+
+    def test_auth_config_explicit_otp(self):
+        cfg = AuthConfig(method="otp")
+        assert cfg.method == "otp"
+        assert cfg.flow_id is None
+
+    def test_auth_config_password_with_flow_id_parses(self):
+        """2) AuthConfig(method='password', flow_id='123456') parses fine."""
+        cfg = AuthConfig(method="password", flow_id="123456")
+        assert cfg.method == "password"
+        assert cfg.flow_id == "123456"
+        assert cfg.forgot_password_url is None
+
+    def test_auth_config_invalid_method_rejected(self):
+        """3) AuthConfig(method='magic_link') raises ValidationError (Literal violation)."""
+        with pytest.raises(ValidationError):
+            AuthConfig(method="magic_link")
+
+    def test_auth_config_forgot_password_url_accepts_https(self):
+        cfg = AuthConfig(forgot_password_url="https://example.com/forgot")
+        assert str(cfg.forgot_password_url) == "https://example.com/forgot"
+
+    def test_auth_config_extra_field_forbidden(self):
+        with pytest.raises(ValidationError):
+            AuthConfig(method="otp", unexpected="x")
+
+
+class TestSiteConfigAuthBackwardCompat:
+    """SiteConfig must default to OTP when no auth block is supplied."""
+
+    def test_site_config_without_auth_defaults_to_otp(self):
+        """4) SiteConfig(...without auth...) ⇒ site.auth.method == 'otp'."""
+        config = SiteConfig(identity=_identity_factory())
+        assert config.auth is not None
+        assert config.auth.method == "otp"
+        assert config.auth.flow_id is None
+
+    def test_site_config_default_factory_keeps_otp_default(self):
+        config = SiteConfig.default_factory("Test Site", "test123")
+        assert config.auth.method == "otp"
+
+
+class TestSiteConfigAuthValidators:
+    """SiteConfig.model_validator(after) covering password/whapi/flow_id rules."""
+
+    def test_password_with_meta_provider_parses(self):
+        """5) auth.method='password' + flow_id + provider='meta' → parses fine."""
+        config = _site_config_with_integrations(
+            whatsapp=_meta_whatsapp_integration(),
+            auth=AuthConfig(method="password", flow_id="flow-123"),
+        )
+        assert config.auth.method == "password"
+        assert config.auth.flow_id == "flow-123"
+        # Confirm sibling integrations is intact (provider visible)
+        assert config.integrations.whatsapp.config.provider == "meta"
+
+    def test_password_with_whapi_provider_rejected(self):
+        """6) auth.method='password' + provider='whapi' → ValidationError mentioning 'whapi' and 'Cloud API'."""
+        with pytest.raises(ValidationError) as exc_info:
+            _site_config_with_integrations(
+                whatsapp=_whapi_whatsapp_integration(),
+                auth=AuthConfig(method="password", flow_id="flow-123"),
+            )
+
+        msg = str(exc_info.value)
+        assert "whapi" in msg
+        assert "Cloud API" in msg
+
+    def test_password_without_flow_id_rejected(self):
+        """7) auth.method='password' + no flow_id → ValidationError mentioning 'flow_id'."""
+        with pytest.raises(ValidationError) as exc_info:
+            _site_config_with_integrations(
+                whatsapp=_meta_whatsapp_integration(),
+                auth=AuthConfig(method="password"),
+            )
+
+        msg = str(exc_info.value)
+        assert "flow_id" in msg
+
+    def test_password_without_whatsapp_integration_passes(self):
+        """8) No `integrations.whatsapp` block + auth.method='password' + flow_id set → parses (whapi check skipped)."""
+        config = _site_config_with_integrations(
+            whatsapp=None,
+            auth=AuthConfig(method="password", flow_id="flow-123"),
+        )
+        assert config.auth.method == "password"
+        assert config.integrations.whatsapp is None
+
+    def test_otp_method_with_whapi_is_unaffected(self):
+        """OTP operators with whapi must remain valid (regression guard)."""
+        config = _site_config_with_integrations(
+            whatsapp=_whapi_whatsapp_integration(),
+            auth=AuthConfig(method="otp"),
+        )
+        assert config.auth.method == "otp"
+        assert config.integrations.whatsapp.config.provider == "whapi"
+
+    def test_legacy_config_without_auth_block_with_whapi_passes(self):
+        """Pre-existing operators (no auth block, whapi provider) must keep working."""
+        config = _site_config_with_integrations(
+            whatsapp=_whapi_whatsapp_integration(),
+        )
+        assert config.auth.method == "otp"
+        assert config.integrations.whatsapp.config.provider == "whapi"
