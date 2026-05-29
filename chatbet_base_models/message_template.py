@@ -188,6 +188,9 @@ class ValidationMessages(BaseModel):
     error_otp: Optional[MessageItem] = None
     blocked_otp: Optional[MessageItem] = None
     blocked_user: Optional[MessageItem] = None
+    # Plannatech `terms_not_accepted` (Result=-1219) signaling.
+    # See SDD change `terms-not-accepted`.
+    terms_not_accepted: Optional[MessageItem] = None
     # Password-auth POC templates (sibling to OTP templates).
     # See SDD change `password-auth-poc`.
     password_required: Optional[MessageItem] = None

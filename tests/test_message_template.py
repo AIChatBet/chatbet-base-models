@@ -260,6 +260,68 @@ class TestValidationMessagesPasswordTemplates:
             )
 
 
+class TestValidationMessagesTermsNotAccepted:
+    """Validate the `terms_not_accepted` template added under ValidationMessages.
+
+    See SDD change `terms-not-accepted`. Plannatech surfaces error code -1219
+    when a Betcris account has not approved the platform's Terms & Conditions;
+    operators may configure a per-company message via the backoffice. The field
+    is `Optional[MessageItem] = None` so existing DynamoDB items without the key
+    must deserialize unchanged (no migration)."""
+
+    def test_terms_not_accepted_defaults_to_none(self):
+        validation = ValidationMessages()
+        assert validation.terms_not_accepted is None
+
+    def test_legacy_validation_dict_without_terms_not_accepted_deserializes(self):
+        """Backwards-compat: a DDB-shaped dict that predates this field must
+        load and leave `terms_not_accepted` as `None` (no migration required).
+
+        Only fields without `send_otp`-callback validators are included here
+        because those are independently required when present; this matches a
+        legacy DDB item where only the simple validation fields were persisted."""
+        legacy = {
+            "member_validation": {"text": "Please validate"},
+            "blocked_otp": {"text": "Too many attempts"},
+            "blocked_user": {"text": "You are blocked"},
+        }
+        validation = ValidationMessages.model_validate(legacy)
+        assert validation.terms_not_accepted is None
+        assert validation.member_validation.text == "Please validate"
+        assert validation.blocked_user.text == "You are blocked"
+
+    def test_terms_not_accepted_round_trip_via_model_validate_and_dump(self):
+        """New dict with the field round-trips through model_validate → model_dump."""
+        configured_text = (
+            "Your account has not approved the Terms and Conditions on the "
+            "platform. Please complete that step and try again."
+        )
+        data = {"terms_not_accepted": {"text": configured_text}}
+        validation = ValidationMessages.model_validate(data)
+        assert validation.terms_not_accepted is not None
+        assert validation.terms_not_accepted.text == configured_text
+
+        dumped = validation.model_dump(exclude_none=True)
+        assert "terms_not_accepted" in dumped
+        assert dumped["terms_not_accepted"]["text"] == configured_text
+
+        reloaded = ValidationMessages.model_validate(dumped)
+        assert reloaded.terms_not_accepted.text == configured_text
+
+    def test_terms_not_accepted_string_coercion(self):
+        """Plain strings must coerce to MessageItem({"text": ...}) for the new key
+        (matches the existing convention used by every sibling field)."""
+        data = {"terms_not_accepted": "Terms not accepted"}
+        validation = ValidationMessages.model_validate(data)
+        assert validation.terms_not_accepted.text == "Terms not accepted"
+
+    def test_terms_not_accepted_override_via_constructor(self):
+        validation = ValidationMessages(
+            terms_not_accepted=MessageItem(text="Please accept the T&C"),
+        )
+        assert validation.terms_not_accepted.text == "Please accept the T&C"
+
+
 class TestRegistrationMessages:
     def test_create_registration_messages_with_all_fields(self):
         registration = RegistrationMessages(
