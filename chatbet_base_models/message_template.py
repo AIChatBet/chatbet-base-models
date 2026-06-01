@@ -289,6 +289,7 @@ class BetsMessages(BaseModel):
     invalid_bet_amount: Optional[MessageItem] = None
     fixture_odds: Optional[MessageItem] = None
     special_bets_odds: Optional[MessageItem] = None
+    live_disclaimer: Optional[MessageItem] = None
     unavailable_odds: Optional[MessageItem] = None
     placed_bet: Optional[MessageItem] = None
     placed_bet_menu: Optional[MessageItem] = None

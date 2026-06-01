@@ -399,6 +399,65 @@ class TestBetsMessages:
         assert bets.bet_amount.text == "Enter amount"
 
 
+class TestBetsMessagesLiveDisclaimer:
+    """Validate the `live_disclaimer` template added under BetsMessages.
+
+    Operators can configure a per-company disclaimer shown to users when they
+    open the markets of a live (in-play) fixture. The field is
+    `Optional[MessageItem] = None` so existing DynamoDB items without the key
+    must deserialize unchanged (no migration)."""
+
+    def test_live_disclaimer_defaults_to_none(self):
+        bets = BetsMessages()
+        assert bets.live_disclaimer is None
+
+    def test_legacy_bets_dict_without_live_disclaimer_deserializes(self):
+        """Backwards-compat: a DDB-shaped dict that predates this field must
+        load and leave `live_disclaimer` as `None` (no migration required)."""
+        legacy = {
+            "select_sport": {"text": "Select sport"},
+            "bet_amount": {"text": "Enter amount"},
+            "fixture_odds": {"text": "Here are the odds"},
+            "placed_bet": {"text": "Bet placed"},
+        }
+        bets = BetsMessages.model_validate(legacy)
+        assert bets.live_disclaimer is None
+        assert bets.select_sport.text == "Select sport"
+        assert bets.fixture_odds.text == "Here are the odds"
+        assert bets.placed_bet.text == "Bet placed"
+
+    def test_live_disclaimer_round_trip_via_model_validate_and_dump(self):
+        """New dict with the field round-trips through model_validate → model_dump."""
+        configured_text = (
+            "This fixture is live. Odds may change quickly while the event "
+            "is in progress."
+        )
+        data = {"live_disclaimer": {"text": configured_text}}
+        bets = BetsMessages.model_validate(data)
+        assert bets.live_disclaimer is not None
+        assert bets.live_disclaimer.text == configured_text
+
+        dumped = bets.model_dump(exclude_none=True)
+        assert "live_disclaimer" in dumped
+        assert dumped["live_disclaimer"]["text"] == configured_text
+
+        reloaded = BetsMessages.model_validate(dumped)
+        assert reloaded.live_disclaimer.text == configured_text
+
+    def test_live_disclaimer_string_coercion(self):
+        """Plain strings must coerce to MessageItem({"text": ...}) for the new key
+        (matches the existing convention used by every sibling field)."""
+        data = {"live_disclaimer": "Live fixture — odds may change"}
+        bets = BetsMessages.model_validate(data)
+        assert bets.live_disclaimer.text == "Live fixture — odds may change"
+
+    def test_live_disclaimer_override_via_constructor(self):
+        bets = BetsMessages(
+            live_disclaimer=MessageItem(text="Heads up: this is a live match"),
+        )
+        assert bets.live_disclaimer.text == "Heads up: this is a live match"
+
+
 class TestCombosMessages:
     def test_create_combos_messages(self):
         combos = CombosMessages(
