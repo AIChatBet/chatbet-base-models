@@ -458,6 +458,64 @@ class TestBetsMessagesLiveDisclaimer:
         assert bets.live_disclaimer.text == "Heads up: this is a live match"
 
 
+class TestBetsMessagesBetRejectedDuplicate:
+    """Validate the `bet_rejected_duplicate` template added under BetsMessages.
+
+    Operators can configure a per-company message shown when a bet is rejected
+    because the user already has the maximum number of identical bets for an
+    event. The field is `Optional[MessageItem] = None` so existing DynamoDB
+    items without the key must deserialize unchanged (no migration)."""
+
+    def test_from_minimal_seeds_bet_rejected_duplicate(self):
+        templates = MessageTemplates.from_minimal()
+        assert templates.bets.bet_rejected_duplicate is not None
+        assert "maximum identical bets" in templates.bets.bet_rejected_duplicate.text
+
+    def test_bet_rejected_duplicate_defaults_to_none(self):
+        bets = BetsMessages()
+        assert bets.bet_rejected_duplicate is None
+
+    def test_legacy_bets_dict_without_bet_rejected_duplicate_deserializes(self):
+        """Backwards-compat: a DDB-shaped dict that predates this field must
+        load and leave `bet_rejected_duplicate` as `None` (no migration required).
+
+        Critical because BetsMessages uses ConfigDict(extra="forbid")."""
+        legacy = {
+            "select_sport": {"text": "Select sport"},
+            "bet_amount": {"text": "Enter amount"},
+            "bet_rejected": {"text": "Your bet was rejected. Please try again."},
+            "placed_bet": {"text": "Bet placed"},
+        }
+        bets = BetsMessages.model_validate(legacy)
+        assert bets.bet_rejected_duplicate is None
+        assert bets.bet_rejected.text == "Your bet was rejected. Please try again."
+        assert bets.select_sport.text == "Select sport"
+
+    def test_bet_rejected_duplicate_round_trip_via_model_validate_and_dump(self):
+        """New dict with the field round-trips through model_validate → model_dump."""
+        configured_text = (
+            "You already have the maximum identical bets for this event. "
+            "Try a different amount or selection."
+        )
+        data = {"bet_rejected_duplicate": {"text": configured_text}}
+        bets = BetsMessages.model_validate(data)
+        assert bets.bet_rejected_duplicate is not None
+        assert bets.bet_rejected_duplicate.text == configured_text
+
+        dumped = bets.model_dump(exclude_none=True)
+        assert "bet_rejected_duplicate" in dumped
+        assert dumped["bet_rejected_duplicate"]["text"] == configured_text
+
+        reloaded = BetsMessages.model_validate(dumped)
+        assert reloaded.bet_rejected_duplicate.text == configured_text
+
+    def test_bet_rejected_duplicate_override_via_constructor(self):
+        bets = BetsMessages(
+            bet_rejected_duplicate=MessageItem(text="You hit the duplicate limit"),
+        )
+        assert bets.bet_rejected_duplicate.text == "You hit the duplicate limit"
+
+
 class TestCombosMessages:
     def test_create_combos_messages(self):
         combos = CombosMessages(
