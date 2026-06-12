@@ -188,6 +188,9 @@ class ValidationMessages(BaseModel):
     error_otp: Optional[MessageItem] = None
     blocked_otp: Optional[MessageItem] = None
     blocked_user: Optional[MessageItem] = None
+    # Plannatech `terms_not_accepted` (Result=-1219) signaling.
+    # See SDD change `terms-not-accepted`.
+    terms_not_accepted: Optional[MessageItem] = None
     # Password-auth POC templates (sibling to OTP templates).
     # See SDD change `password-auth-poc`.
     password_required: Optional[MessageItem] = None
@@ -286,12 +289,14 @@ class BetsMessages(BaseModel):
     invalid_bet_amount: Optional[MessageItem] = None
     fixture_odds: Optional[MessageItem] = None
     special_bets_odds: Optional[MessageItem] = None
+    live_disclaimer: Optional[MessageItem] = None
     unavailable_odds: Optional[MessageItem] = None
     placed_bet: Optional[MessageItem] = None
     placed_bet_menu: Optional[MessageItem] = None
     without_funds: Optional[MessageItem] = None
     deposit: Optional[MessageItem] = None
     bet_rejected: Optional[MessageItem] = None
+    bet_rejected_duplicate: Optional[MessageItem] = None
     select_type_of_bet: Optional[MessageItem] = None
     closed_fixture: Optional[MessageItem] = None
 
@@ -1057,6 +1062,12 @@ class MessageTemplates(BaseModel):
                 ),
                 bet_rejected=MessageItem(
                     text="Your bet was rejected. Please try again."
+                ),
+                bet_rejected_duplicate=MessageItem(
+                    text=(
+                        "You already have the maximum identical bets for this event. "
+                        "Try a different amount or selection."
+                    )
                 ),
                 closed_fixture=MessageItem(
                     text="Fixture is closed. You cannot place bets on this fixture."

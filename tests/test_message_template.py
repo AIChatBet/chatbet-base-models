@@ -260,6 +260,68 @@ class TestValidationMessagesPasswordTemplates:
             )
 
 
+class TestValidationMessagesTermsNotAccepted:
+    """Validate the `terms_not_accepted` template added under ValidationMessages.
+
+    See SDD change `terms-not-accepted`. Plannatech surfaces error code -1219
+    when a Betcris account has not approved the platform's Terms & Conditions;
+    operators may configure a per-company message via the backoffice. The field
+    is `Optional[MessageItem] = None` so existing DynamoDB items without the key
+    must deserialize unchanged (no migration)."""
+
+    def test_terms_not_accepted_defaults_to_none(self):
+        validation = ValidationMessages()
+        assert validation.terms_not_accepted is None
+
+    def test_legacy_validation_dict_without_terms_not_accepted_deserializes(self):
+        """Backwards-compat: a DDB-shaped dict that predates this field must
+        load and leave `terms_not_accepted` as `None` (no migration required).
+
+        Only fields without `send_otp`-callback validators are included here
+        because those are independently required when present; this matches a
+        legacy DDB item where only the simple validation fields were persisted."""
+        legacy = {
+            "member_validation": {"text": "Please validate"},
+            "blocked_otp": {"text": "Too many attempts"},
+            "blocked_user": {"text": "You are blocked"},
+        }
+        validation = ValidationMessages.model_validate(legacy)
+        assert validation.terms_not_accepted is None
+        assert validation.member_validation.text == "Please validate"
+        assert validation.blocked_user.text == "You are blocked"
+
+    def test_terms_not_accepted_round_trip_via_model_validate_and_dump(self):
+        """New dict with the field round-trips through model_validate → model_dump."""
+        configured_text = (
+            "Your account has not approved the Terms and Conditions on the "
+            "platform. Please complete that step and try again."
+        )
+        data = {"terms_not_accepted": {"text": configured_text}}
+        validation = ValidationMessages.model_validate(data)
+        assert validation.terms_not_accepted is not None
+        assert validation.terms_not_accepted.text == configured_text
+
+        dumped = validation.model_dump(exclude_none=True)
+        assert "terms_not_accepted" in dumped
+        assert dumped["terms_not_accepted"]["text"] == configured_text
+
+        reloaded = ValidationMessages.model_validate(dumped)
+        assert reloaded.terms_not_accepted.text == configured_text
+
+    def test_terms_not_accepted_string_coercion(self):
+        """Plain strings must coerce to MessageItem({"text": ...}) for the new key
+        (matches the existing convention used by every sibling field)."""
+        data = {"terms_not_accepted": "Terms not accepted"}
+        validation = ValidationMessages.model_validate(data)
+        assert validation.terms_not_accepted.text == "Terms not accepted"
+
+    def test_terms_not_accepted_override_via_constructor(self):
+        validation = ValidationMessages(
+            terms_not_accepted=MessageItem(text="Please accept the T&C"),
+        )
+        assert validation.terms_not_accepted.text == "Please accept the T&C"
+
+
 class TestRegistrationMessages:
     def test_create_registration_messages_with_all_fields(self):
         registration = RegistrationMessages(
@@ -335,6 +397,123 @@ class TestBetsMessages:
         )
         assert bets.select_sport.text == "Select sport"
         assert bets.bet_amount.text == "Enter amount"
+
+
+class TestBetsMessagesLiveDisclaimer:
+    """Validate the `live_disclaimer` template added under BetsMessages.
+
+    Operators can configure a per-company disclaimer shown to users when they
+    open the markets of a live (in-play) fixture. The field is
+    `Optional[MessageItem] = None` so existing DynamoDB items without the key
+    must deserialize unchanged (no migration)."""
+
+    def test_live_disclaimer_defaults_to_none(self):
+        bets = BetsMessages()
+        assert bets.live_disclaimer is None
+
+    def test_legacy_bets_dict_without_live_disclaimer_deserializes(self):
+        """Backwards-compat: a DDB-shaped dict that predates this field must
+        load and leave `live_disclaimer` as `None` (no migration required)."""
+        legacy = {
+            "select_sport": {"text": "Select sport"},
+            "bet_amount": {"text": "Enter amount"},
+            "fixture_odds": {"text": "Here are the odds"},
+            "placed_bet": {"text": "Bet placed"},
+        }
+        bets = BetsMessages.model_validate(legacy)
+        assert bets.live_disclaimer is None
+        assert bets.select_sport.text == "Select sport"
+        assert bets.fixture_odds.text == "Here are the odds"
+        assert bets.placed_bet.text == "Bet placed"
+
+    def test_live_disclaimer_round_trip_via_model_validate_and_dump(self):
+        """New dict with the field round-trips through model_validate → model_dump."""
+        configured_text = (
+            "This fixture is live. Odds may change quickly while the event "
+            "is in progress."
+        )
+        data = {"live_disclaimer": {"text": configured_text}}
+        bets = BetsMessages.model_validate(data)
+        assert bets.live_disclaimer is not None
+        assert bets.live_disclaimer.text == configured_text
+
+        dumped = bets.model_dump(exclude_none=True)
+        assert "live_disclaimer" in dumped
+        assert dumped["live_disclaimer"]["text"] == configured_text
+
+        reloaded = BetsMessages.model_validate(dumped)
+        assert reloaded.live_disclaimer.text == configured_text
+
+    def test_live_disclaimer_string_coercion(self):
+        """Plain strings must coerce to MessageItem({"text": ...}) for the new key
+        (matches the existing convention used by every sibling field)."""
+        data = {"live_disclaimer": "Live fixture — odds may change"}
+        bets = BetsMessages.model_validate(data)
+        assert bets.live_disclaimer.text == "Live fixture — odds may change"
+
+    def test_live_disclaimer_override_via_constructor(self):
+        bets = BetsMessages(
+            live_disclaimer=MessageItem(text="Heads up: this is a live match"),
+        )
+        assert bets.live_disclaimer.text == "Heads up: this is a live match"
+
+
+class TestBetsMessagesBetRejectedDuplicate:
+    """Validate the `bet_rejected_duplicate` template added under BetsMessages.
+
+    Operators can configure a per-company message shown when a bet is rejected
+    because the user already has the maximum number of identical bets for an
+    event. The field is `Optional[MessageItem] = None` so existing DynamoDB
+    items without the key must deserialize unchanged (no migration)."""
+
+    def test_from_minimal_seeds_bet_rejected_duplicate(self):
+        templates = MessageTemplates.from_minimal()
+        assert templates.bets.bet_rejected_duplicate is not None
+        assert "maximum identical bets" in templates.bets.bet_rejected_duplicate.text
+
+    def test_bet_rejected_duplicate_defaults_to_none(self):
+        bets = BetsMessages()
+        assert bets.bet_rejected_duplicate is None
+
+    def test_legacy_bets_dict_without_bet_rejected_duplicate_deserializes(self):
+        """Backwards-compat: a DDB-shaped dict that predates this field must
+        load and leave `bet_rejected_duplicate` as `None` (no migration required).
+
+        Critical because BetsMessages uses ConfigDict(extra="forbid")."""
+        legacy = {
+            "select_sport": {"text": "Select sport"},
+            "bet_amount": {"text": "Enter amount"},
+            "bet_rejected": {"text": "Your bet was rejected. Please try again."},
+            "placed_bet": {"text": "Bet placed"},
+        }
+        bets = BetsMessages.model_validate(legacy)
+        assert bets.bet_rejected_duplicate is None
+        assert bets.bet_rejected.text == "Your bet was rejected. Please try again."
+        assert bets.select_sport.text == "Select sport"
+
+    def test_bet_rejected_duplicate_round_trip_via_model_validate_and_dump(self):
+        """New dict with the field round-trips through model_validate → model_dump."""
+        configured_text = (
+            "You already have the maximum identical bets for this event. "
+            "Try a different amount or selection."
+        )
+        data = {"bet_rejected_duplicate": {"text": configured_text}}
+        bets = BetsMessages.model_validate(data)
+        assert bets.bet_rejected_duplicate is not None
+        assert bets.bet_rejected_duplicate.text == configured_text
+
+        dumped = bets.model_dump(exclude_none=True)
+        assert "bet_rejected_duplicate" in dumped
+        assert dumped["bet_rejected_duplicate"]["text"] == configured_text
+
+        reloaded = BetsMessages.model_validate(dumped)
+        assert reloaded.bet_rejected_duplicate.text == configured_text
+
+    def test_bet_rejected_duplicate_override_via_constructor(self):
+        bets = BetsMessages(
+            bet_rejected_duplicate=MessageItem(text="You hit the duplicate limit"),
+        )
+        assert bets.bet_rejected_duplicate.text == "You hit the duplicate limit"
 
 
 class TestCombosMessages:
