@@ -191,6 +191,24 @@ class ValidationMessages(BaseModel):
     # Plannatech `terms_not_accepted` (Result=-1219) signaling.
     # See SDD change `terms-not-accepted`.
     terms_not_accepted: Optional[MessageItem] = None
+    # Plannatech errorType -> operator-configurable account-state UX.
+    # See SDD change `plannatech-errortype-mapping`. Each mirrors the stable
+    # errorType string (snake_case) under `validation.*`. Absent -> hardcoded
+    # localized fallback in bet-bot (no crash). Infra types
+    # (Timeout/UpstreamError/UnexpectedError/ServiceUnavailable) are NOT
+    # configurable (hardcoded fallbacks); SessionExpired IS configurable.
+    terms_version_outdated: Optional[MessageItem] = None
+    otp_attempts_exceeded: Optional[MessageItem] = None
+    account_blocked_by_request: Optional[MessageItem] = None
+    two_factor_inactive: Optional[MessageItem] = None
+    self_excluded: Optional[MessageItem] = None
+    betting_time_expired: Optional[MessageItem] = None
+    session_expired: Optional[MessageItem] = None
+    # Identity/auth errorTypes reused by login + balance flows (D3: balance
+    # reuses `validation.*`, no dedicated `balance_*` fields).
+    unauthorized_user: Optional[MessageItem] = None
+    user_not_found: Optional[MessageItem] = None
+    account_blocked: Optional[MessageItem] = None
     # Password-auth POC templates (sibling to OTP templates).
     # See SDD change `password-auth-poc`.
     password_required: Optional[MessageItem] = None
@@ -299,6 +317,13 @@ class BetsMessages(BaseModel):
     bet_rejected_duplicate: Optional[MessageItem] = None
     select_type_of_bet: Optional[MessageItem] = None
     closed_fixture: Optional[MessageItem] = None
+    # Plannatech errorType -> operator-configurable business-facing bet UX.
+    # See SDD change `plannatech-errortype-mapping`. InsufficientBalance reuses
+    # the existing `without_funds` field; these cover the remaining business
+    # types not already represented.
+    market_unavailable: Optional[MessageItem] = None
+    bet_limit_exceeded: Optional[MessageItem] = None
+    bet_amount_too_low: Optional[MessageItem] = None
 
     @field_validator("select_type_of_bet")
     @classmethod
