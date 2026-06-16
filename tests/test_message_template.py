@@ -322,6 +322,89 @@ class TestValidationMessagesTermsNotAccepted:
         assert validation.terms_not_accepted.text == "Please accept the T&C"
 
 
+class TestValidationMessagesPlannatechErrorTypes:
+    """Validate the operator-configurable account-state templates added under
+    ValidationMessages for SDD change `plannatech-errortype-mapping`.
+
+    sportbook PR #588 normalized Plannatech `errorType` into a stable enum;
+    these fields mirror that string in snake_case under `validation.*`. Each is
+    `Optional[MessageItem] = None` so legacy DDB items without the keys must
+    deserialize unchanged (no migration). `session_expired` is configurable;
+    infra types (Timeout/UpstreamError/UnexpectedError/ServiceUnavailable) are
+    intentionally NOT modeled here (hardcoded fallbacks in bet-bot)."""
+
+    NEW_FIELDS = [
+        "terms_version_outdated",
+        "otp_attempts_exceeded",
+        "account_blocked_by_request",
+        "two_factor_inactive",
+        "self_excluded",
+        "betting_time_expired",
+        "session_expired",
+        "unauthorized_user",
+        "user_not_found",
+        "account_blocked",
+    ]
+
+    @pytest.mark.parametrize("field", NEW_FIELDS)
+    def test_field_defaults_to_none(self, field):
+        validation = ValidationMessages()
+        assert getattr(validation, field) is None
+
+    def test_infra_types_are_not_configurable_fields(self):
+        """Infra types are hardcoded fallbacks, NOT operator-configurable; with
+        `extra="forbid"` they must raise rather than silently load."""
+        for infra in ("timeout", "upstream_error", "unexpected_error", "service_unavailable"):
+            with pytest.raises(ValidationError):
+                ValidationMessages.model_validate({infra: {"text": "x"}})
+
+    @pytest.mark.parametrize("field", NEW_FIELDS)
+    def test_field_round_trip_via_model_validate_and_dump(self, field):
+        configured_text = f"Configured {field}"
+        validation = ValidationMessages.model_validate({field: {"text": configured_text}})
+        assert getattr(validation, field).text == configured_text
+
+        dumped = validation.model_dump(exclude_none=True)
+        assert dumped[field]["text"] == configured_text
+
+        reloaded = ValidationMessages.model_validate(dumped)
+        assert getattr(reloaded, field).text == configured_text
+
+    @pytest.mark.parametrize("field", NEW_FIELDS)
+    def test_field_string_coercion(self, field):
+        validation = ValidationMessages.model_validate({field: "plain string"})
+        assert getattr(validation, field).text == "plain string"
+
+    def test_session_expired_is_configurable(self):
+        """Spec decision D2: SessionExpired IS configurable (actionable auth
+        state), unlike the other infra types."""
+        validation = ValidationMessages(session_expired=MessageItem(text="Sign in again"))
+        assert validation.session_expired.text == "Sign in again"
+
+
+class TestBetsMessagesPlannatechErrorTypes:
+    """Validate the operator-configurable business-facing bet templates added
+    under BetsMessages for SDD change `plannatech-errortype-mapping`.
+
+    InsufficientBalance reuses the existing `without_funds` field; these cover
+    the remaining business errorTypes. Each is `Optional[MessageItem] = None`."""
+
+    NEW_FIELDS = ["market_unavailable", "bet_limit_exceeded", "bet_amount_too_low"]
+
+    @pytest.mark.parametrize("field", NEW_FIELDS)
+    def test_field_defaults_to_none(self, field):
+        bets = BetsMessages()
+        assert getattr(bets, field) is None
+
+    @pytest.mark.parametrize("field", NEW_FIELDS)
+    def test_field_round_trip_and_string_coercion(self, field):
+        bets = BetsMessages.model_validate({field: "plain string"})
+        assert getattr(bets, field).text == "plain string"
+
+        dumped = bets.model_dump(exclude_none=True)
+        assert dumped[field]["text"] == "plain string"
+
+
 class TestRegistrationMessages:
     def test_create_registration_messages_with_all_fields(self):
         registration = RegistrationMessages(
