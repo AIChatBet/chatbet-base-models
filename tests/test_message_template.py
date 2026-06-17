@@ -20,6 +20,7 @@ from chatbet_base_models.message_template import (
     LinkItem,
     LinksMessages,
     DEFAULT_LINKS,
+    DEFAULT_ACCOUNT_STATE,
 )
 
 
@@ -380,6 +381,82 @@ class TestValidationMessagesPlannatechErrorTypes:
         state), unlike the other infra types."""
         validation = ValidationMessages(session_expired=MessageItem(text="Sign in again"))
         assert validation.session_expired.text == "Sign in again"
+
+
+class TestValidationMessagesAccountStateDefaults:
+    """Validate the localized `account_state_defaults` fallback added under
+    ValidationMessages for SDD change `plannatech-errortype-mapping`.
+
+    Mirrors the `ErrorMessages.general_errors` strategy: a module-level constant
+    (`DEFAULT_ACCOUNT_STATE`) auto-fills via `default_factory` on the constructor
+    and on `model_validate`, even when the Dynamo item omits the key, so the
+    consumer always has a multi-language fallback. Shape: action -> {lang -> text}.
+    Operators override the per-action copy via the per-field MessageItem templates."""
+
+    ACTIONS = [
+        "account_blocked",
+        "unauthorized_user",
+        "user_not_found",
+        "self_excluded",
+        "terms_not_accepted",
+        "terms_version_outdated",
+        "otp_attempts_exceeded",
+        "two_factor_inactive",
+        "betting_time_expired",
+        "session_expired",
+        "account_blocked_by_request",
+    ]
+    LANGS = {"es", "en", "pt-br"}
+
+    def test_defaults_with_direct_constructor(self):
+        validation = ValidationMessages()
+        assert validation.account_state_defaults is not None
+        assert set(validation.account_state_defaults.keys()) == set(self.ACTIONS)
+
+    @pytest.mark.parametrize("action", ACTIONS)
+    def test_each_action_has_all_three_languages(self, action):
+        validation = ValidationMessages()
+        langs = validation.account_state_defaults[action]
+        assert set(langs.keys()) == self.LANGS
+        for lang in self.LANGS:
+            assert isinstance(langs[lang], str) and langs[lang].strip()
+
+    def test_defaults_when_not_provided_via_model_validate(self):
+        """A DDB item WITHOUT account_state_defaults still gets the full default."""
+        validation = ValidationMessages.model_validate({"member_validation": "hello"})
+        assert validation.member_validation.text == "hello"
+        assert set(validation.account_state_defaults.keys()) == set(self.ACTIONS)
+        for action in self.ACTIONS:
+            assert set(validation.account_state_defaults[action].keys()) == self.LANGS
+
+    def test_factory_returns_constant_content(self):
+        validation = ValidationMessages()
+        assert validation.account_state_defaults == DEFAULT_ACCOUNT_STATE
+
+    def test_from_minimal_populates_account_state_defaults(self):
+        templates = MessageTemplates.from_minimal()
+        assert templates.validation is not None
+        defaults = templates.validation.account_state_defaults
+        assert set(defaults.keys()) == set(self.ACTIONS)
+        for action in self.ACTIONS:
+            assert set(defaults[action].keys()) == self.LANGS
+
+    def test_account_state_defaults_in_dynamodb_item(self):
+        templates = MessageTemplates.from_minimal()
+        item = templates.to_dynamodb_item()
+        assert "validation" in item
+        assert "account_state_defaults" in item["validation"]
+        assert set(item["validation"]["account_state_defaults"].keys()) == set(
+            self.ACTIONS
+        )
+
+    def test_operator_can_override_via_model_validate(self):
+        """Providing account_state_defaults explicitly replaces the default."""
+        custom = {"account_blocked": {"es": "x", "en": "y", "pt-br": "z"}}
+        validation = ValidationMessages.model_validate(
+            {"account_state_defaults": custom}
+        )
+        assert validation.account_state_defaults == custom
 
 
 class TestBetsMessagesPlannatechErrorTypes:

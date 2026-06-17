@@ -178,6 +178,65 @@ class OnboardingMessages(BaseModel):
         return self
 
 
+DEFAULT_ACCOUNT_STATE: Dict[str, Dict[str, str]] = {
+    "account_blocked": {
+        "es": "Lo sentimos, tu cuenta está bloqueada. Por favor, contacta a soporte.",
+        "en": "Sorry, your account is blocked. Please contact support.",
+        "pt-br": "Desculpe, sua conta está bloqueada. Entre em contato com o suporte.",
+    },
+    "unauthorized_user": {
+        "es": "No estás autorizado para realizar esta acción.",
+        "en": "You are not authorized to perform this action.",
+        "pt-br": "Você não está autorizado a realizar esta ação.",
+    },
+    "user_not_found": {
+        "es": "No encontramos una cuenta asociada. Verifica tus datos.",
+        "en": "We could not find an account. Please check your details.",
+        "pt-br": "Não encontramos uma conta. Verifique seus dados.",
+    },
+    "self_excluded": {
+        "es": "Tu cuenta se encuentra en autoexclusión.",
+        "en": "Your account is currently self-excluded.",
+        "pt-br": "Sua conta está em autoexclusão.",
+    },
+    "terms_not_accepted": {
+        "es": "Debes aceptar los términos y condiciones para continuar.",
+        "en": "You must accept the terms and conditions to continue.",
+        "pt-br": "Você precisa aceitar os termos e condições para continuar.",
+    },
+    "terms_version_outdated": {
+        "es": "Hay una nueva versión de los términos y condiciones que debes aceptar.",
+        "en": "There is a new version of the terms and conditions you need to accept.",
+        "pt-br": "Há uma nova versão dos termos e condições que você precisa aceitar.",
+    },
+    "otp_attempts_exceeded": {
+        "es": "Superaste el número de intentos permitidos. Inténtalo más tarde.",
+        "en": "You have exceeded the allowed number of attempts. Please try again later.",
+        "pt-br": "Você excedeu o número de tentativas permitidas. Tente novamente mais tarde.",
+    },
+    "two_factor_inactive": {
+        "es": "La verificación en dos pasos no está activa en tu cuenta.",
+        "en": "Two-factor authentication is not active on your account.",
+        "pt-br": "A autenticação em duas etapas não está ativa na sua conta.",
+    },
+    "betting_time_expired": {
+        "es": "El tiempo para realizar esta apuesta ha expirado.",
+        "en": "The time to place this bet has expired.",
+        "pt-br": "O tempo para fazer esta aposta expirou.",
+    },
+    "session_expired": {
+        "es": "Tu sesión ha expirado. Por favor, inicia sesión nuevamente.",
+        "en": "Your session has expired. Please log in again.",
+        "pt-br": "Sua sessão expirou. Por favor, faça login novamente.",
+    },
+    "account_blocked_by_request": {
+        "es": "Tu cuenta fue bloqueada a petición propia.",
+        "en": "Your account was blocked at your own request.",
+        "pt-br": "Sua conta foi bloqueada a seu próprio pedido.",
+    },
+}
+
+
 class ValidationMessages(BaseModel):
     model_config = ConfigDict(extra="forbid")
     member_validation: Optional[MessageItem] = None
@@ -209,6 +268,15 @@ class ValidationMessages(BaseModel):
     unauthorized_user: Optional[MessageItem] = None
     user_not_found: Optional[MessageItem] = None
     account_blocked: Optional[MessageItem] = None
+    # Localized defaults for the account-state errorTypes above, mirroring the
+    # `ErrorMessages.general_errors` rationale: auto-fills on load (model_validate /
+    # constructor) even when the Dynamo item omits it, so consumers always have a
+    # multi-language fallback. Shape: action_name -> {lang -> text}. The consumer
+    # (bet-bot) resolves [action][lang] at runtime. Operators override the per-action
+    # copy via the per-field MessageItem templates above (e.g. validation.account_blocked).
+    account_state_defaults: Dict[str, Dict[str, str]] = Field(
+        default_factory=lambda: DEFAULT_ACCOUNT_STATE
+    )
     # Password-auth POC templates (sibling to OTP templates).
     # See SDD change `password-auth-poc`.
     password_required: Optional[MessageItem] = None
