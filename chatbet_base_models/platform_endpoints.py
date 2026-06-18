@@ -92,6 +92,11 @@ class TournamentsEndpoints(BaseModel):
     update_tournaments_priorities: Optional[Endpoint] = None
 
 
+class MarketsEndpoints(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    markets_priorities: Optional[Endpoint] = None
+
+
 class OddsEndpoints(BaseModel):
     model_config = ConfigDict(extra="forbid")
     get_fixture_odds: Optional[Endpoint] = None
@@ -151,6 +156,7 @@ class APIEndpoints(BaseModel):
     transactions: Optional[TransactionsEndpoints] = None
     combos: Optional[CombosEndpoints] = None
     sport_catalog: Optional[SportCatalogEndpoints] = None
+    markets: Optional[MarketsEndpoints] = None
 
 
 # =========================================================
@@ -208,6 +214,15 @@ class APIEndpointsDB(APIEndpoints):
                 ),
                 update_tournaments_priorities=ep(
                     f"{base_url}/tournaments/priorities", HTTPMethod.PUT
+                ),
+            ),
+            markets=MarketsEndpoints(
+                markets_priorities=Endpoint(
+                    method=HTTPMethod.GET,
+                    endpoint=f"{base_url}/markets/priorities",
+                    params={"sport_id": "", "language": "es"},
+                    payload={},
+                    headers={},
                 ),
             ),
             fixtures=FixturesEndpoints(
