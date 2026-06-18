@@ -95,6 +95,7 @@ class TournamentsEndpoints(BaseModel):
 class MarketsEndpoints(BaseModel):
     model_config = ConfigDict(extra="forbid")
     markets_priorities: Optional[Endpoint] = None
+    update_markets_priorities: Optional[Endpoint] = None
 
 
 class OddsEndpoints(BaseModel):
@@ -223,6 +224,9 @@ class APIEndpointsDB(APIEndpoints):
                     params={"sport_id": "", "language": "es"},
                     payload={},
                     headers={},
+                ),
+                update_markets_priorities=ep(
+                    f"{base_url}/markets/priorities", HTTPMethod.PUT
                 ),
             ),
             fixtures=FixturesEndpoints(
