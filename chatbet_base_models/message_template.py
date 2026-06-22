@@ -324,6 +324,10 @@ class BetsMessages(BaseModel):
     market_unavailable: Optional[MessageItem] = None
     bet_limit_exceeded: Optional[MessageItem] = None
     bet_amount_too_low: Optional[MessageItem] = None
+    # Plannatech errorType `BetAmountTooLow` (min potential-winning rule:
+    # stake*odds >= min) -> operator-configurable copy. Semantic field name
+    # (winning, not stake) per SDD change `betcris-minimum-win-message`.
+    minimum_potential_winning: Optional[MessageItem] = None
 
     @field_validator("select_type_of_bet")
     @classmethod

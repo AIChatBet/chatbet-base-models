@@ -389,7 +389,12 @@ class TestBetsMessagesPlannatechErrorTypes:
     InsufficientBalance reuses the existing `without_funds` field; these cover
     the remaining business errorTypes. Each is `Optional[MessageItem] = None`."""
 
-    NEW_FIELDS = ["market_unavailable", "bet_limit_exceeded", "bet_amount_too_low"]
+    NEW_FIELDS = [
+        "market_unavailable",
+        "bet_limit_exceeded",
+        "bet_amount_too_low",
+        "minimum_potential_winning",
+    ]
 
     @pytest.mark.parametrize("field", NEW_FIELDS)
     def test_field_defaults_to_none(self, field):
@@ -597,6 +602,65 @@ class TestBetsMessagesBetRejectedDuplicate:
             bet_rejected_duplicate=MessageItem(text="You hit the duplicate limit"),
         )
         assert bets.bet_rejected_duplicate.text == "You hit the duplicate limit"
+
+
+class TestBetsMessagesMinimumPotentialWinning:
+    """Validate the `minimum_potential_winning` template added under BetsMessages.
+
+    Operators can configure a per-company message shown when Plannatech rejects a
+    bet with errorType `BetAmountTooLow` (the min potential-winning rule). The
+    field is `Optional[MessageItem] = None`; like `bet_amount_too_low` it is NOT
+    seeded by `from_minimal()` (the renderer supplies an EN fallback). Existing
+    DynamoDB items without the key must deserialize unchanged (no migration)."""
+
+    def test_minimum_potential_winning_defaults_to_none(self):
+        bets = BetsMessages()
+        assert bets.minimum_potential_winning is None
+
+    def test_from_minimal_leaves_minimum_potential_winning_none(self):
+        templates = MessageTemplates.from_minimal()
+        assert templates.bets.minimum_potential_winning is None
+
+    def test_legacy_bets_dict_without_minimum_potential_winning_deserializes(self):
+        """Backwards-compat: a DDB-shaped dict that predates this field must load
+        and leave `minimum_potential_winning` as `None` (no migration required).
+
+        Critical because BetsMessages uses ConfigDict(extra="forbid")."""
+        legacy = {
+            "select_sport": {"text": "Select sport"},
+            "bet_amount": {"text": "Enter amount"},
+            "bet_rejected": {"text": "Your bet was rejected. Please try again."},
+            "placed_bet": {"text": "Bet placed"},
+        }
+        bets = BetsMessages.model_validate(legacy)
+        assert bets.minimum_potential_winning is None
+        assert bets.bet_rejected.text == "Your bet was rejected. Please try again."
+        assert bets.select_sport.text == "Select sport"
+
+    def test_minimum_potential_winning_round_trip_via_model_validate_and_dump(self):
+        """New dict with the field round-trips through model_validate → model_dump
+        under `extra="forbid"`."""
+        configured_text = (
+            "The potential winnings of your bet are below the allowed minimum. "
+            "Increase your stake or pick higher odds to continue."
+        )
+        data = {"minimum_potential_winning": {"text": configured_text}}
+        bets = BetsMessages.model_validate(data)
+        assert bets.minimum_potential_winning is not None
+        assert bets.minimum_potential_winning.text == configured_text
+
+        dumped = bets.model_dump(exclude_none=True)
+        assert "minimum_potential_winning" in dumped
+        assert dumped["minimum_potential_winning"]["text"] == configured_text
+
+        reloaded = BetsMessages.model_validate(dumped)
+        assert reloaded.minimum_potential_winning.text == configured_text
+
+    def test_minimum_potential_winning_override_via_constructor(self):
+        bets = BetsMessages(
+            minimum_potential_winning=MessageItem(text="Potential win too low"),
+        )
+        assert bets.minimum_potential_winning.text == "Potential win too low"
 
 
 class TestCombosMessages:
