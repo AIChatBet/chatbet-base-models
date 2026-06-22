@@ -306,6 +306,7 @@ class LocaleConfig(BaseModel):
     time_zone: str
     default_amount: Optional[str] = None
     default_desired_profit: Optional[str] = None
+    default_minimum_odds: Optional[str] = None
 
     @field_validator("currency")
     @classmethod
@@ -419,6 +420,7 @@ class SiteConfig(BaseModel):
             time_zone="UTC",
             default_amount="",
             default_desired_profit="",
+            default_minimum_odds="",
         )
     )
     features: FeaturesConfig = Field(
