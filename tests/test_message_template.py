@@ -20,6 +20,7 @@ from chatbet_base_models.message_template import (
     LinkItem,
     LinksMessages,
     DEFAULT_LINKS,
+    DEFAULT_ACCOUNT_STATE,
 )
 
 
@@ -322,6 +323,170 @@ class TestValidationMessagesTermsNotAccepted:
         assert validation.terms_not_accepted.text == "Please accept the T&C"
 
 
+class TestValidationMessagesPlannatechErrorTypes:
+    """Validate the operator-configurable account-state templates added under
+    ValidationMessages for SDD change `plannatech-errortype-mapping`.
+
+    sportbook PR #588 normalized Plannatech `errorType` into a stable enum;
+    these fields mirror that string in snake_case under `validation.*`. Each is
+    `Optional[MessageItem] = None` so legacy DDB items without the keys must
+    deserialize unchanged (no migration). `session_expired` is configurable;
+    infra types (Timeout/UpstreamError/UnexpectedError/ServiceUnavailable) are
+    intentionally NOT modeled here (hardcoded fallbacks in bet-bot)."""
+
+    NEW_FIELDS = [
+        "terms_version_outdated",
+        "otp_attempts_exceeded",
+        "account_blocked_by_request",
+        "two_factor_inactive",
+        "self_excluded",
+        "betting_time_expired",
+        "session_expired",
+        "unauthorized_user",
+        "user_not_found",
+        "account_blocked",
+    ]
+
+    @pytest.mark.parametrize("field", NEW_FIELDS)
+    def test_field_defaults_to_none(self, field):
+        validation = ValidationMessages()
+        assert getattr(validation, field) is None
+
+    def test_infra_types_are_not_configurable_fields(self):
+        """Infra types are hardcoded fallbacks, NOT operator-configurable; with
+        `extra="forbid"` they must raise rather than silently load."""
+        for infra in ("timeout", "upstream_error", "unexpected_error", "service_unavailable"):
+            with pytest.raises(ValidationError):
+                ValidationMessages.model_validate({infra: {"text": "x"}})
+
+    @pytest.mark.parametrize("field", NEW_FIELDS)
+    def test_field_round_trip_via_model_validate_and_dump(self, field):
+        configured_text = f"Configured {field}"
+        validation = ValidationMessages.model_validate({field: {"text": configured_text}})
+        assert getattr(validation, field).text == configured_text
+
+        dumped = validation.model_dump(exclude_none=True)
+        assert dumped[field]["text"] == configured_text
+
+        reloaded = ValidationMessages.model_validate(dumped)
+        assert getattr(reloaded, field).text == configured_text
+
+    @pytest.mark.parametrize("field", NEW_FIELDS)
+    def test_field_string_coercion(self, field):
+        validation = ValidationMessages.model_validate({field: "plain string"})
+        assert getattr(validation, field).text == "plain string"
+
+    def test_session_expired_is_configurable(self):
+        """Spec decision D2: SessionExpired IS configurable (actionable auth
+        state), unlike the other infra types."""
+        validation = ValidationMessages(session_expired=MessageItem(text="Sign in again"))
+        assert validation.session_expired.text == "Sign in again"
+
+
+class TestValidationMessagesAccountStateDefaults:
+    """Validate the localized `account_state_defaults` fallback added under
+    ValidationMessages for SDD change `plannatech-errortype-mapping`.
+
+    Mirrors the `ErrorMessages.general_errors` strategy: a module-level constant
+    (`DEFAULT_ACCOUNT_STATE`) auto-fills via `default_factory` on the constructor
+    and on `model_validate`, even when the Dynamo item omits the key, so the
+    consumer always has a multi-language fallback. Shape: action -> {lang -> text}.
+    Operators override the per-action copy via the per-field MessageItem templates."""
+
+    ACTIONS = [
+        "account_blocked",
+        "unauthorized_user",
+        "user_not_found",
+        "self_excluded",
+        "terms_not_accepted",
+        "terms_version_outdated",
+        "otp_attempts_exceeded",
+        "two_factor_inactive",
+        "betting_time_expired",
+        "session_expired",
+        "account_blocked_by_request",
+    ]
+    LANGS = {"es", "en", "pt-br"}
+
+    def test_defaults_with_direct_constructor(self):
+        validation = ValidationMessages()
+        assert validation.account_state_defaults is not None
+        assert set(validation.account_state_defaults.keys()) == set(self.ACTIONS)
+
+    @pytest.mark.parametrize("action", ACTIONS)
+    def test_each_action_has_all_three_languages(self, action):
+        validation = ValidationMessages()
+        langs = validation.account_state_defaults[action]
+        assert set(langs.keys()) == self.LANGS
+        for lang in self.LANGS:
+            assert isinstance(langs[lang], str) and langs[lang].strip()
+
+    def test_defaults_when_not_provided_via_model_validate(self):
+        """A DDB item WITHOUT account_state_defaults still gets the full default."""
+        validation = ValidationMessages.model_validate({"member_validation": "hello"})
+        assert validation.member_validation.text == "hello"
+        assert set(validation.account_state_defaults.keys()) == set(self.ACTIONS)
+        for action in self.ACTIONS:
+            assert set(validation.account_state_defaults[action].keys()) == self.LANGS
+
+    def test_factory_returns_constant_content(self):
+        validation = ValidationMessages()
+        assert validation.account_state_defaults == DEFAULT_ACCOUNT_STATE
+
+    def test_from_minimal_populates_account_state_defaults(self):
+        templates = MessageTemplates.from_minimal()
+        assert templates.validation is not None
+        defaults = templates.validation.account_state_defaults
+        assert set(defaults.keys()) == set(self.ACTIONS)
+        for action in self.ACTIONS:
+            assert set(defaults[action].keys()) == self.LANGS
+
+    def test_account_state_defaults_in_dynamodb_item(self):
+        templates = MessageTemplates.from_minimal()
+        item = templates.to_dynamodb_item()
+        assert "validation" in item
+        assert "account_state_defaults" in item["validation"]
+        assert set(item["validation"]["account_state_defaults"].keys()) == set(
+            self.ACTIONS
+        )
+
+    def test_operator_can_override_via_model_validate(self):
+        """Providing account_state_defaults explicitly replaces the default."""
+        custom = {"account_blocked": {"es": "x", "en": "y", "pt-br": "z"}}
+        validation = ValidationMessages.model_validate(
+            {"account_state_defaults": custom}
+        )
+        assert validation.account_state_defaults == custom
+
+
+class TestBetsMessagesPlannatechErrorTypes:
+    """Validate the operator-configurable business-facing bet templates added
+    under BetsMessages for SDD change `plannatech-errortype-mapping`.
+
+    InsufficientBalance reuses the existing `without_funds` field; these cover
+    the remaining business errorTypes. Each is `Optional[MessageItem] = None`."""
+
+    NEW_FIELDS = [
+        "market_unavailable",
+        "bet_limit_exceeded",
+        "bet_amount_too_low",
+        "minimum_potential_winning",
+    ]
+
+    @pytest.mark.parametrize("field", NEW_FIELDS)
+    def test_field_defaults_to_none(self, field):
+        bets = BetsMessages()
+        assert getattr(bets, field) is None
+
+    @pytest.mark.parametrize("field", NEW_FIELDS)
+    def test_field_round_trip_and_string_coercion(self, field):
+        bets = BetsMessages.model_validate({field: "plain string"})
+        assert getattr(bets, field).text == "plain string"
+
+        dumped = bets.model_dump(exclude_none=True)
+        assert dumped[field]["text"] == "plain string"
+
+
 class TestRegistrationMessages:
     def test_create_registration_messages_with_all_fields(self):
         registration = RegistrationMessages(
@@ -514,6 +679,65 @@ class TestBetsMessagesBetRejectedDuplicate:
             bet_rejected_duplicate=MessageItem(text="You hit the duplicate limit"),
         )
         assert bets.bet_rejected_duplicate.text == "You hit the duplicate limit"
+
+
+class TestBetsMessagesMinimumPotentialWinning:
+    """Validate the `minimum_potential_winning` template added under BetsMessages.
+
+    Operators can configure a per-company message shown when Plannatech rejects a
+    bet with errorType `BetAmountTooLow` (the min potential-winning rule). The
+    field is `Optional[MessageItem] = None`; like `bet_amount_too_low` it is NOT
+    seeded by `from_minimal()` (the renderer supplies an EN fallback). Existing
+    DynamoDB items without the key must deserialize unchanged (no migration)."""
+
+    def test_minimum_potential_winning_defaults_to_none(self):
+        bets = BetsMessages()
+        assert bets.minimum_potential_winning is None
+
+    def test_from_minimal_leaves_minimum_potential_winning_none(self):
+        templates = MessageTemplates.from_minimal()
+        assert templates.bets.minimum_potential_winning is None
+
+    def test_legacy_bets_dict_without_minimum_potential_winning_deserializes(self):
+        """Backwards-compat: a DDB-shaped dict that predates this field must load
+        and leave `minimum_potential_winning` as `None` (no migration required).
+
+        Critical because BetsMessages uses ConfigDict(extra="forbid")."""
+        legacy = {
+            "select_sport": {"text": "Select sport"},
+            "bet_amount": {"text": "Enter amount"},
+            "bet_rejected": {"text": "Your bet was rejected. Please try again."},
+            "placed_bet": {"text": "Bet placed"},
+        }
+        bets = BetsMessages.model_validate(legacy)
+        assert bets.minimum_potential_winning is None
+        assert bets.bet_rejected.text == "Your bet was rejected. Please try again."
+        assert bets.select_sport.text == "Select sport"
+
+    def test_minimum_potential_winning_round_trip_via_model_validate_and_dump(self):
+        """New dict with the field round-trips through model_validate → model_dump
+        under `extra="forbid"`."""
+        configured_text = (
+            "The potential winnings of your bet are below the allowed minimum. "
+            "Increase your stake or pick higher odds to continue."
+        )
+        data = {"minimum_potential_winning": {"text": configured_text}}
+        bets = BetsMessages.model_validate(data)
+        assert bets.minimum_potential_winning is not None
+        assert bets.minimum_potential_winning.text == configured_text
+
+        dumped = bets.model_dump(exclude_none=True)
+        assert "minimum_potential_winning" in dumped
+        assert dumped["minimum_potential_winning"]["text"] == configured_text
+
+        reloaded = BetsMessages.model_validate(dumped)
+        assert reloaded.minimum_potential_winning.text == configured_text
+
+    def test_minimum_potential_winning_override_via_constructor(self):
+        bets = BetsMessages(
+            minimum_potential_winning=MessageItem(text="Potential win too low"),
+        )
+        assert bets.minimum_potential_winning.text == "Potential win too low"
 
 
 class TestCombosMessages:
