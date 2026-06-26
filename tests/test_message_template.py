@@ -567,6 +567,36 @@ class TestBetsMessages:
         bets = BetsMessages()
         assert bets.add_to_combo_offer is None
 
+    def test_select_type_of_bet_accepts_item_without_required_callbacks(self):
+        # The select_type_of_bet screen is unreachable dead code (rerouted by
+        # CU-86aj6gpa1) and no runtime reads its callbacks. Operators must be
+        # free to delete/rename its buttons from the Backoffice, so the field
+        # no longer requires the bet_simple/add_market_to_combo callbacks.
+        bets = BetsMessages(
+            select_type_of_bet=MessageItem(
+                text="Pick a bet type",
+                reply_markup=InlineKeyboardMarkup(
+                    inline_keyboard=[
+                        [
+                            InlineKeyboardButton(
+                                text="Only one button now",
+                                callback_data="some_other_callback",
+                            ),
+                        ]
+                    ]
+                ),
+            )
+        )
+        button = bets.select_type_of_bet.reply_markup.inline_keyboard[0][0]
+        assert button.callback_data == "some_other_callback"
+
+    def test_select_type_of_bet_accepts_item_without_buttons(self):
+        # Operator may strip the keyboard entirely; this must not raise.
+        bets = BetsMessages(
+            select_type_of_bet=MessageItem(text="Pick a bet type"),
+        )
+        assert bets.select_type_of_bet.text == "Pick a bet type"
+
     def test_add_to_combo_offer_accepts_message_item(self):
         bets = BetsMessages(
             add_to_combo_offer=MessageItem(
