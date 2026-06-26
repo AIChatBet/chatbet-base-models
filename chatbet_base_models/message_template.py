@@ -404,29 +404,11 @@ class BetsMessages(BaseModel):
     # (winning, not stake) per SDD change `betcris-minimum-win-message`.
     minimum_potential_winning: Optional[MessageItem] = None
 
-    @field_validator("select_type_of_bet")
-    @classmethod
-    def _type_of_bet_rules(cls, v):
-        return require_callbacks(
-            v, ["bet_simple&{FIXTURE_ID}", "add_market_to_combo&{FIXTURE_ID}"]
-        )
-
     @classmethod
     def model_validate(cls, obj):
         if isinstance(obj, dict):
             obj = {k: MessageItem._coerce(v) for k, v in obj.items()}
         return super().model_validate(obj)
-
-    @model_validator(mode="after")
-    def _require_callbacks(self):
-        if self.select_type_of_bet is None:
-            return self
-        need = {"bet_simple&{FIXTURE_ID}", "add_market_to_combo&{FIXTURE_ID}"}
-        got = extract(self.select_type_of_bet)
-        missing = need - got
-        if missing:
-            raise ValueError(f"select_type_of_bet missing callbacks: {sorted(missing)}")
-        return self
 
 
 class CombosMessages(BaseModel):
