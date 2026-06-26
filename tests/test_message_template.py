@@ -563,6 +563,63 @@ class TestBetsMessages:
         assert bets.select_sport.text == "Select sport"
         assert bets.bet_amount.text == "Enter amount"
 
+    def test_add_to_combo_offer_defaults_to_none(self):
+        bets = BetsMessages()
+        assert bets.add_to_combo_offer is None
+
+    def test_add_to_combo_offer_accepts_message_item(self):
+        bets = BetsMessages(
+            add_to_combo_offer=MessageItem(
+                text="Add this pick as the first leg.",
+                reply_markup=InlineKeyboardMarkup(
+                    inline_keyboard=[
+                        [
+                            InlineKeyboardButton(
+                                text="➕ Add to a combo",
+                                callback_data="add_to_combo",
+                            ),
+                        ]
+                    ]
+                ),
+            )
+        )
+        assert bets.add_to_combo_offer.text == "Add this pick as the first leg."
+        button = bets.add_to_combo_offer.reply_markup.inline_keyboard[0][0]
+        assert button.text == "➕ Add to a combo"
+        # callback_data is a code-injected placeholder; no validator enforced.
+        assert button.callback_data == "add_to_combo"
+
+    def test_add_to_combo_offer_from_minimal(self):
+        templates = MessageTemplates.from_minimal()
+        offer = templates.bets.add_to_combo_offer
+        assert offer is not None
+        assert offer.text == (
+            "Want to turn this into a combo? Add this pick as the first leg."
+        )
+        button = offer.reply_markup.inline_keyboard[0][0]
+        assert button.text == "➕ Add to a combo"
+        assert button.callback_data == "add_to_combo"
+
+    def test_add_to_combo_offer_round_trips_through_serialization(self):
+        templates = MessageTemplates.from_minimal()
+        item = templates.to_dynamodb_item()
+        assert "add_to_combo_offer" in item["bets"]
+        offer = item["bets"]["add_to_combo_offer"]
+        assert offer["text"] == (
+            "Want to turn this into a combo? Add this pick as the first leg."
+        )
+        button = offer["reply_markup"]["inline_keyboard"][0][0]
+        assert button["text"] == "➕ Add to a combo"
+        assert button["callback_data"] == "add_to_combo"
+
+        # Deserialize back and confirm the field survives the round-trip.
+        restored = BetsMessages.model_validate(item["bets"])
+        assert restored.add_to_combo_offer is not None
+        assert (
+            restored.add_to_combo_offer.reply_markup.inline_keyboard[0][0].text
+            == "➕ Add to a combo"
+        )
+
 
 class TestBetsMessagesLiveDisclaimer:
     """Validate the `live_disclaimer` template added under BetsMessages.
