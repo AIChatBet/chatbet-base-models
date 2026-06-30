@@ -244,7 +244,7 @@ def _reject_html(value: str, field: str) -> str:
 
 class PersonalityConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    bot_name: str = Field(default="ChatBet", min_length=2, max_length=20)
+    bot_name: str = Field(default="", max_length=20)
     formality_level: int = Field(default=2, ge=1, le=5)
     emoji_level: int = Field(default=2, ge=1, le=3)
     response_length: int = Field(default=1, ge=1, le=3)
