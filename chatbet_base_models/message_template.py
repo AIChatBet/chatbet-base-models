@@ -247,6 +247,14 @@ class ValidationMessages(BaseModel):
     error_otp: Optional[MessageItem] = None
     blocked_otp: Optional[MessageItem] = None
     blocked_user: Optional[MessageItem] = None
+    # BO-editable override for the WhatsApp detected-number login confirm
+    # screen. See SDD change `whatsapp-detected-number-login`. The prompt
+    # supports a `{phone}` placeholder (the detected/masked sender number) and
+    # carries two buttons with callbacks `use_detected_phone` (use this number)
+    # and `change_account_otp` (change number). When absent, bet-bot falls back
+    # to hardcoded localized defaults (account_state_defaults pattern), so empty
+    # configs are safe.
+    confirm_phone_number: Optional[MessageItem] = None
     # Plannatech `terms_not_accepted` (Result=-1219) signaling.
     # See SDD change `terms-not-accepted`.
     terms_not_accepted: Optional[MessageItem] = None
@@ -307,6 +315,11 @@ class ValidationMessages(BaseModel):
     def _error_otp_rules(cls, v):
         return require_callbacks(v, ["send_otp"])
 
+    @field_validator("confirm_phone_number")
+    @classmethod
+    def _confirm_phone_number_rules(cls, v):
+        return require_callbacks(v, ["use_detected_phone", "change_account_otp"])
+
     @model_validator(mode="after")
     def _require_callbacks(self):
         need = {"send_otp"}
@@ -321,6 +334,14 @@ class ValidationMessages(BaseModel):
             missing = need - got
             if missing:
                 raise ValueError(f"{field} missing callbacks: {sorted(missing)}")
+        if self.confirm_phone_number is not None:
+            need_confirm = {"use_detected_phone", "change_account_otp"}
+            got = extract(self.confirm_phone_number)
+            missing = need_confirm - got
+            if missing:
+                raise ValueError(
+                    f"confirm_phone_number missing callbacks: {sorted(missing)}"
+                )
         return self
 
 
