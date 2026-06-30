@@ -497,6 +497,44 @@ class TestFeaturesConfig:
                     fixture_range_days=invalid,
                 )
 
+    def test_features_config_default_whatsapp_detected_login(self):
+        features = FeaturesConfig(
+            odd_type=OddType.DECIMAL,
+            validation=ValidationMethod.EMAIL,
+            combos=True,
+            chatbet_version=ChatbetVersion.V2,
+            multigames_response=True,
+            see_in_combo=True,
+        )
+        assert features.whatsapp_detected_login is False
+
+    def test_features_config_whatsapp_detected_login_enabled(self):
+        features = FeaturesConfig(
+            odd_type=OddType.DECIMAL,
+            validation=ValidationMethod.EMAIL,
+            combos=True,
+            chatbet_version=ChatbetVersion.V2,
+            multigames_response=True,
+            see_in_combo=True,
+            whatsapp_detected_login=True,
+        )
+        assert features.whatsapp_detected_login is True
+
+    def test_features_config_whatsapp_detected_login_round_trip(self):
+        features = FeaturesConfig.model_validate(
+            {
+                "odd_type": OddType.DECIMAL,
+                "validation": ValidationMethod.EMAIL,
+                "combos": True,
+                "chatbet_version": ChatbetVersion.V2,
+                "multigames_response": True,
+                "see_in_combo": True,
+                "whatsapp_detected_login": True,
+            }
+        )
+        assert features.whatsapp_detected_login is True
+        assert features.model_dump()["whatsapp_detected_login"] is True
+
 
 class TestMeta:
     def test_create_meta_with_defaults(self):
