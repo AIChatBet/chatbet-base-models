@@ -261,6 +261,140 @@ class TestValidationMessagesPasswordTemplates:
             )
 
 
+def _confirm_phone_item(text="¿Ingresar con este número?"):
+    """Helper: a valid `confirm_phone_number` MessageItem carrying both
+    required callbacks (`use_detected_phone` + `change_account_otp`)."""
+    return MessageItem(
+        text=text,
+        reply_markup=InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(
+                        text="✅ Usar este número",
+                        callback_data="use_detected_phone",
+                    )
+                ],
+                [
+                    InlineKeyboardButton(
+                        text="✏️ Cambiar número",
+                        callback_data="change_account_otp",
+                    )
+                ],
+            ]
+        ),
+    )
+
+
+class TestValidationMessagesConfirmPhoneNumber:
+    """Validate the `confirm_phone_number` template added under ValidationMessages.
+
+    See SDD change `whatsapp-detected-number-login`. BO-editable override for the
+    WhatsApp detected-number login confirm screen: a prompt (supporting a
+    `{phone}` placeholder) plus two buttons carrying callbacks
+    `use_detected_phone` and `change_account_otp`. The field is
+    `Optional[MessageItem] = None` so existing company configs that omit it keep
+    validating; bet-bot falls back to hardcoded localized defaults when absent."""
+
+    def test_confirm_phone_number_defaults_to_none(self):
+        validation = ValidationMessages()
+        assert validation.confirm_phone_number is None
+
+    def test_confirm_phone_number_omitted_from_dict_yields_none(self):
+        validation = ValidationMessages.model_validate(
+            {"member_validation": "Please validate"}
+        )
+        assert validation.confirm_phone_number is None
+        assert validation.member_validation.text == "Please validate"
+
+    def test_confirm_phone_number_with_both_callbacks_validates(self):
+        validation = ValidationMessages(confirm_phone_number=_confirm_phone_item())
+        assert validation.confirm_phone_number is not None
+        got = {
+            btn.callback_data
+            for row in validation.confirm_phone_number.reply_markup.inline_keyboard
+            for btn in row
+        }
+        assert got == {"use_detected_phone", "change_account_otp"}
+
+    def test_confirm_phone_number_missing_callbacks_raises(self):
+        """Provided but WITHOUT the required callbacks must raise."""
+        with pytest.raises(ValueError):
+            ValidationMessages(
+                confirm_phone_number=MessageItem(
+                    text="¿Ingresar con este número?",
+                    reply_markup=InlineKeyboardMarkup(
+                        inline_keyboard=[
+                            [
+                                InlineKeyboardButton(
+                                    text="✅ Usar este número",
+                                    callback_data="use_detected_phone",
+                                )
+                            ]
+                            # missing `change_account_otp`
+                        ]
+                    ),
+                )
+            )
+
+    def test_confirm_phone_number_without_keyboard_raises(self):
+        """A plain-text item (no inline keyboard at all) must raise."""
+        with pytest.raises(ValueError):
+            ValidationMessages(
+                confirm_phone_number=MessageItem(text="¿Ingresar con este número?")
+            )
+
+    def test_confirm_phone_number_round_trip_via_model_validate_and_dump(self):
+        data = {
+            "confirm_phone_number": {
+                "text": "Detectamos que escribís desde {phone}. ¿Ingresar?",
+                "reply_markup": {
+                    "inline_keyboard": [
+                        [
+                            {
+                                "text": "✅ Usar este número",
+                                "callback_data": "use_detected_phone",
+                            }
+                        ],
+                        [
+                            {
+                                "text": "✏️ Cambiar número",
+                                "callback_data": "change_account_otp",
+                            }
+                        ],
+                    ]
+                },
+            }
+        }
+        validation = ValidationMessages.model_validate(data)
+        assert "{phone}" in validation.confirm_phone_number.text
+
+        dumped = validation.model_dump(exclude_none=True)
+        assert "confirm_phone_number" in dumped
+        reloaded = ValidationMessages.model_validate(dumped)
+        assert reloaded.confirm_phone_number.text == validation.confirm_phone_number.text
+
+    def test_confirm_phone_number_serializes_in_dynamodb_item(self):
+        templates = MessageTemplates.from_minimal()
+        templates.validation.confirm_phone_number = _confirm_phone_item()
+        item = templates.to_dynamodb_item()
+        assert "confirm_phone_number" in item["validation"]
+        cbs = {
+            btn["callback_data"]
+            for row in item["validation"]["confirm_phone_number"]["reply_markup"][
+                "inline_keyboard"
+            ]
+            for btn in row
+        }
+        assert cbs == {"use_detected_phone", "change_account_otp"}
+
+    def test_confirm_phone_number_unknown_key_rejected(self):
+        """`extra=forbid` keeps protecting against typos near the new field."""
+        with pytest.raises(ValidationError):
+            ValidationMessages.model_validate(
+                {"confirm_phone_numbr": {"text": "typo"}}
+            )
+
+
 class TestValidationMessagesTermsNotAccepted:
     """Validate the `terms_not_accepted` template added under ValidationMessages.
 
