@@ -6,7 +6,7 @@ This package centralizes common data models used across
 multiple ChatBet projects.
 """
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
 # Message Templates
 from .message_template import (
