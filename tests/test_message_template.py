@@ -625,6 +625,8 @@ class TestBetsMessagesPlannatechErrorTypes:
         "bet_limit_exceeded",
         "bet_amount_too_low",
         "minimum_potential_winning",
+        "account_frozen",
+        "non_combinable_selection",
     ]
 
     @pytest.mark.parametrize("field", NEW_FIELDS)
