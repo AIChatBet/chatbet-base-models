@@ -424,6 +424,11 @@ class BetsMessages(BaseModel):
     # stake*odds >= min) -> operator-configurable copy. Semantic field name
     # (winning, not stake) per SDD change `betcris-minimum-win-message`.
     minimum_potential_winning: Optional[MessageItem] = None
+    # iSolutions -32 errorTypes -> operator-configurable business-facing bet UX.
+    # `account_frozen` maps to `AccountFrozen`; `non_combinable_selection` maps
+    # to `NonCombinableSelection`. Companion to sportbook-services PRs #589/#626.
+    account_frozen: Optional[MessageItem] = None
+    non_combinable_selection: Optional[MessageItem] = None
 
     @classmethod
     def model_validate(cls, obj):
