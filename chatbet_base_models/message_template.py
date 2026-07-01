@@ -1067,6 +1067,28 @@ class MessageTemplates(BaseModel):
                 blocked_user=MessageItem(
                     text="Sorry, I can't help you, you are blocked",
                 ),
+                confirm_phone_number=MessageItem(
+                    text=(
+                        "Detectamos que nos escribís desde {phone}.\n"
+                        "¿Querés ingresar con este número?"
+                    ),
+                    reply_markup=InlineKeyboardMarkup(
+                        inline_keyboard=[
+                            [
+                                InlineKeyboardButton(
+                                    text="✅ Usar este número",
+                                    callback_data="use_detected_phone",
+                                )
+                            ],
+                            [
+                                InlineKeyboardButton(
+                                    text="✏️ Cambiar número",
+                                    callback_data="change_account_otp",
+                                )
+                            ],
+                        ]
+                    ),
+                ),
                 password_required=MessageItem(
                     text="Para continuar, completá el formulario rápido 👇",
                 ),

@@ -387,6 +387,26 @@ class TestValidationMessagesConfirmPhoneNumber:
         }
         assert cbs == {"use_detected_phone", "change_account_otp"}
 
+    def test_from_minimal_seeds_confirm_phone_number(self):
+        """`from_minimal()` auto-seeds a valid `confirm_phone_number` so NEW
+        companies get an editable WhatsApp detected-number login confirm
+        template out of the box (existing companies covered by the
+        channel-services migration)."""
+        templates = MessageTemplates.from_minimal()
+        item = templates.validation.confirm_phone_number
+        assert item is not None
+        # Prompt carries the {phone} placeholder the renderer substitutes.
+        assert "{phone}" in item.text
+        # Exactly two rows, one button each, with the required BARE callbacks
+        # (no `oi:`/`ai:` prefix).
+        rows = item.reply_markup.inline_keyboard
+        assert len(rows) == 2
+        assert all(len(row) == 1 for row in rows)
+        assert rows[0][0].callback_data == "use_detected_phone"
+        assert rows[1][0].callback_data == "change_account_otp"
+        # The whole container re-validates (field + model validators pass).
+        MessageTemplates.model_validate(templates.model_dump())
+
     def test_confirm_phone_number_unknown_key_rejected(self):
         """`extra=forbid` keeps protecting against typos near the new field."""
         with pytest.raises(ValidationError):
