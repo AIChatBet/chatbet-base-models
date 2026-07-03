@@ -429,6 +429,12 @@ class BetsMessages(BaseModel):
     # to `NonCombinableSelection`. Companion to sportbook-services PRs #589/#626.
     account_frozen: Optional[MessageItem] = None
     non_combinable_selection: Optional[MessageItem] = None
+    # Plannatech errorTypes `ErrSecNoRight` / `ContactSupport` -> a dedicated
+    # operator-configurable "contact support" bet-reject message EACH, so an
+    # operator can tailor a distinct copy per case. Buttons are code-owned in
+    # bet-bot (Menu only, never Try-Again). Field names mirror the errorType.
+    err_sec_no_right: Optional[MessageItem] = None
+    contact_support: Optional[MessageItem] = None
 
     @classmethod
     def model_validate(cls, obj):

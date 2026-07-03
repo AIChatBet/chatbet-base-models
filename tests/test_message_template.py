@@ -627,6 +627,8 @@ class TestBetsMessagesPlannatechErrorTypes:
         "minimum_potential_winning",
         "account_frozen",
         "non_combinable_selection",
+        "err_sec_no_right",
+        "contact_support",
     ]
 
     @pytest.mark.parametrize("field", NEW_FIELDS)
