@@ -435,6 +435,15 @@ class BetsMessages(BaseModel):
     # bet-bot (Menu only, never Try-Again). Field names mirror the errorType.
     err_sec_no_right: Optional[MessageItem] = None
     contact_support: Optional[MessageItem] = None
+    # Proactive (pre-confirm) insufficient-balance message shown by the
+    # `_proactive_balance_check` helper in `confirm_bet`/`place_user_bet`.
+    # See SDD change `proactive-balance-validation` (bet-bot). Distinct from
+    # the reactive `without_funds` field: this one supports a `{balance}`
+    # placeholder. Operator override is sticky and NOT auto-regenerated;
+    # when unset, bet-bot falls back to a per-language default sourced from
+    # its own `bet_rejection_copy.py` table (no seeding here, same pattern
+    # as `account_frozen`/`market_unavailable`/etc.).
+    insufficient_balance_prompt: Optional[MessageItem] = None
 
     @classmethod
     def model_validate(cls, obj):

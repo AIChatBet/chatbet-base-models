@@ -350,6 +350,10 @@ class FeaturesConfig(BaseModel):
         default=False,
         description="Enable or disable live in this configuration",
     )
+    whatsapp_detected_login: Optional[bool] = Field(
+        default=False,
+        description="Enable WhatsApp detected-number login confirm screen (per-company rollout). When False, WhatsApp users keep the type-the-number flow.",
+    )
     fixture_range_days: Optional[int] = Field(
         default=7,
         ge=1,
@@ -435,6 +439,7 @@ class SiteConfig(BaseModel):
             hour_format=HourFormat.H24,
             skip_pre_auth_validation=False,
             live=False,
+            whatsapp_detected_login=False,
             fixture_range_days=7,
         )
     )
