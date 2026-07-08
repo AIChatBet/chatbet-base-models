@@ -21,6 +21,7 @@ from chatbet_base_models.site_config_model import (
     WhapiConfig,
     WhatsAppConfig,
     WhatsAppIntegration,
+    WebConfig,
     Integrations,
     Identity,
     LocaleConfig,
@@ -305,6 +306,49 @@ class TestIntegrations:
         assert integrations.twilio is None
         assert integrations.meilisearch is None
         assert integrations.whatsapp is None
+        assert integrations.web is None
+
+    def test_integrations_without_web_key_validates(self):
+        # Backward-compat: a config with no `web` key must still validate,
+        # with `web` defaulting to None.
+        data = {
+            "telegram": {"token": "bot_token"},
+        }
+        integrations = Integrations.model_validate(data)
+        assert integrations.web is None
+
+    def test_integrations_with_web_key_validates(self):
+        data = {
+            "web": {
+                "enabled": True,
+                "allowed_origins": [
+                    "https://a.example.com",
+                    "https://b.example.com",
+                ],
+            }
+        }
+        integrations = Integrations.model_validate(data)
+        assert integrations.web is not None
+        assert integrations.web.enabled is True
+        # allowed_origins round-trips
+        assert integrations.web.allowed_origins == [
+            "https://a.example.com",
+            "https://b.example.com",
+        ]
+        dumped = integrations.model_dump()
+        assert dumped["web"]["allowed_origins"] == [
+            "https://a.example.com",
+            "https://b.example.com",
+        ]
+
+    def test_web_config_defaults(self):
+        web = WebConfig()
+        assert web.enabled is True
+        assert web.allowed_origins == []
+
+    def test_web_config_forbids_extra(self):
+        with pytest.raises(ValidationError):
+            WebConfig(unknown_field="x")
 
     def test_create_integrations_with_configs(self):
         integrations = Integrations(
