@@ -346,6 +346,34 @@ class TestIntegrations:
         assert web.enabled is True
         assert web.allowed_origins == []
 
+    def test_web_config_widget_defaults_applied(self):
+        # A config with NO widget-customization fields parses and applies
+        # the additive defaults (backward-compatible).
+        web = WebConfig()
+        assert web.accent_color == "#7C46E7"
+        assert web.persona_name == "ChatBet Concierge"
+        assert web.logo_url is None
+        assert web.welcome_text == (
+            "Tell me what you need — how things work, your account, "
+            "anything. I'll take it from here."
+        )
+
+    def test_web_config_accent_color_accepts_valid_hex(self):
+        assert WebConfig(accent_color="#abc").accent_color == "#abc"
+        assert WebConfig(accent_color="#A1B2C3").accent_color == "#A1B2C3"
+
+    def test_web_config_invalid_hex_raises(self):
+        with pytest.raises(ValidationError):
+            WebConfig(accent_color="12xyz")
+
+    def test_web_config_persona_name_too_long_raises(self):
+        with pytest.raises(ValidationError):
+            WebConfig(persona_name="x" * 41)
+
+    def test_web_config_welcome_text_too_long_raises(self):
+        with pytest.raises(ValidationError):
+            WebConfig(welcome_text="x" * 501)
+
     def test_web_config_forbids_extra(self):
         with pytest.raises(ValidationError):
             WebConfig(unknown_field="x")
