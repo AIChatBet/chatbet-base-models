@@ -207,6 +207,25 @@ class WebConfig(BaseModel):
         description="Per-company CORS allowlist for the embeddable web widget",
     )
 
+    # Widget customization (Backoffice Widget editor). Additive with defaults
+    # so existing configs remain valid under ``extra="forbid"``.
+    accent_color: str = Field(
+        default="#7C46E7",
+        pattern=r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$",
+        description="Primary accent color for the widget (hex, 3 or 6 digits)",
+    )
+    persona_name: str = Field(
+        default="ChatBet Concierge",
+        max_length=40,
+        description="Display name of the widget assistant persona",
+    )
+    logo_url: Optional[str] = None
+    welcome_text: str = Field(
+        default="Tell me what you need — how things work, your account, anything. I'll take it from here.",
+        max_length=500,
+        description="Welcome/intro message shown by the widget",
+    )
+
 
 class Integrations(BaseModel):
     model_config = ConfigDict(extra="forbid")
