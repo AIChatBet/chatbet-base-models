@@ -189,12 +189,35 @@ class BitlyConfig(BaseModel):
     initial_message: Optional[str] = None
 
 
+# Configuración del canal Web (widget embebible)
+class WebConfig(BaseModel):
+    """Web chat widget channel configuration.
+
+    The web channel is always-on per company and needs no external
+    token/secret (unlike Telegram/WhatsApp). ``allowed_origins`` is the
+    per-company CORS allowlist for the embeddable widget; an empty list
+    means "no explicit origins configured" and is treated as a safe
+    default by the consuming service.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+    enabled: bool = True
+    allowed_origins: List[str] = Field(
+        default_factory=list,
+        description="Per-company CORS allowlist for the embeddable web widget",
+    )
+
+
 class Integrations(BaseModel):
     model_config = ConfigDict(extra="forbid")
     telegram: Optional[TelegramConfig] = None
     twilio: Optional[TwilioConfig] = None
     meilisearch: Optional[MeilisearchConfig] = None
     bitly: Optional[BitlyConfig] = None
+
+    # Canal web (widget embebible). Opcional para retro-compatibilidad:
+    # configs sin la clave `web` siguen validando.
+    web: Optional[WebConfig] = None
 
     # <-- CAMBIO: ahora `whatsapp`, no `whapi`
     whatsapp: Optional[WhatsAppIntegration] = None
