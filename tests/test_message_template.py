@@ -625,6 +625,10 @@ class TestBetsMessagesPlannatechErrorTypes:
         "bet_limit_exceeded",
         "bet_amount_too_low",
         "minimum_potential_winning",
+        "account_frozen",
+        "non_combinable_selection",
+        "err_sec_no_right",
+        "contact_support",
     ]
 
     @pytest.mark.parametrize("field", NEW_FIELDS)
@@ -952,6 +956,56 @@ class TestBetsMessagesMinimumPotentialWinning:
         }
         bets = BetsMessages.model_validate(legacy)
         assert bets.minimum_potential_winning is None
+        assert bets.bet_rejected.text == "Your bet was rejected. Please try again."
+
+
+class TestBetsMessagesInsufficientBalancePrompt:
+    """Validate `insufficient_balance_prompt`, added under BetsMessages for the
+    companion SDD change `proactive-balance-validation` (bet-bot).
+
+    Distinct from the reactive `without_funds` field: this one is shown by a
+    proactive pre-confirm balance check and supports a `{balance}` placeholder.
+    The field is `Optional[MessageItem] = None`; like `minimum_potential_winning`
+    it is NOT seeded by `from_minimal()` -- bet-bot supplies a per-language
+    fallback via its own `bet_rejection_copy.py` table when unset. Existing
+    DynamoDB items without the key must deserialize unchanged (no migration)."""
+
+    def test_insufficient_balance_prompt_defaults_to_none(self):
+        bets = BetsMessages()
+        assert bets.insufficient_balance_prompt is None
+
+    def test_from_minimal_leaves_insufficient_balance_prompt_none(self):
+        templates = MessageTemplates.from_minimal()
+        assert templates.bets.insufficient_balance_prompt is None
+
+    def test_insufficient_balance_prompt_round_trip_and_string_coercion(self):
+        bets = BetsMessages.model_validate(
+            {"insufficient_balance_prompt": "Insufficient funds. Balance: {balance}"}
+        )
+        assert (
+            bets.insufficient_balance_prompt.text
+            == "Insufficient funds. Balance: {balance}"
+        )
+
+        dumped = bets.model_dump(exclude_none=True)
+        assert (
+            dumped["insufficient_balance_prompt"]["text"]
+            == "Insufficient funds. Balance: {balance}"
+        )
+
+    def test_legacy_bets_dict_without_insufficient_balance_prompt_deserializes(self):
+        """Backwards-compat: a DDB-shaped dict that predates this field must load
+        and leave `insufficient_balance_prompt` as `None` (no migration required).
+
+        Critical because BetsMessages uses ConfigDict(extra="forbid")."""
+        legacy = {
+            "select_sport": {"text": "Select sport"},
+            "bet_amount": {"text": "Enter amount"},
+            "bet_rejected": {"text": "Your bet was rejected. Please try again."},
+            "placed_bet": {"text": "Bet placed"},
+        }
+        bets = BetsMessages.model_validate(legacy)
+        assert bets.insufficient_balance_prompt is None
         assert bets.bet_rejected.text == "Your bet was rejected. Please try again."
         assert bets.select_sport.text == "Select sport"
 

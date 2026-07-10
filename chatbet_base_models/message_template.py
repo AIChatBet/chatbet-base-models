@@ -424,6 +424,26 @@ class BetsMessages(BaseModel):
     # stake*odds >= min) -> operator-configurable copy. Semantic field name
     # (winning, not stake) per SDD change `betcris-minimum-win-message`.
     minimum_potential_winning: Optional[MessageItem] = None
+    # iSolutions -32 errorTypes -> operator-configurable business-facing bet UX.
+    # `account_frozen` maps to `AccountFrozen`; `non_combinable_selection` maps
+    # to `NonCombinableSelection`. Companion to sportbook-services PRs #589/#626.
+    account_frozen: Optional[MessageItem] = None
+    non_combinable_selection: Optional[MessageItem] = None
+    # Plannatech errorTypes `ErrSecNoRight` / `ContactSupport` -> a dedicated
+    # operator-configurable "contact support" bet-reject message EACH, so an
+    # operator can tailor a distinct copy per case. Buttons are code-owned in
+    # bet-bot (Menu only, never Try-Again). Field names mirror the errorType.
+    err_sec_no_right: Optional[MessageItem] = None
+    contact_support: Optional[MessageItem] = None
+    # Proactive (pre-confirm) insufficient-balance message shown by the
+    # `_proactive_balance_check` helper in `confirm_bet`/`place_user_bet`.
+    # See SDD change `proactive-balance-validation` (bet-bot). Distinct from
+    # the reactive `without_funds` field: this one supports a `{balance}`
+    # placeholder. Operator override is sticky and NOT auto-regenerated;
+    # when unset, bet-bot falls back to a per-language default sourced from
+    # its own `bet_rejection_copy.py` table (no seeding here, same pattern
+    # as `account_frozen`/`market_unavailable`/etc.).
+    insufficient_balance_prompt: Optional[MessageItem] = None
 
     @classmethod
     def model_validate(cls, obj):

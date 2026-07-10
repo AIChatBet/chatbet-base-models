@@ -29,6 +29,7 @@ from chatbet_base_models.site_config_model import (
     AuthConfig,
     SiteConfig,
     SiteConfigDB,
+    PersonalityConfig,
 )
 
 
@@ -366,6 +367,28 @@ class TestIdentity:
     def test_invalid_url_raises_error(self):
         with pytest.raises(ValueError):
             Identity(site_name="ChatBet", company_id="chatbet123", site_url="not-a-url")
+
+
+class TestPersonalityConfig:
+    def test_default_bot_name_is_empty(self):
+        personality = PersonalityConfig()
+        assert personality.bot_name == ""
+
+    def test_accepts_empty_bot_name(self):
+        personality = PersonalityConfig(bot_name="")
+        assert personality.bot_name == ""
+
+    def test_accepts_single_char_bot_name(self):
+        personality = PersonalityConfig(bot_name="X")
+        assert personality.bot_name == "X"
+
+    def test_rejects_bot_name_over_max_length(self):
+        with pytest.raises(ValidationError):
+            PersonalityConfig(bot_name="x" * 21)
+
+    def test_rejects_html_in_bot_name(self):
+        with pytest.raises(ValueError):
+            PersonalityConfig(bot_name="<script>alert(1)</script>")
 
 
 class TestLocaleConfig:
