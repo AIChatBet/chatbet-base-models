@@ -714,6 +714,7 @@ class LabelMessages(BaseModel):
     more_options_label: Optional[MessageItem] = None
     account_locked_text: Optional[MessageItem] = None
     invalid_otp_text: Optional[MessageItem] = None
+    balance_notification: Optional[MessageItem] = None
 
     @classmethod
     def model_validate(cls, obj):
@@ -1488,6 +1489,9 @@ class MessageTemplates(BaseModel):
                 more_options_label=MessageItem(text="More options"),
                 account_locked_text=MessageItem(text="Account locked"),
                 invalid_otp_text=MessageItem(text="Invalid OTP"),
+                balance_notification=MessageItem(
+                    text="Your available balance is {balance}"
+                ),
             ),
             end=EndMessages(
                 end_conversation=MessageItem(text="Bye!"),
