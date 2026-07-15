@@ -189,6 +189,34 @@ class BitlyConfig(BaseModel):
     initial_message: Optional[str] = None
 
 
+# Publishable key del widget (embebible)
+class WebWidgetKey(BaseModel):
+    """A publishable widget key for the embeddable web widget.
+
+    The key is PUBLIC by design (like Stripe ``pk_`` or Intercom ``app_id``):
+    it identifies the company from the browser without exposing the internal
+    company slug. Security comes from revocability + origin allowlist +
+    rate-limiting, NOT from secrecy — so the key is stored in plaintext, never
+    hashed. Multiple non-revoked keys may be active at once to enable
+    zero-downtime rotation.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+    key: str = Field(
+        description="Opaque publishable key, e.g. 'wk_live_<token>' / 'wk_test_<token>'",
+    )
+    label: str = Field(
+        default="",
+        max_length=80,
+        description="Human-readable label for the key (Backoffice UI)",
+    )
+    created_at: datetime
+    revoked_at: Optional[datetime] = Field(
+        default=None,
+        description="When set, the key is revoked and MUST NOT resolve a company",
+    )
+
+
 # Configuración del canal Web (widget embebible)
 class WebConfig(BaseModel):
     """Web chat widget channel configuration.
@@ -205,6 +233,20 @@ class WebConfig(BaseModel):
     allowed_origins: List[str] = Field(
         default_factory=list,
         description="Per-company CORS allowlist for the embeddable web widget",
+    )
+
+    # Connection hardening (additive with defaults so existing configs remain
+    # valid under ``extra="forbid"``). ``widget_keys`` is the list of
+    # publishable keys the widget embeds instead of the internal company slug;
+    # ``enforce_hardening`` gates the consuming service's key/origin/rate-limit
+    # enforcement (warn-then-enforce rollout — default False until backfilled).
+    widget_keys: List[WebWidgetKey] = Field(
+        default_factory=list,
+        description="Publishable keys mapping the embed to this company",
+    )
+    enforce_hardening: bool = Field(
+        default=False,
+        description="When True, the web channel enforces key/origin/rate-limit checks",
     )
 
     # Widget customization (Backoffice Widget editor). Additive with defaults
