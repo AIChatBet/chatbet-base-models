@@ -21,6 +21,8 @@ from chatbet_base_models.site_config_model import (
     WhapiConfig,
     WhatsAppConfig,
     WhatsAppIntegration,
+    WebWidgetKey,
+    WebConfig,
     Integrations,
     Identity,
     LocaleConfig,
@@ -305,6 +307,123 @@ class TestIntegrations:
         assert integrations.twilio is None
         assert integrations.meilisearch is None
         assert integrations.whatsapp is None
+        assert integrations.web is None
+
+    def test_integrations_without_web_key_validates(self):
+        # Backward-compat: a config with no `web` key must still validate,
+        # with `web` defaulting to None.
+        data = {
+            "telegram": {"token": "bot_token"},
+        }
+        integrations = Integrations.model_validate(data)
+        assert integrations.web is None
+
+    def test_integrations_with_web_key_validates(self):
+        data = {
+            "web": {
+                "enabled": True,
+                "allowed_origins": [
+                    "https://a.example.com",
+                    "https://b.example.com",
+                ],
+            }
+        }
+        integrations = Integrations.model_validate(data)
+        assert integrations.web is not None
+        assert integrations.web.enabled is True
+        # allowed_origins round-trips
+        assert integrations.web.allowed_origins == [
+            "https://a.example.com",
+            "https://b.example.com",
+        ]
+        dumped = integrations.model_dump()
+        assert dumped["web"]["allowed_origins"] == [
+            "https://a.example.com",
+            "https://b.example.com",
+        ]
+
+    def test_web_config_defaults(self):
+        web = WebConfig()
+        assert web.enabled is True
+        assert web.allowed_origins == []
+
+    def test_web_config_widget_defaults_applied(self):
+        # A config with NO widget-customization fields parses and applies
+        # the additive defaults (backward-compatible).
+        web = WebConfig()
+        assert web.accent_color == "#7C46E7"
+        assert web.persona_name == "ChatBet Concierge"
+        assert web.logo_url is None
+        assert web.welcome_text == (
+            "Tell me what you need — how things work, your account, "
+            "anything. I'll take it from here."
+        )
+
+    def test_web_config_accent_color_accepts_valid_hex(self):
+        assert WebConfig(accent_color="#abc").accent_color == "#abc"
+        assert WebConfig(accent_color="#A1B2C3").accent_color == "#A1B2C3"
+
+    def test_web_config_invalid_hex_raises(self):
+        with pytest.raises(ValidationError):
+            WebConfig(accent_color="12xyz")
+
+    def test_web_config_persona_name_too_long_raises(self):
+        with pytest.raises(ValidationError):
+            WebConfig(persona_name="x" * 41)
+
+    def test_web_config_welcome_text_too_long_raises(self):
+        with pytest.raises(ValidationError):
+            WebConfig(welcome_text="x" * 501)
+
+    def test_web_config_forbids_extra(self):
+        with pytest.raises(ValidationError):
+            WebConfig(unknown_field="x")
+
+    def test_web_config_hardening_defaults(self):
+        # New hardening fields default to a safe, backward-compatible state.
+        web = WebConfig()
+        assert web.widget_keys == []
+        assert web.enforce_hardening is False
+
+    def test_web_config_legacy_without_hardening_fields_validates(self):
+        # A stored config predating the hardening fields still validates under
+        # extra="forbid" and applies the additive defaults (spec: Config compat).
+        web = WebConfig.model_validate(
+            {"enabled": True, "allowed_origins": ["https://op.example"]}
+        )
+        assert web.widget_keys == []
+        assert web.enforce_hardening is False
+
+    def test_web_widget_key_defaults(self):
+        created = datetime(2026, 7, 15, 12, 0, 0)
+        key = WebWidgetKey(key="wk_live_abc123", created_at=created)
+        assert key.key == "wk_live_abc123"
+        assert key.label == ""
+        assert key.revoked_at is None
+
+    def test_web_widget_key_forbids_extra(self):
+        with pytest.raises(ValidationError):
+            WebWidgetKey(
+                key="wk_live_abc", created_at=datetime(2026, 7, 15), foo="bar"
+            )
+
+    def test_web_config_supports_multiple_active_keys(self):
+        # Rotation: multiple non-revoked keys coexist; a revoked one carries a
+        # revoked_at timestamp.
+        created = datetime(2026, 7, 15, 12, 0, 0)
+        web = WebConfig(
+            widget_keys=[
+                WebWidgetKey(key="wk_live_k1", created_at=created),
+                WebWidgetKey(key="wk_live_k2", created_at=created),
+                WebWidgetKey(
+                    key="wk_live_old",
+                    created_at=created,
+                    revoked_at=datetime(2026, 7, 16),
+                ),
+            ]
+        )
+        active = [k.key for k in web.widget_keys if k.revoked_at is None]
+        assert active == ["wk_live_k1", "wk_live_k2"]
 
     def test_create_integrations_with_configs(self):
         integrations = Integrations(
