@@ -189,12 +189,96 @@ class BitlyConfig(BaseModel):
     initial_message: Optional[str] = None
 
 
+# Publishable key del widget (embebible)
+class WebWidgetKey(BaseModel):
+    """A publishable widget key for the embeddable web widget.
+
+    The key is PUBLIC by design (like Stripe ``pk_`` or Intercom ``app_id``):
+    it identifies the company from the browser without exposing the internal
+    company slug. Security comes from revocability + origin allowlist +
+    rate-limiting, NOT from secrecy — so the key is stored in plaintext, never
+    hashed. Multiple non-revoked keys may be active at once to enable
+    zero-downtime rotation.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+    key: str = Field(
+        description="Opaque publishable key, e.g. 'wk_live_<token>' / 'wk_test_<token>'",
+    )
+    label: str = Field(
+        default="",
+        max_length=80,
+        description="Human-readable label for the key (Backoffice UI)",
+    )
+    created_at: datetime
+    revoked_at: Optional[datetime] = Field(
+        default=None,
+        description="When set, the key is revoked and MUST NOT resolve a company",
+    )
+
+
+# Configuración del canal Web (widget embebible)
+class WebConfig(BaseModel):
+    """Web chat widget channel configuration.
+
+    The web channel is always-on per company and needs no external
+    token/secret (unlike Telegram/WhatsApp). ``allowed_origins`` is the
+    per-company CORS allowlist for the embeddable widget; an empty list
+    means "no explicit origins configured" and is treated as a safe
+    default by the consuming service.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+    enabled: bool = True
+    allowed_origins: List[str] = Field(
+        default_factory=list,
+        description="Per-company CORS allowlist for the embeddable web widget",
+    )
+
+    # Connection hardening (additive with defaults so existing configs remain
+    # valid under ``extra="forbid"``). ``widget_keys`` is the list of
+    # publishable keys the widget embeds instead of the internal company slug;
+    # ``enforce_hardening`` gates the consuming service's key/origin/rate-limit
+    # enforcement (warn-then-enforce rollout — default False until backfilled).
+    widget_keys: List[WebWidgetKey] = Field(
+        default_factory=list,
+        description="Publishable keys mapping the embed to this company",
+    )
+    enforce_hardening: bool = Field(
+        default=False,
+        description="When True, the web channel enforces key/origin/rate-limit checks",
+    )
+
+    # Widget customization (Backoffice Widget editor). Additive with defaults
+    # so existing configs remain valid under ``extra="forbid"``.
+    accent_color: str = Field(
+        default="#7C46E7",
+        pattern=r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$",
+        description="Primary accent color for the widget (hex, 3 or 6 digits)",
+    )
+    persona_name: str = Field(
+        default="ChatBet Concierge",
+        max_length=40,
+        description="Display name of the widget assistant persona",
+    )
+    logo_url: Optional[str] = None
+    welcome_text: str = Field(
+        default="Tell me what you need — how things work, your account, anything. I'll take it from here.",
+        max_length=500,
+        description="Welcome/intro message shown by the widget",
+    )
+
+
 class Integrations(BaseModel):
     model_config = ConfigDict(extra="forbid")
     telegram: Optional[TelegramConfig] = None
     twilio: Optional[TwilioConfig] = None
     meilisearch: Optional[MeilisearchConfig] = None
     bitly: Optional[BitlyConfig] = None
+
+    # Canal web (widget embebible). Opcional para retro-compatibilidad:
+    # configs sin la clave `web` siguen validando.
+    web: Optional[WebConfig] = None
 
     # <-- CAMBIO: ahora `whatsapp`, no `whapi`
     whatsapp: Optional[WhatsAppIntegration] = None
