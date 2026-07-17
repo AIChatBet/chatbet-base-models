@@ -499,6 +499,7 @@ class TestValidationMessagesPlannatechErrorTypes:
         "unauthorized_user",
         "user_not_found",
         "account_blocked",
+        "contact_support",
     ]
 
     @pytest.mark.parametrize("field", NEW_FIELDS)
@@ -559,6 +560,7 @@ class TestValidationMessagesAccountStateDefaults:
         "betting_time_expired",
         "session_expired",
         "account_blocked_by_request",
+        "contact_support",
     ]
     LANGS = {"es", "en", "pt-br"}
 
