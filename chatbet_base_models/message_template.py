@@ -234,6 +234,15 @@ DEFAULT_ACCOUNT_STATE: Dict[str, Dict[str, str]] = {
         "en": "Your account was blocked at your own request.",
         "pt-br": "Sua conta foi bloqueada a seu próprio pedido.",
     },
+    # Plannatech ContactSupport / ErrSecNoRight (verbatim passthrough) surfaced
+    # in the LOGIN/OTP flow. Distinct from the bet-flow `bets.contact_support`
+    # copy (which reads "we couldn't process this BET") — at login there is no
+    # bet yet, so the copy is account-oriented.
+    "contact_support": {
+        "es": "Hay un inconveniente con tu cuenta. Por favor, contactá a atención al cliente.",
+        "en": "There's an issue with your account. Please contact customer support.",
+        "pt-br": "Há um problema com a sua conta. Por favor, entre em contato com o atendimento ao cliente.",
+    },
 }
 
 
@@ -276,6 +285,11 @@ class ValidationMessages(BaseModel):
     unauthorized_user: Optional[MessageItem] = None
     user_not_found: Optional[MessageItem] = None
     account_blocked: Optional[MessageItem] = None
+    # Plannatech ContactSupport (-9022) / ErrSecNoRight account-state outcome in
+    # the login/OTP flow. Both errorTypes share this one operator-editable field.
+    # See ClickUp 86ajbry87. Absent -> hardcoded localized fallback
+    # (account_state_defaults["contact_support"]) so empty configs are safe.
+    contact_support: Optional[MessageItem] = None
     # Localized defaults for the account-state errorTypes above, mirroring the
     # `ErrorMessages.general_errors` rationale: auto-fills on load (model_validate /
     # constructor) even when the Dynamo item omits it, so consumers always have a
