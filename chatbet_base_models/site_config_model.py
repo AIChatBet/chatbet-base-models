@@ -391,6 +391,7 @@ class LocaleConfig(BaseModel):
     default_amount: Optional[str] = None
     default_desired_profit: Optional[str] = None
     default_minimum_odds: Optional[str] = None
+    minimum_odds_recommended_combo: Optional[str] = None
 
     @field_validator("currency")
     @classmethod
@@ -520,6 +521,7 @@ class SiteConfig(BaseModel):
             default_amount="",
             default_desired_profit="",
             default_minimum_odds="",
+            minimum_odds_recommended_combo="",
         )
     )
     features: FeaturesConfig = Field(
