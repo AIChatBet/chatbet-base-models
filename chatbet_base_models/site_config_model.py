@@ -439,6 +439,10 @@ class FeaturesConfig(BaseModel):
         default=False,
         description="Enable WhatsApp detected-number login confirm screen (per-company rollout). When False, WhatsApp users keep the type-the-number flow.",
     )
+    minimal_buttons: Optional[bool] = Field(
+        default=False,
+        description="Minimal-buttons / conversational experiment (per-company rollout, Spike CU-86ahdec0v). When True, the agent replies text-first and channel-services renders no navigation buttons (only the bet-summary Confirmar button). When False, the standard button-driven flow is unchanged.",
+    )
     fixture_range_days: Optional[int] = Field(
         default=7,
         ge=1,
@@ -537,6 +541,7 @@ class SiteConfig(BaseModel):
             skip_pre_auth_validation=False,
             live=False,
             whatsapp_detected_login=False,
+            minimal_buttons=False,
             fixture_range_days=7,
         )
     )
