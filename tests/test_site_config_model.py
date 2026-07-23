@@ -727,6 +727,30 @@ class TestSiteConfig:
         )
         assert config.session.inactivity_threshold_minutes == 60
 
+    def test_site_config_enabled_defaults_true(self):
+        """Company-level kill switch defaults to True so existing operators
+        (whose stored config predates the field) stay live."""
+        config = SiteConfig(
+            identity=Identity(
+                site_name="Test Site",
+                company_id="test123",
+                site_url="https://test.example.com",
+            )
+        )
+        assert config.enabled is True
+
+    def test_site_config_enabled_can_be_disabled(self):
+        """A decommissioned operator sets enabled=False to reject all inbound."""
+        config = SiteConfig(
+            identity=Identity(
+                site_name="Test Site",
+                company_id="test123",
+                site_url="https://test.example.com",
+            ),
+            enabled=False,
+        )
+        assert config.enabled is False
+
 
 class TestSiteConfigDB:
     def test_create_site_config_db(self):

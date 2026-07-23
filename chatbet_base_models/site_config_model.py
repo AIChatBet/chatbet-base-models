@@ -391,6 +391,7 @@ class LocaleConfig(BaseModel):
     default_amount: Optional[str] = None
     default_desired_profit: Optional[str] = None
     default_minimum_odds: Optional[str] = None
+    minimum_odds_recommended_combo: Optional[str] = None
 
     @field_validator("currency")
     @classmethod
@@ -497,6 +498,17 @@ class AuthConfig(BaseModel):
 class SiteConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    enabled: bool = Field(
+        default=True,
+        description=(
+            "Company-level kill switch. When False, channel-services rejects "
+            "ALL inbound (Telegram + WhatsApp) for this operator BEFORE "
+            "building the orchestrator or calling the LLM. Used to "
+            "decommission a client without deleting its config. Defaults True "
+            "so existing operators stay live. For a WhatsApp-only switch use "
+            "integrations.whatsapp.enabled instead."
+        ),
+    )
     identity: Identity
     locale: LocaleConfig = Field(
         default_factory=lambda: LocaleConfig(
@@ -509,6 +521,7 @@ class SiteConfig(BaseModel):
             default_amount="",
             default_desired_profit="",
             default_minimum_odds="",
+            minimum_odds_recommended_combo="",
         )
     )
     features: FeaturesConfig = Field(
