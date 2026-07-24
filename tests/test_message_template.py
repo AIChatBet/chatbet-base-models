@@ -59,6 +59,38 @@ class TestInlineKeyboardButton:
         with pytest.raises(ValueError):
             InlineKeyboardButton(text="", callback_data="test")
 
+    def test_button_without_schedule_never_expires(self):
+        button = InlineKeyboardButton(text="Test", callback_data="test")
+        assert button.active_from is None
+        assert button.active_until is None
+        assert button.is_expired() is False
+
+    def test_button_is_expired_after_active_until(self):
+        button = InlineKeyboardButton(
+            text="World Cup",
+            callback_data="world_cup",
+            active_until=datetime(2026, 1, 1, tzinfo=timezone.utc),
+        )
+        assert button.is_expired(datetime(2026, 1, 2, tzinfo=timezone.utc)) is True
+        assert button.is_expired(datetime(2025, 12, 31, tzinfo=timezone.utc)) is False
+
+    def test_naive_schedule_datetimes_assumed_utc(self):
+        button = InlineKeyboardButton(
+            text="Test",
+            callback_data="test",
+            active_until=datetime(2026, 8, 1, 10, 0),
+        )
+        assert button.active_until.tzinfo == timezone.utc
+
+    def test_active_from_must_precede_active_until(self):
+        with pytest.raises(ValueError, match="active_from must be before active_until"):
+            InlineKeyboardButton(
+                text="Test",
+                callback_data="test",
+                active_from=datetime(2026, 1, 2, tzinfo=timezone.utc),
+                active_until=datetime(2026, 1, 1, tzinfo=timezone.utc),
+            )
+
 
 class TestInlineKeyboardMarkup:
     def test_create_empty_markup(self):
