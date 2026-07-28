@@ -17,6 +17,17 @@ class InlineKeyboardButton(BaseModel):
     callback_data: Optional[str] = None
     url: Optional[str] = None
     title: Optional[str] = None
+    active_from: Optional[datetime] = None
+    active_until: Optional[datetime] = None
+
+    @field_validator("active_from", "active_until")
+    @classmethod
+    def _assume_utc_if_naive(cls, v: Optional[datetime]) -> Optional[datetime]:
+        """Frontend sends `datetime-local` values with no timezone; assume UTC rather
+        than let naive/aware comparisons blow up later in `is_expired()`."""
+        if v is not None and v.tzinfo is None:
+            return v.replace(tzinfo=timezone.utc)
+        return v
 
     @model_validator(mode="after")
     def _only_one_action(self) -> "InlineKeyboardButton":
@@ -29,6 +40,19 @@ class InlineKeyboardButton(BaseModel):
         if cd and len(cd) > 64:
             raise ValueError("callback_data must be <= 64 characters")
         return self
+
+    @model_validator(mode="after")
+    def _valid_schedule_range(self) -> "InlineKeyboardButton":
+        if self.active_from and self.active_until and self.active_from >= self.active_until:
+            raise ValueError("active_from must be before active_until")
+        return self
+
+    def is_expired(self, now: Optional[datetime] = None) -> bool:
+        """True once `active_until` has passed. A button with no `active_until` never expires."""
+        if self.active_until is None:
+            return False
+        reference = now or datetime.now(timezone.utc)
+        return self.active_until <= reference
 
 
 class InlineKeyboardMarkup(BaseModel):
