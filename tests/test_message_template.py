@@ -1229,6 +1229,22 @@ class TestMessageTemplates:
         assert templates.validation.send_otp.text == "We've sent you an OTP."
         assert templates.bets.select_sport.text == "Select a sport"
 
+    def test_from_minimal_placed_bet_placeholder_order(self):
+        """CU-86ajqxrjh: placed_bet placeholders must match the %1-%8 scheme
+
+        used by TelegramMesssageServices.place_bet_message (%1=transaction_id,
+        %2=match, %3=amount, %4=selection, %5=odd, %6=profit, %7=balance).
+        A stale %1=Match/%2=Amount/... default shifted every field by one
+        position in the post-placement confirmation message.
+        """
+        text = MessageTemplates.from_minimal().bets.placed_bet.text
+        assert "Match: %2" in text
+        assert "Bet Amount: %3" in text
+        assert "Selection: %4" in text
+        assert "Potential Win: %6" in text
+        assert "Balance: %7" in text
+        assert "Match: %1" not in text
+
     def test_touch_method(self):
         templates = MessageTemplates()
         templates.updated_at = datetime(2020, 1, 1, tzinfo=timezone.utc)
