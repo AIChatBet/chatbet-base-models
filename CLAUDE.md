@@ -13,7 +13,8 @@ chatbet-base-models/
 │   ├── site_config_model.py      # Site configuration
 │   ├── sportbook_config.py       # Sportsbook configuration
 │   ├── promotion_config.py       # Promotions management
-│   └── tutorial.py               # Tutorial videos management
+│   ├── tutorial.py               # Tutorial videos management
+│   └── onboarding_questions.py   # Operator-configured onboarding questions
 ├── tests/                        # Test suite (295 tests)
 ├── pyproject.toml                # Project configuration
 └── pytest.ini                    # Pytest configuration
@@ -62,6 +63,12 @@ Promotions management:
 Tutorial videos management:
 - `TutorialItemDB`: Tutorial item with s3_key, title, metadata
 - `TutorialsDB`: Array with add/remove/get methods
+
+### onboarding_questions.py
+Operator-configured profiling questions the agent weaves into conversation (SK `onboarding_questions`):
+- `OnboardingPhase`: `first_encounter` | `getting_to_know` | `window_frame`
+- `OnboardingQuestionItem`: one question — `agent_instruction` (an instruction, never a literal script), `storage_key`, `hook_hints`, optional date window
+- `OnboardingQuestions` / `OnboardingQuestionsDB`: container with `seed_default()` (the three questions the agent asks today) and `get_active_questions()`
 
 ## Key Features
 
