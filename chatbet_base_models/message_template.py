@@ -1226,7 +1226,7 @@ class MessageTemplates(BaseModel):
                 fixture_odds=MessageItem(text="Here are the odds for the fixture."),
                 unavailable_odds=MessageItem(text="Some odds are unavailable."),
                 placed_bet=MessageItem(
-                    text="Your bet has been placed successfully! 🤑 • Match: %1 • Bet Amount: %2 • Selection: %3 • Potential Win: %4 • Balance: %5"
+                    text="Your bet has been placed successfully! 🤑 • Match: %2 • Bet Amount: %3 • Selection: %4 • Odd: %5 • Potential Win: %6 • Balance: %7"
                 ),
                 placed_bet_menu=MessageItem(
                     text="Your bet has been placed! What would you like to do next?"
