@@ -6,7 +6,7 @@ This package centralizes common data models used across
 multiple ChatBet projects.
 """
 
-__version__ = "1.0.2"
+__version__ = "1.1.0"
 
 # Message Templates
 from .message_template import (
@@ -115,6 +115,15 @@ from .tutorial import (
     DeleteTutorialVideoResponse,
 )
 
+# Onboarding Questions
+from .onboarding_questions import (
+    ALLOWED_STORAGE_ROOTS,
+    OnboardingPhase,
+    OnboardingQuestionItem,
+    OnboardingQuestions,
+    OnboardingQuestionsDB,
+)
+
 __all__ = [
     # Version
     "__version__",
@@ -207,4 +216,10 @@ __all__ = [
     "GetTutorialVideosResponse",
     "UploadTutorialVideoResponse",
     "DeleteTutorialVideoResponse",
+    # Onboarding Questions
+    "ALLOWED_STORAGE_ROOTS",
+    "OnboardingPhase",
+    "OnboardingQuestionItem",
+    "OnboardingQuestions",
+    "OnboardingQuestionsDB",
 ]
