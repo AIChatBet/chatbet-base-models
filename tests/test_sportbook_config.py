@@ -14,6 +14,8 @@ from chatbet_base_models.sportbook_config import (
     KambiPlayer,
     PlannatechConfig,
     IsolutionsConfig,
+    VelisportsBasicAuth,
+    VelisportsConfig,
     StakeType,
     SportbookConfig,
     SportbookConfigDB,
@@ -370,6 +372,60 @@ class TestPlannatechConfig:
             )
 
 
+class TestVelisportsConfig:
+    def test_create_velisports_config(self):
+        config = VelisportsConfig(
+            api_url="https://sportsbookwebsitewebapi-develop.velisports.com",
+            partner="casongo",
+        )
+
+        assert config.provider == "velisports"
+        assert (
+            str(config.api_url)
+            == "https://sportsbookwebsitewebapi-develop.velisports.com/"
+        )
+        assert config.partner == "casongo"
+        assert config.api_token is None  # default
+        assert config.basic_auth is None  # default
+        assert config.check_fixture_availability is False  # default
+
+    def test_create_velisports_config_with_all_fields(self):
+        config = VelisportsConfig(
+            api_url="https://sportsbookwebsitewebapi.velisports.com",
+            partner="bluechip_india",
+            api_token="chatbet-token",
+            basic_auth=VelisportsBasicAuth(username="velisports", password="secret"),
+            check_fixture_availability=True,
+        )
+
+        assert config.provider == "velisports"
+        assert config.partner == "bluechip_india"
+        assert config.api_token == "chatbet-token"
+        assert config.basic_auth.username == "velisports"
+        assert config.basic_auth.password == "secret"
+        assert config.check_fixture_availability is True
+
+    def test_velisports_config_requires_partner(self):
+        with pytest.raises(ValueError):
+            VelisportsConfig(api_url="https://api.velisports.com")
+
+    def test_velisports_config_invalid_url_raises_error(self):
+        with pytest.raises(ValueError):
+            VelisportsConfig(api_url="not-a-valid-url", partner="casongo")
+
+    def test_velisports_config_extra_fields_forbidden(self):
+        with pytest.raises(ValueError):
+            VelisportsConfig(
+                api_url="https://api.velisports.com",
+                partner="casongo",
+                extra_field="not_allowed",
+            )
+
+    def test_velisports_basic_auth_extra_fields_forbidden(self):
+        with pytest.raises(ValueError):
+            VelisportsBasicAuth(username="u", password="p", extra_field="x")
+
+
 class TestSportbookConfig:
     def test_create_sportbook_config(self):
         config = Betsw3Config(
@@ -528,6 +584,32 @@ class TestSportbookConfig:
         assert sportbook.config.bookmaker_id == 5
         assert sportbook.config.language_id == 1
         assert sportbook.config.fetch_interval_seconds == 30
+        assert sportbook.config.check_fixture_availability is True
+
+    def test_from_minimal_velisports(self):
+        sportbook = SportbookConfig.from_minimal_velisports(partner="casongo")
+
+        assert sportbook.sportbook == "Velisports"
+        assert sportbook.config.provider == "velisports"
+        assert sportbook.config.partner == "casongo"
+        assert "velisports.com" in str(sportbook.config.api_url)  # default
+        assert sportbook.config.api_token is None  # default
+        assert sportbook.config.basic_auth is None  # default
+        assert sportbook.config.check_fixture_availability is False  # default
+
+    def test_from_minimal_velisports_with_all_params(self):
+        sportbook = SportbookConfig.from_minimal_velisports(
+            api_url="https://sportsbookwebsitewebapi.velisports.com",
+            partner="bluechip_india",
+            api_token="chatbet-token",
+            basic_auth=VelisportsBasicAuth(username="velisports", password="secret"),
+            check_fixture_availability=True,
+        )
+
+        assert sportbook.sportbook == "Velisports"
+        assert sportbook.config.partner == "bluechip_india"
+        assert sportbook.config.api_token == "chatbet-token"
+        assert sportbook.config.basic_auth.username == "velisports"
         assert sportbook.config.check_fixture_availability is True
 
     def test_touch_method(self):
@@ -696,6 +778,39 @@ class TestSportbookConfigDB:
         assert item["config"]["bookmaker_id"] == 1
         assert item["config"]["language_id"] == 2
         assert isinstance(item["config"]["api_url"], str)
+
+    def test_from_minimal_velisports_db(self):
+        sportbook_db = SportbookConfigDB.from_minimal_velisports(
+            "test_company",
+            api_url="https://sportsbookwebsitewebapi-develop.velisports.com",
+            partner="casongo",
+        )
+
+        assert sportbook_db.PK == "company#test_company"
+        assert sportbook_db.SK == "sportbook_config"
+        assert sportbook_db.sportbook == "Velisports"
+        assert sportbook_db.config.provider == "velisports"
+        assert sportbook_db.config.partner == "casongo"
+
+    def test_from_minimal_velisports_db_to_dynamodb_item(self):
+        sportbook_db = SportbookConfigDB.from_minimal_velisports(
+            "test_company",
+            api_url="https://sportsbookwebsitewebapi-develop.velisports.com",
+            partner="casongo",
+            api_token="chatbet-token",
+        )
+
+        item = sportbook_db.to_dynamodb_item()
+
+        assert item["PK"] == "company#test_company"
+        assert item["SK"] == "sportbook_config"
+        assert item["sportbook"] == "Velisports"
+        assert item["config"]["provider"] == "velisports"
+        assert item["config"]["partner"] == "casongo"
+        assert item["config"]["api_token"] == "chatbet-token"
+        assert isinstance(item["config"]["api_url"], str)
+        # drop_none=True must strip the unset basic_auth
+        assert "basic_auth" not in item["config"]
 
     def test_validation_requires_pk_sk(self):
         config = Betsw3Config(

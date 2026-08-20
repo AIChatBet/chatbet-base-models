@@ -182,6 +182,37 @@ class BetbyConfig(BaseModel):
     check_fixture_availability: Optional[bool] = False
 
 
+class VelisportsBasicAuth(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    username: str
+    password: str
+
+
+class VelisportsConfig(BaseModel):
+    """Configuration for Velisports sportbook provider.
+
+    Velisports exposes our own integration contract under a ``/chatbet`` prefix
+    and is multi-tenant on their side: ``partner`` is the operator name *they*
+    know us by (for example ``casongo``), which is not necessarily our
+    ``company_id``. Every request path is
+    ``{api_url}/chatbet/{partner}/...``.
+
+    Auth is environment-dependent and both fields are optional because their
+    develop environment currently serves the catalog anonymously: ``api_token``
+    rides in the ``token`` header their contract defines, and ``basic_auth``
+    covers environments sitting behind HTTP basic auth.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    provider: Literal["velisports"] = "velisports"
+    api_url: HttpUrl
+    partner: str
+    api_token: Optional[str] = None
+    basic_auth: Optional[VelisportsBasicAuth] = None
+    check_fixture_availability: Optional[bool] = False
+
+
 ConfigUnion = Annotated[
     Union[
         Betsw3Config,
@@ -191,6 +222,7 @@ ConfigUnion = Annotated[
         PlannatechConfig,
         IsolutionsConfig,
         BetbyConfig,
+        VelisportsConfig,
     ],
     Field(discriminator="provider"),
 ]
@@ -448,6 +480,33 @@ class SportbookConfig(BaseModel):
             updated_at=now,
         )
 
+    @classmethod
+    def from_minimal_velisports(
+        cls,
+        *,
+        api_url: str = "https://sportsbookwebsitewebapi-develop.velisports.com/",
+        partner: str = "",
+        api_token: Optional[str] = None,
+        basic_auth: Optional[VelisportsBasicAuth] = None,
+        tournaments: Optional[List[Tournament]] = None,
+        check_fixture_availability: Optional[bool] = False,
+    ) -> "SportbookConfig":
+        cfg = VelisportsConfig(
+            api_url=api_url,
+            partner=partner,
+            api_token=api_token,
+            basic_auth=basic_auth,
+            check_fixture_availability=check_fixture_availability,
+        )
+        now = datetime.now(timezone.utc)
+        return cls(
+            sportbook="Velisports",
+            config=cfg,
+            tournaments=tournaments or _default_tournaments(),
+            created_at=now,
+            updated_at=now,
+        )
+
     # ---------- utilidades ----------
     def touch(self) -> None:
         self.updated_at = datetime.now(timezone.utc)
@@ -567,6 +626,17 @@ class SportbookConfigDB(SportbookConfig):
         **kwargs,
     ) -> "SportbookConfigDB":
         base = SportbookConfig.from_minimal_betby(**kwargs)
+        return cls(
+            **base.model_dump(), PK=f"company#{company_id}", SK="sportbook_config"
+        )
+
+    @classmethod
+    def from_minimal_velisports(
+        cls,
+        company_id: str,
+        **kwargs,
+    ) -> "SportbookConfigDB":
+        base = SportbookConfig.from_minimal_velisports(**kwargs)
         return cls(
             **base.model_dump(), PK=f"company#{company_id}", SK="sportbook_config"
         )
