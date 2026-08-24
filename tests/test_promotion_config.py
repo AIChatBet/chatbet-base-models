@@ -167,6 +167,29 @@ class TestPromotionItem:
                 details="Details",
             )
 
+    def test_priority_defaults_to_zero(self):
+        """Test that priority defaults to 0 for legacy promotions"""
+        now = datetime.now(timezone.utc)
+        item = PromotionItem(
+            title="Sale",
+            start_date=now,
+            end_date=now + timedelta(days=1),
+            details="Details",
+        )
+        assert item.priority == 0
+
+    def test_priority_negative_raises_error(self):
+        """Test that a negative priority is rejected"""
+        now = datetime.now(timezone.utc)
+        with pytest.raises(ValueError):
+            PromotionItem(
+                title="Sale",
+                start_date=now,
+                end_date=now + timedelta(days=1),
+                details="Details",
+                priority=-1,
+            )
+
     def test_extra_fields_forbidden(self):
         """Test that extra fields are rejected"""
         now = datetime.now(timezone.utc)
@@ -329,6 +352,75 @@ class TestPromotionsConfig:
         config = PromotionsConfig.from_minimal()
         active = config.get_active_promotions()
         assert active == []
+
+    def test_get_active_promotions_orders_by_priority(self):
+        """Test that active promotions are ordered by priority ascending (CU-86ak3z2f1)"""
+        config = PromotionsConfig.from_minimal()
+        now = datetime.now(timezone.utc)
+
+        config.add_promotion(
+            title="Power Play #1",
+            start_date=now - timedelta(hours=1),
+            end_date=now + timedelta(days=1),
+            details="Details",
+            priority=2,
+        )
+        config.add_promotion(
+            title="Power Play #2",
+            start_date=now - timedelta(hours=1),
+            end_date=now + timedelta(days=1),
+            details="Details",
+            priority=1,
+        )
+
+        active = config.get_active_promotions()
+        assert [p.title for p in active] == ["Power Play #2", "Power Play #1"]
+
+    def test_get_active_promotions_defaults_priority_to_zero(self):
+        """Test legacy promotions without priority default to 0 and don't break ordering"""
+        config = PromotionsConfig.from_minimal()
+        now = datetime.now(timezone.utc)
+
+        config.add_promotion(
+            title="Legacy",
+            start_date=now - timedelta(hours=1),
+            end_date=now + timedelta(days=1),
+            details="Details",
+        )
+        config.add_promotion(
+            title="New",
+            start_date=now - timedelta(hours=1),
+            end_date=now + timedelta(days=1),
+            details="Details",
+            priority=1,
+        )
+
+        active = config.get_active_promotions()
+        assert active[0].priority == 0
+        assert [p.title for p in active] == ["Legacy", "New"]
+
+    def test_get_active_promotions_same_priority_tiebreaks_by_title(self):
+        """Test deterministic tiebreak (title) when priority collides"""
+        config = PromotionsConfig.from_minimal()
+        now = datetime.now(timezone.utc)
+
+        config.add_promotion(
+            title="Zebra Sale",
+            start_date=now - timedelta(hours=1),
+            end_date=now + timedelta(days=1),
+            details="Details",
+            priority=5,
+        )
+        config.add_promotion(
+            title="Alpha Sale",
+            start_date=now - timedelta(hours=1),
+            end_date=now + timedelta(days=1),
+            details="Details",
+            priority=5,
+        )
+
+        active = config.get_active_promotions()
+        assert [p.title for p in active] == ["Alpha Sale", "Zebra Sale"]
 
     def test_duplicate_id_validation(self):
         """Test duplicate promotion_id validation"""
