@@ -30,6 +30,12 @@ class PromotionItem(BaseModel):
     end_date: datetime
     details: str = Field(max_length=5000)
     keywords: List[str] = Field(default_factory=list)
+    priority: int = Field(
+        default=0,
+        ge=0,
+        description="Display order in the chat list (ascending, lower shows first). "
+        "Legacy promotions without an explicit value default to 0.",
+    )
 
     # Validators
     @field_validator("title")
@@ -141,6 +147,7 @@ class PromotionsConfig(BaseModel):
         details: str,
         keywords: Optional[List[str]] = None,
         promotion_id: Optional[str] = None,
+        priority: int = 0,
     ) -> PromotionItem:
         """Add a new promotion to the array"""
         promotion = PromotionItem(
@@ -150,6 +157,7 @@ class PromotionsConfig(BaseModel):
             end_date=end_date,
             details=details,
             keywords=keywords or [],
+            priority=priority,
         )
         self.promotions.append(promotion)
         self.touch()
@@ -172,9 +180,15 @@ class PromotionsConfig(BaseModel):
         return None
 
     def get_active_promotions(self) -> List[PromotionItem]:
-        """Get all currently active promotions based on dates"""
+        """Get all currently active promotions, ordered by ``priority`` ascending.
+
+        Promotions sharing the same ``priority`` (e.g. legacy entries still at
+        the default 0) break ties by title so the order is deterministic
+        across calls instead of depending on array position.
+        """
         now = datetime.now(timezone.utc)
-        return [p for p in self.promotions if p.start_date <= now < p.end_date]
+        active = [p for p in self.promotions if p.start_date <= now < p.end_date]
+        return sorted(active, key=lambda p: (p.priority, p.title))
 
     def to_dynamodb_item(self, *, drop_none: bool = True) -> dict:
         """Serialize to DynamoDB-compatible dict"""
