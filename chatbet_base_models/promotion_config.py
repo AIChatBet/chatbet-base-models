@@ -12,6 +12,73 @@ from pydantic import (
     model_validator,
 )
 
+from chatbet_base_models.message_template import InlineKeyboardButton
+
+
+# ===========================
+# Nested Model - Promotion Button
+# ===========================
+class PromotionButton(BaseModel):
+    """Button attached to a promotion's copy (CU-86ak0ajez).
+
+    Targets either another promotion (``promotion_id`` — existing
+    promo-to-promo behavior) or a specific fixture (``fixture_id`` alongside
+    ``sport_id``/``tournament_id``, the same triple consuming apps already
+    use to navigate straight to a fixture's odds), never both.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    text: str = Field(min_length=1, max_length=200)
+    promotion_id: Optional[str] = None
+    fixture_id: Optional[str] = None
+    sport_id: Optional[str] = None
+    tournament_id: Optional[str] = None
+
+    @model_validator(mode="after")
+    def _only_one_target(self) -> "PromotionButton":
+        if self.promotion_id and self.fixture_id:
+            raise ValueError("Button must target either promotion_id or fixture_id, not both")
+        if not self.promotion_id and not self.fixture_id:
+            raise ValueError("Button must define either promotion_id or fixture_id")
+        if self.fixture_id and (not self.sport_id or not self.tournament_id):
+            raise ValueError("A fixture_id target requires sport_id and tournament_id")
+        return self
+
+    @model_validator(mode="after")
+    def _callback_data_fits_telegram_limit(self) -> "PromotionButton":
+        """Reject at config-save time what ``InlineKeyboardButton`` would
+        otherwise reject when a real user taps the button — Telegram caps
+        ``callback_data`` at 64 bytes. Catching it here (Backoffice save)
+        instead of in ``to_inline_keyboard_button()`` (chat render) means an
+        operator gets an actionable error instead of live users hitting a
+        broken promo button."""
+        callback_data = self._callback_data()
+        if len(callback_data) > 64:
+            raise ValueError(
+                f"Resulting callback_data '{callback_data}' is {len(callback_data)} "
+                "chars, exceeding Telegram's 64-char callback_data limit"
+            )
+        return self
+
+    def _callback_data(self) -> str:
+        if self.fixture_id:
+            return f"oi:S{self.sport_id}.T{self.tournament_id}.F{self.fixture_id}"
+        return f"promo:{self.promotion_id}"
+
+    def to_inline_keyboard_button(self) -> InlineKeyboardButton:
+        """Build the canonical ``InlineKeyboardButton`` consuming apps render.
+
+        Every other button in the system (onboarding, validation, menu, bets,
+        combos, confirmation) is built from ``InlineKeyboardButton`` — this
+        keeps ``PromotionButton``'s typed domain fields for Backoffice
+        authoring while producing the same shape everywhere else. A
+        ``fixture_id`` target reuses the ``oi:`` self-contained navigation
+        (``S{sport}.T{tournament}.F{fixture}``) that fixture-odds screens use
+        elsewhere; a ``promotion_id`` target reuses the ``promo:`` routing.
+        """
+        return InlineKeyboardButton(text=self.text, callback_data=self._callback_data())
+
 
 # ===========================
 # Nested Model - Individual Promotion Item
@@ -35,6 +102,10 @@ class PromotionItem(BaseModel):
         ge=0,
         description="Display order in the chat list (ascending, lower shows first). "
         "Legacy promotions without an explicit value default to 0.",
+    )
+    buttons: List[PromotionButton] = Field(
+        default_factory=list,
+        description="Buttons rendered under this promotion's copy.",
     )
 
     # Validators
