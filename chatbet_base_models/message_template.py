@@ -244,9 +244,9 @@ DEFAULT_ACCOUNT_STATE: Dict[str, Dict[str, str]] = {
         "pt-br": "A autenticação em duas etapas não está ativa na sua conta.",
     },
     "betting_time_expired": {
-        "es": "El tiempo para realizar esta apuesta ha expirado.",
-        "en": "The time to place this bet has expired.",
-        "pt-br": "O tempo para fazer esta aposta expirou.",
+        "es": "El tiempo para realizar esta jugada ha expirado.",
+        "en": "The time to place this play has expired.",
+        "pt-br": "O tempo para fazer esta jogada expirou.",
     },
     "session_expired": {
         "es": "Tu sesión ha expirado. Por favor, inicia sesión nuevamente.",
