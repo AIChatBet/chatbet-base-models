@@ -163,6 +163,11 @@ class IsolutionsConfig(BaseModel):
     check_fixture_availability: Optional[bool] = False
     last_server_date: Optional[str] = None
     application_code: Optional[str] = None
+    # Integrator-side flag: sportbook-isolutions-integration reads it to keep
+    # auto-discovering the sports/markets catalog from the feed. sportbook-services
+    # doesn't use it, but must accept it because both services validate the same
+    # DynamoDB `sportbook_config` row (extra="forbid" would otherwise 500).
+    catalog_autodiscovery: Optional[bool] = False
 
 
 class BetbyConfig(BaseModel):

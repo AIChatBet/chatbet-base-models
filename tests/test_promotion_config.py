@@ -3,10 +3,12 @@ from datetime import datetime, timezone, timedelta
 from uuid import UUID
 
 from chatbet_base_models.promotion_config import (
+    PromotionButton,
     PromotionItem,
     PromotionsConfig,
     PromotionsConfigDB,
 )
+from chatbet_base_models.message_template import InlineKeyboardButton
 
 
 class TestPromotionItem:
@@ -167,6 +169,29 @@ class TestPromotionItem:
                 details="Details",
             )
 
+    def test_priority_defaults_to_zero(self):
+        """Test that priority defaults to 0 for legacy promotions"""
+        now = datetime.now(timezone.utc)
+        item = PromotionItem(
+            title="Sale",
+            start_date=now,
+            end_date=now + timedelta(days=1),
+            details="Details",
+        )
+        assert item.priority == 0
+
+    def test_priority_negative_raises_error(self):
+        """Test that a negative priority is rejected"""
+        now = datetime.now(timezone.utc)
+        with pytest.raises(ValueError):
+            PromotionItem(
+                title="Sale",
+                start_date=now,
+                end_date=now + timedelta(days=1),
+                details="Details",
+                priority=-1,
+            )
+
     def test_extra_fields_forbidden(self):
         """Test that extra fields are rejected"""
         now = datetime.now(timezone.utc)
@@ -178,6 +203,122 @@ class TestPromotionItem:
                 details="Details",
                 extra_field="not allowed",
             )
+
+    def test_buttons_default_empty(self):
+        """Test that a promotion with no buttons defaults to an empty list"""
+        now = datetime.now(timezone.utc)
+        item = PromotionItem(
+            title="Sale",
+            start_date=now,
+            end_date=now + timedelta(days=1),
+            details="Details",
+        )
+        assert item.buttons == []
+
+    def test_buttons_accepts_promotion_target(self):
+        """Test a button targeting another promotion (existing behavior)"""
+        now = datetime.now(timezone.utc)
+        item = PromotionItem(
+            title="Sale",
+            start_date=now,
+            end_date=now + timedelta(days=1),
+            details="Details",
+            buttons=[PromotionButton(text="See other promo", promotion_id="promo-2")],
+        )
+        assert item.buttons[0].promotion_id == "promo-2"
+        assert item.buttons[0].fixture_id is None
+
+    def test_buttons_accepts_fixture_target(self):
+        """Test a button targeting a specific fixture"""
+        now = datetime.now(timezone.utc)
+        item = PromotionItem(
+            title="Sale",
+            start_date=now,
+            end_date=now + timedelta(days=1),
+            details="Details",
+            buttons=[
+                PromotionButton(
+                    text="Ver partido",
+                    fixture_id="fix-1",
+                    sport_id="1",
+                    tournament_id="10",
+                )
+            ],
+        )
+        assert item.buttons[0].fixture_id == "fix-1"
+        assert item.buttons[0].promotion_id is None
+
+
+class TestPromotionButton:
+    """Test the promotion button model (CU-86ak0ajez)"""
+
+    def test_requires_a_target(self):
+        with pytest.raises(ValueError, match="either promotion_id or fixture_id"):
+            PromotionButton(text="No target")
+
+    def test_rejects_both_targets(self):
+        with pytest.raises(ValueError, match="not both"):
+            PromotionButton(
+                text="Ambiguous",
+                promotion_id="promo-1",
+                fixture_id="fix-1",
+                sport_id="1",
+                tournament_id="10",
+            )
+
+    def test_fixture_target_requires_sport_and_tournament(self):
+        with pytest.raises(ValueError, match="requires sport_id and tournament_id"):
+            PromotionButton(text="Ver partido", fixture_id="fix-1")
+
+    def test_promotion_target_does_not_require_sport_or_tournament(self):
+        button = PromotionButton(text="See other promo", promotion_id="promo-2")
+        assert button.sport_id is None
+        assert button.tournament_id is None
+
+    def test_extra_fields_forbidden(self):
+        with pytest.raises(ValueError):
+            PromotionButton(text="Bad", promotion_id="promo-2", extra_field="nope")
+
+    def test_to_inline_keyboard_button_fixture_target(self):
+        button = PromotionButton(
+            text="Ver partido",
+            fixture_id="fix-1",
+            sport_id="1",
+            tournament_id="10",
+        )
+        assert button.to_inline_keyboard_button() == InlineKeyboardButton(
+            text="Ver partido",
+            callback_data="oi:S1.T10.Ffix-1",
+        )
+
+    def test_to_inline_keyboard_button_promotion_target(self):
+        button = PromotionButton(text="See other promo", promotion_id="promo-2")
+        assert button.to_inline_keyboard_button() == InlineKeyboardButton(
+            text="See other promo",
+            callback_data="promo:promo-2",
+        )
+
+    def test_rejects_fixture_target_exceeding_telegram_callback_limit(self):
+        with pytest.raises(ValueError, match="exceeding Telegram's 64-char callback_data limit"):
+            PromotionButton(
+                text="Ver partido",
+                fixture_id="fixture-id-that-is-way-too-long-for-a-callback",
+                sport_id="sr:sport:1",
+                tournament_id="sr:tournament:8",
+            )
+
+    def test_accepts_fixture_target_at_exactly_64_chars(self):
+        # "oi:S" + "T" + "." + "." + "F" = 8 fixed chars; pad ids to land on 64.
+        sport_id = "s" * 20
+        tournament_id = "t" * 20
+        fixture_id = "f" * 16
+        button = PromotionButton(
+            text="Ver partido",
+            fixture_id=fixture_id,
+            sport_id=sport_id,
+            tournament_id=tournament_id,
+        )
+        assert len(button.to_inline_keyboard_button().callback_data) == 64
 
 
 class TestPromotionsConfig:
@@ -329,6 +470,75 @@ class TestPromotionsConfig:
         config = PromotionsConfig.from_minimal()
         active = config.get_active_promotions()
         assert active == []
+
+    def test_get_active_promotions_orders_by_priority(self):
+        """Test that active promotions are ordered by priority ascending (CU-86ak3z2f1)"""
+        config = PromotionsConfig.from_minimal()
+        now = datetime.now(timezone.utc)
+
+        config.add_promotion(
+            title="Power Play #1",
+            start_date=now - timedelta(hours=1),
+            end_date=now + timedelta(days=1),
+            details="Details",
+            priority=2,
+        )
+        config.add_promotion(
+            title="Power Play #2",
+            start_date=now - timedelta(hours=1),
+            end_date=now + timedelta(days=1),
+            details="Details",
+            priority=1,
+        )
+
+        active = config.get_active_promotions()
+        assert [p.title for p in active] == ["Power Play #2", "Power Play #1"]
+
+    def test_get_active_promotions_defaults_priority_to_zero(self):
+        """Test legacy promotions without priority default to 0 and don't break ordering"""
+        config = PromotionsConfig.from_minimal()
+        now = datetime.now(timezone.utc)
+
+        config.add_promotion(
+            title="Legacy",
+            start_date=now - timedelta(hours=1),
+            end_date=now + timedelta(days=1),
+            details="Details",
+        )
+        config.add_promotion(
+            title="New",
+            start_date=now - timedelta(hours=1),
+            end_date=now + timedelta(days=1),
+            details="Details",
+            priority=1,
+        )
+
+        active = config.get_active_promotions()
+        assert active[0].priority == 0
+        assert [p.title for p in active] == ["Legacy", "New"]
+
+    def test_get_active_promotions_same_priority_tiebreaks_by_title(self):
+        """Test deterministic tiebreak (title) when priority collides"""
+        config = PromotionsConfig.from_minimal()
+        now = datetime.now(timezone.utc)
+
+        config.add_promotion(
+            title="Zebra Sale",
+            start_date=now - timedelta(hours=1),
+            end_date=now + timedelta(days=1),
+            details="Details",
+            priority=5,
+        )
+        config.add_promotion(
+            title="Alpha Sale",
+            start_date=now - timedelta(hours=1),
+            end_date=now + timedelta(days=1),
+            details="Details",
+            priority=5,
+        )
+
+        active = config.get_active_promotions()
+        assert [p.title for p in active] == ["Alpha Sale", "Zebra Sale"]
 
     def test_duplicate_id_validation(self):
         """Test duplicate promotion_id validation"""

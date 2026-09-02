@@ -106,6 +106,7 @@ from .sportbook_config import (
 
 # Promotion Configuration
 from .promotion_config import (
+    PromotionButton,
     PromotionItem,
     PromotionsConfig,
     PromotionsConfigDB,
@@ -218,6 +219,7 @@ __all__ = [
     "SportbookConfigDB",
     "SportsS3Reference",
     # Promotion Configuration
+    "PromotionButton",
     "PromotionItem",
     "PromotionsConfig",
     "PromotionsConfigDB",
