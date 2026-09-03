@@ -656,6 +656,7 @@ class TestBetsMessagesPlannatechErrorTypes:
 
     NEW_FIELDS = [
         "market_unavailable",
+        "market_unavailable_combo",
         "bet_limit_exceeded",
         "bet_amount_too_low",
         "minimum_potential_winning",
