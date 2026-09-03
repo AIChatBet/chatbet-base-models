@@ -456,6 +456,11 @@ class BetsMessages(BaseModel):
     # the existing `without_funds` field; these cover the remaining business
     # types not already represented.
     market_unavailable: Optional[MessageItem] = None
+    # Combo-specific variant of `market_unavailable`: rendered instead of the
+    # field above when the rejected MarketUnavailable comes from a combo/parlay
+    # confirm, so the copy can reference "your combo" (the plain field is also
+    # used for the single-bet path, where that framing doesn't apply).
+    market_unavailable_combo: Optional[MessageItem] = None
     bet_limit_exceeded: Optional[MessageItem] = None
     bet_amount_too_low: Optional[MessageItem] = None
     # Plannatech errorType `BetAmountTooLow` (min potential-winning rule:
