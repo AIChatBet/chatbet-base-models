@@ -124,6 +124,33 @@ class TestMoneyLimits:
         )
         assert limits.min_bet_allows_decimals is False
 
+    def test_max_win_multiplier_and_max_potential_win_default_none(self):
+        limits = MoneyLimits(
+            min_bet_amount=Decimal("1.00"), max_bet_amount=Decimal("100.00")
+        )
+        assert limits.max_win_multiplier is None
+        assert limits.max_potential_win is None
+
+    def test_max_win_multiplier_and_max_potential_win_explicit(self):
+        limits = MoneyLimits(
+            min_bet_amount=Decimal("1.00"),
+            max_bet_amount=Decimal("100.00"),
+            max_win_multiplier="500",
+            max_potential_win=100000,
+        )
+        assert limits.max_win_multiplier == Decimal("500")
+        assert limits.max_potential_win == Decimal("100000")
+
+    def test_max_win_multiplier_zero_is_valid(self):
+        limits = MoneyLimits(
+            min_bet_amount=Decimal("1.00"),
+            max_bet_amount=Decimal("100.00"),
+            max_win_multiplier=Decimal("0"),
+            max_potential_win=Decimal("0"),
+        )
+        assert limits.max_win_multiplier == Decimal("0")
+        assert limits.max_potential_win == Decimal("0")
+
 
 class TestTestConfig:
     def test_create_test_config(self):
