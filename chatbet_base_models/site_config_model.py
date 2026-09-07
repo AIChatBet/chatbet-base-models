@@ -60,6 +60,7 @@ class MoneyLimits(BaseModel):
     model_config = ConfigDict(extra="forbid")
     min_bet_amount: Decimal = Field(ge=0)
     max_bet_amount: Decimal = Field(gt=0)
+    min_bet_allows_decimals: bool = Field(default=True)
 
     @field_validator("min_bet_amount", "max_bet_amount", mode="before")
     @classmethod

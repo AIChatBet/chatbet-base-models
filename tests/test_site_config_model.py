@@ -110,6 +110,20 @@ class TestMoneyLimits:
         ):
             MoneyLimits(min_bet_amount=Decimal("100"), max_bet_amount=Decimal("100"))
 
+    def test_min_bet_allows_decimals_defaults_true(self):
+        limits = MoneyLimits(
+            min_bet_amount=Decimal("1.00"), max_bet_amount=Decimal("100.00")
+        )
+        assert limits.min_bet_allows_decimals is True
+
+    def test_min_bet_allows_decimals_explicit_false(self):
+        limits = MoneyLimits(
+            min_bet_amount=Decimal("1.00"),
+            max_bet_amount=Decimal("100.00"),
+            min_bet_allows_decimals=False,
+        )
+        assert limits.min_bet_allows_decimals is False
+
 
 class TestTestConfig:
     def test_create_test_config(self):
