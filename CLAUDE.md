@@ -72,7 +72,9 @@ Operator-configured profiling questions the agent weaves into conversation (SK `
 
 ## Key Features
 
-- **Type-Safe Validation**: Pydantic v2 with `ConfigDict(extra="forbid")`
+- **Type-Safe Validation**: Pydantic v2 with `ConfigDict(extra="forbid")`, except the
+  promotion config chain (`PromotionButton`, `PromotionItem`, `PromotionsConfig`), which
+  uses `extra="ignore"` — see the extra-field policy note in `promotion_config.py`
 - **DynamoDB-Ready**: "DB" models with PK/SK and `.to_dynamodb_item()`
 - **Factory Methods**: `from_minimal()`, `default_factory()` for quick instantiation
 - **Backward Compatibility**: String coercion, legacy field mapping, typo correction

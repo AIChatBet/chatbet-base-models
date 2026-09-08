@@ -192,17 +192,23 @@ class TestPromotionItem:
                 priority=-1,
             )
 
-    def test_extra_fields_forbidden(self):
-        """Test that extra fields are rejected"""
+    def test_extra_fields_ignored(self):
+        """Test that undeclared fields are accepted and silently dropped
+
+        Promotions are written by Backoffice, which ships on its own cycle and
+        may add fields before this model declares them (CU-86ak5jhrk).
+        """
         now = datetime.now(timezone.utc)
-        with pytest.raises(ValueError):
-            PromotionItem(
-                title="Sale",
-                start_date=now,
-                end_date=now + timedelta(days=1),
-                details="Details",
-                extra_field="not allowed",
-            )
+        item = PromotionItem(
+            title="Sale",
+            start_date=now,
+            end_date=now + timedelta(days=1),
+            details="Details",
+            extra_field="ignored",
+        )
+        assert item.title == "Sale"
+        assert not hasattr(item, "extra_field")
+        assert "extra_field" not in item.model_dump()
 
     def test_buttons_default_empty(self):
         """Test that a promotion with no buttons defaults to an empty list"""
@@ -275,9 +281,18 @@ class TestPromotionButton:
         assert button.sport_id is None
         assert button.tournament_id is None
 
-    def test_extra_fields_forbidden(self):
-        with pytest.raises(ValueError):
-            PromotionButton(text="Bad", promotion_id="promo-2", extra_field="nope")
+    def test_extra_fields_ignored(self):
+        """Undeclared button fields are accepted and silently dropped
+
+        Buttons come from the same Backoffice-written config as their parent
+        promotion, so they need the same tolerance (CU-86ak5jhrk).
+        """
+        button = PromotionButton(
+            text="Bad", promotion_id="promo-2", extra_field="ignored"
+        )
+        assert button.text == "Bad"
+        assert not hasattr(button, "extra_field")
+        assert "extra_field" not in button.model_dump()
 
     def test_to_inline_keyboard_button_fixture_target(self):
         button = PromotionButton(
@@ -639,6 +654,56 @@ class TestPromotionsConfig:
         assert isinstance(item["created_at"], str)  # ISO format
         assert isinstance(item["promotions"][0]["start_date"], str)
         assert item["promotions"][0]["keywords"] == ["test"]
+
+    def test_parses_promotion_with_unknown_backoffice_field_cu_86ak5jhrk(self):
+        """A promotion carrying an undeclared Backoffice field still parses.
+
+        Regression for CU-86ak5jhrk. A staging QA fixture
+        (``company#123456`` / ``promotions_config``) grew a ``banner_url``
+        field on one promotion. Because these models forbade extra inputs,
+        ``CompanyConfig(**payload)`` raised ``extra_forbidden`` at
+        ``promotions.promotions.0.banner_url``. chatbet-channel-services
+        builds every company's config at boot, so that single tenant's data
+        stopped the process from starting: the container never booted, the
+        ECS circuit breaker aborted the deploy, and the rollback failed
+        identically because the DATA changed and not the code. The stack sat
+        in ``UPDATE_ROLLBACK_FAILED`` for a week (CU-86akf2we9).
+
+        This is the third field to cause it: ``priority`` (CU-86ak4q6qv),
+        ``buttons`` (CU-86ak0ajez), then ``banner_url``. Do not restore
+        ``extra="forbid"`` here — Backoffice owns this data and deploys
+        separately, so a reader that rejects unknown fields turns every
+        Backoffice release into an outage.
+        """
+        now = datetime.now(timezone.utc)
+        payload = {
+            "promotions": [
+                {
+                    "promotion_id": "e2f1c0d4-1a2b-4c3d-9e8f-0a1b2c3d4e5f",
+                    "title": "Bono de bienvenida",
+                    "start_date": now.isoformat(),
+                    "end_date": (now + timedelta(days=30)).isoformat(),
+                    "details": "Deposita y recibe 100% extra",
+                    "keywords": ["bono", "bienvenida"],
+                    "priority": 1,
+                    "buttons": [],
+                    # Written by Backoffice, not declared by this model.
+                    "banner_url": "https://cdn.example.com/promos/welcome.png",
+                }
+            ],
+            "created_at": now.isoformat(),
+            "updated_at": now.isoformat(),
+        }
+
+        config = PromotionsConfig(**payload)
+
+        assert len(config.promotions) == 1
+        promotion = config.promotions[0]
+        assert promotion.title == "Bono de bienvenida"
+        assert promotion.priority == 1
+        assert not hasattr(promotion, "banner_url")
+        assert "banner_url" not in promotion.model_dump()
+        assert "banner_url" not in config.to_dynamodb_item()["promotions"][0]
 
 
 class TestPromotionsConfigDB:
