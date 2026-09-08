@@ -60,8 +60,23 @@ class MoneyLimits(BaseModel):
     model_config = ConfigDict(extra="forbid")
     min_bet_amount: Decimal = Field(ge=0)
     max_bet_amount: Decimal = Field(gt=0)
+    min_bet_allows_decimals: bool = Field(default=True)
+    max_win_multiplier: Optional[Decimal] = Field(
+        default=None,
+        description="Maximum combined odds allowed on a single ticket. None/0 = no cap.",
+    )
+    max_potential_win: Optional[Decimal] = Field(
+        default=None,
+        description="Maximum absolute payout per ticket, in the operator's currency. None/0 = no cap.",
+    )
 
-    @field_validator("min_bet_amount", "max_bet_amount", mode="before")
+    @field_validator(
+        "min_bet_amount",
+        "max_bet_amount",
+        "max_win_multiplier",
+        "max_potential_win",
+        mode="before",
+    )
     @classmethod
     def _to_decimal(cls, v):
         if v is None:
