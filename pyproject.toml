@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "chatbet-base-models"
-version = "1.3.0"
+version = "1.4.0"
 description = "Modelos base de Pydantic para aplicaciones ChatBet"
 authors = [{name = "ChatBet Team", email = "tech@chatbet.gg"}]
 license = {text = "MIT"}
@@ -20,7 +20,25 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
-    "pydantic>=2.0.0,<3.0.0",
+    # Raised from >=2.0.0 because `FeaturesConfig.validation` now uses
+    # `Field(deprecated=...)`, which older Pydantic releases accept but ignore.
+    # A floor that is too low therefore ships a deprecation that never fires:
+    # the failure is silent, not an ImportError, which is why the floor is set
+    # deliberately rather than left at the old permissive bound.
+    #
+    # 2.10.0 is a CONSERVATIVE choice, not a measured minimum. The exact lowest
+    # workable version has NOT been verified: the older `pydantic-core` wheels
+    # that pydantic 2.0-2.11 pin are not available from our package index, so no
+    # release in that range can be installed to test against. Two claims below
+    # are therefore UNCONFIRMED and should be treated as leads, not facts:
+    #   * that 2.7.0 is the first release honouring `Field(deprecated=...)`
+    #   * that on 2.7.x-2.9.x `isinstance(obj, HttpUrl)` in
+    #     `SiteConfigDB.to_dynamodb_item()` raises `TypeError: Subscripted
+    #     generics cannot be used with class and instance checks`
+    # Confirm both in CI (which can reach the full index) before lowering this
+    # floor. Verified here: the suite is green on 2.13.5, and the declared floor
+    # does not conflict with chatbet-channel-services, which pins 2.11.5.
+    "pydantic>=2.10.0,<3.0.0",
 ]
 
 [project.urls]
