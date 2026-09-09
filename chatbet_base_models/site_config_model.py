@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from enum import Enum
@@ -13,6 +14,8 @@ from pydantic import (
     field_validator,
     model_validator,
 )
+
+logger = logging.getLogger(__name__)
 
 # ==========================="
 # Enums and basic types
@@ -424,6 +427,28 @@ class LocaleConfig(BaseModel):
         return v.lower()
 
 
+# Canonical ordering for ``FeaturesConfig.accepted_identifiers``.
+#
+# Anchored to the declaration order of ``ValidationMethod`` so the ordering has
+# exactly one definition in this module and automatically covers any member
+# added later. A fixed order matters for two reasons:
+#   1. DynamoDB writes stay byte-stable — the same logical config always
+#      serializes to the same item, so no spurious writes/diffs.
+#   2. Consumers can compare the list with plain ``==`` without sorting first.
+_IDENTIFIER_CANONICAL_ORDER = tuple(ValidationMethod)
+
+# Floor used to honour the "never empty" contract of ``accepted_identifiers``
+# in the (currently unreachable) case where no identifier can be derived.
+# EMAIL matches the module-wide default already used by ``SiteConfig.features``.
+_IDENTIFIER_FALLBACK = ValidationMethod.EMAIL
+
+# Deprecation notice for ``FeaturesConfig.validation``.
+_VALIDATION_DEPRECATION_MESSAGE = (
+    "Use `accepted_identifiers` instead. `validation` holds a single method "
+    "and cannot express operators that accept both email and phone."
+)
+
+
 class FeaturesConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
     odd_type: OddType
@@ -431,7 +456,24 @@ class FeaturesConfig(BaseModel):
         default=AliasProbabilities.ODD,
         description="Terminology for displaying odds/probabilities",
     )
-    validation: ValidationMethod
+    validation: ValidationMethod = Field(
+        deprecated=_VALIDATION_DEPRECATION_MESSAGE,
+        description=(
+            "DEPRECATED — single login identifier for this operator. Kept for "
+            "backward compatibility with stored configs; `accepted_identifiers` "
+            "is the source of truth."
+        ),
+    )
+    accepted_identifiers: list[ValidationMethod] = Field(
+        default_factory=list,
+        description=(
+            "Login identifiers this operator accepts. Allowed values: 'email' "
+            "and 'phone'. Order is not significant and is normalized to a "
+            "canonical order. When empty it is derived from the deprecated "
+            "`validation` field, so consumers can always read this field as the "
+            "source of truth."
+        ),
+    )
     combos: bool = Field(description="Enable or disable combos in this configuration")
     chatbet_version: Optional[ChatbetVersion] = None
     multigames_response: Optional[bool] = Field(
@@ -469,6 +511,64 @@ class FeaturesConfig(BaseModel):
             "Default 7 preserves legacy behavior."
         ),
     )
+
+    @model_validator(mode="after")
+    def _normalize_accepted_identifiers(self) -> "FeaturesConfig":
+        """Derive, de-duplicate and canonically order ``accepted_identifiers``.
+
+        Post-conditions guaranteed to consumers:
+          * ``accepted_identifiers`` is never empty.
+          * It contains no duplicates.
+          * It follows ``_IDENTIFIER_CANONICAL_ORDER``, so equal configs compare
+            equal and serialize identically.
+
+        This validator NEVER raises. If the deprecated ``validation`` field and
+        ``accepted_identifiers`` disagree, the list wins and we only log a
+        warning. Rationale: raising here turns a single malformed DynamoDB
+        record into a crash at service startup — that exact failure mode already
+        took a downstream service down for a week. Divergence is also expected
+        to become normal after the planned backfill: an operator accepting both
+        identifiers will still carry a single-valued ``validation``, so the two
+        fields differing is legitimate data, not an error.
+        """
+        # Read the raw stored value rather than ``self.validation``: that
+        # attribute is deprecated, and touching it here would make every single
+        # validation emit a DeprecationWarning — including for callers that
+        # never go near the deprecated field.
+        legacy = self.__dict__.get("validation")
+
+        declared = self.accepted_identifiers
+        if declared:
+            source = declared
+        elif legacy is not None:
+            source = [legacy]
+        else:
+            source = []
+
+        # Single pass over the canonical order both de-duplicates and sorts.
+        normalized = [
+            method for method in _IDENTIFIER_CANONICAL_ORDER if method in source
+        ]
+
+        if not normalized:
+            # Unreachable while ``validation`` is required, but the never-empty
+            # guarantee is part of this field's contract, so keep an explicit
+            # floor instead of letting an empty list escape to consumers.
+            normalized = [_IDENTIFIER_FALLBACK]
+
+        if declared and legacy is not None and legacy not in normalized:
+            logger.warning(
+                "FeaturesConfig: deprecated 'validation' (%s) is not present in "
+                "'accepted_identifiers' (%s); 'accepted_identifiers' wins.",
+                getattr(legacy, "value", legacy),
+                [method.value for method in normalized],
+            )
+
+        # Plain assignment is safe: this model does not enable
+        # `validate_assignment`, so it writes through without re-triggering
+        # validation (which would recurse into this very validator).
+        self.accepted_identifiers = normalized
+        return self
 
 
 class Meta(BaseModel):
@@ -548,6 +648,7 @@ class SiteConfig(BaseModel):
             odd_type=OddType.DECIMAL,
             alias_probabilities=AliasProbabilities.ODD,
             validation=ValidationMethod.EMAIL,
+            accepted_identifiers=[ValidationMethod.EMAIL],
             combos=False,
             chatbet_version=ChatbetVersion.V1,
             multigames_response=False,
