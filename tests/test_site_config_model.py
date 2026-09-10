@@ -1,3 +1,6 @@
+import logging
+import warnings
+
 import pytest
 from datetime import datetime
 from decimal import Decimal
@@ -717,6 +720,171 @@ class TestFeaturesConfig:
         )
         assert features.whatsapp_detected_login is True
         assert features.model_dump()["whatsapp_detected_login"] is True
+
+
+class TestAcceptedIdentifiers:
+    """`FeaturesConfig.accepted_identifiers` normalization and deprecation.
+
+    The field ships inert: no consumer reads it yet, so these tests pin the
+    contract rather than any behavior change.
+    """
+
+    @staticmethod
+    def _features(**overrides):
+        kwargs = dict(
+            odd_type=OddType.DECIMAL,
+            validation=ValidationMethod.EMAIL,
+            combos=True,
+            chatbet_version=ChatbetVersion.V2,
+            multigames_response=True,
+            see_in_combo=True,
+        )
+        kwargs.update(overrides)
+        return FeaturesConfig(**kwargs)
+
+    def test_defaults_to_the_deprecated_validation_value(self):
+        """Omitting the field derives it from `validation`."""
+        features = self._features(validation=ValidationMethod.PHONE)
+        assert features.accepted_identifiers == [ValidationMethod.PHONE]
+
+        features_email = self._features(validation=ValidationMethod.EMAIL)
+        assert features_email.accepted_identifiers == [ValidationMethod.EMAIL]
+
+    def test_accepts_both_identifiers(self):
+        features = self._features(accepted_identifiers=["email", "phone"])
+        assert features.accepted_identifiers == [
+            ValidationMethod.PHONE,
+            ValidationMethod.EMAIL,
+        ]
+        assert set(features.accepted_identifiers) == {
+            ValidationMethod.EMAIL,
+            ValidationMethod.PHONE,
+        }
+
+    def test_divergence_never_raises_and_the_list_wins(self):
+        """A record where the two fields disagree must still validate.
+
+        Raising here would crash a service at startup on one malformed
+        DynamoDB record, and post-backfill divergence is legitimate anyway.
+        """
+        features = self._features(
+            validation=ValidationMethod.EMAIL,
+            accepted_identifiers=[ValidationMethod.PHONE],
+        )
+        assert features.accepted_identifiers == [ValidationMethod.PHONE]
+
+    def test_divergence_logs_a_warning(self, caplog):
+        with caplog.at_level(
+            logging.WARNING, logger="chatbet_base_models.site_config_model"
+        ):
+            self._features(
+                validation=ValidationMethod.EMAIL,
+                accepted_identifiers=[ValidationMethod.PHONE],
+            )
+        assert "accepted_identifiers" in caplog.text
+        assert caplog.records
+        record = caplog.records[-1]
+        assert record.levelno == logging.WARNING
+        # The message must name both sides, otherwise it is not actionable
+        # for whoever has to go fix the offending DynamoDB record.
+        assert "email" in record.getMessage()
+        assert "phone" in record.getMessage()
+
+    def test_agreement_logs_nothing(self, caplog):
+        """The expected post-backfill shape must stay silent.
+
+        An operator accepting both identifiers keeps a single-valued
+        `validation`, so `validation in accepted_identifiers` is the NORMAL
+        state. Warning on it would make the log noise meaningless.
+        """
+        with caplog.at_level(
+            logging.WARNING, logger="chatbet_base_models.site_config_model"
+        ):
+            features = self._features(
+                validation=ValidationMethod.EMAIL,
+                accepted_identifiers=["phone", "email"],
+            )
+        assert caplog.records == []
+        assert features.accepted_identifiers == [
+            ValidationMethod.PHONE,
+            ValidationMethod.EMAIL,
+        ]
+
+    def test_duplicates_and_order_are_normalized(self):
+        features = self._features(
+            accepted_identifiers=["email", "phone", "email", "phone", "email"]
+        )
+        assert features.accepted_identifiers == [
+            ValidationMethod.PHONE,
+            ValidationMethod.EMAIL,
+        ]
+
+    def test_normalization_is_order_independent(self):
+        forward = self._features(accepted_identifiers=["email", "phone"])
+        reverse = self._features(accepted_identifiers=["phone", "email"])
+        assert forward.accepted_identifiers == reverse.accepted_identifiers
+        assert forward.model_dump() == reverse.model_dump()
+
+    def test_never_empty(self):
+        for validation in (ValidationMethod.EMAIL, ValidationMethod.PHONE):
+            assert self._features(
+                validation=validation, accepted_identifiers=[]
+            ).accepted_identifiers
+
+    def test_rejects_unknown_identifier_values(self):
+        with pytest.raises(ValidationError):
+            self._features(accepted_identifiers=["username"])
+
+    def test_extra_forbid_still_holds(self):
+        with pytest.raises(ValidationError):
+            self._features(accepted_identifiers_typo=["email"])
+
+    def test_round_trips_through_model_dump(self):
+        features = self._features(accepted_identifiers=["email", "phone"])
+        dumped = features.model_dump()
+        assert dumped["accepted_identifiers"] == [
+            ValidationMethod.PHONE,
+            ValidationMethod.EMAIL,
+        ]
+        assert FeaturesConfig.model_validate(dumped).accepted_identifiers == (
+            features.accepted_identifiers
+        )
+
+    def test_json_round_trip_is_stable(self):
+        features = self._features(accepted_identifiers=["email", "phone"])
+        payload = features.model_dump(mode="json")
+        assert payload["accepted_identifiers"] == ["phone", "email"]
+        assert FeaturesConfig.model_validate(payload).accepted_identifiers == (
+            features.accepted_identifiers
+        )
+
+    def test_accessing_validation_emits_a_deprecation_warning(self):
+        """`pytest.ini` sets `ignore::DeprecationWarning`, but `pytest.warns`
+        installs its own catcher and records the warning regardless."""
+        features = self._features()
+        with pytest.warns(DeprecationWarning, match="accepted_identifiers"):
+            _ = features.validation
+
+    def test_building_a_config_does_not_emit_a_deprecation_warning(self):
+        """The normalizer must read the raw value, not `self.validation`."""
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            self._features()
+        assert [w for w in caught if issubclass(w.category, DeprecationWarning)] == []
+
+    def test_site_config_default_features_are_coherent(self):
+        config = SiteConfig.default_factory("Test Site", "company_123")
+        assert config.features.accepted_identifiers == [ValidationMethod.EMAIL]
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            assert config.features.validation == ValidationMethod.EMAIL
+            assert config.features.validation in config.features.accepted_identifiers
+
+    def test_site_config_db_default_factory_round_trips(self):
+        config = SiteConfigDB.default_factory("Test Site", "company_123")
+        assert config.features.accepted_identifiers == [ValidationMethod.EMAIL]
+        item = config.to_dynamodb_item()
+        assert item["features"]["accepted_identifiers"] == ["email"]
 
 
 class TestMeta:
