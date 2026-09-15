@@ -2397,3 +2397,68 @@ class TestLabelMessagesMarketPaginationFields:
         assert templates.labels.markets_more_options is not None
         assert templates.labels.markets_back_options.text
         assert templates.labels.markets_more_options.text
+
+
+class TestLabelMessagesEmptyStateFields:
+    """Tests for the empty-state label fields (CU-86agxy2wz).
+
+    channel-services hardcoded this copy per language, so an operator could not
+    match the wording to their brand without a code deploy. These keys move it
+    to DynamoDB, where the Backoffice labels editor can reach it.
+
+    The ``extra="forbid"`` guard on :class:`LabelMessages` is why the model has
+    to ship BEFORE the Backoffice starts writing these keys: a payload carrying
+    an unknown label fails validation, and channel-services swallows that error
+    and falls back to ``model_construct``, which leaves ``labels`` a plain dict
+    and silently drops EVERY label to its hardcoded default.
+    """
+
+    EMPTY_STATE_FIELDS = (
+        "no_sports_available",
+        "no_tournaments_available",
+        "no_fixtures_available",
+    )
+
+    def test_empty_state_fields_accept_message_item(self):
+        for field_name in self.EMPTY_STATE_FIELDS:
+            labels = LabelMessages(**{field_name: MessageItem(text="custom")})
+            value = getattr(labels, field_name)
+            assert value is not None
+            assert value.text == "custom"
+
+    def test_empty_state_fields_default_to_none(self):
+        labels = LabelMessages()
+        for field_name in self.EMPTY_STATE_FIELDS:
+            assert getattr(labels, field_name) is None
+
+    def test_empty_state_fields_coerce_from_plain_string(self):
+        for field_name in self.EMPTY_STATE_FIELDS:
+            labels = LabelMessages.model_validate({field_name: "hello"})
+            value = getattr(labels, field_name)
+            assert value is not None
+            assert value.text == "hello"
+
+    def test_empty_state_fields_present_in_from_minimal(self):
+        templates = MessageTemplates.from_minimal()
+        assert templates.labels is not None
+        for field_name in self.EMPTY_STATE_FIELDS:
+            value = getattr(templates.labels, field_name)
+            assert value is not None, f"from_minimal() labels.{field_name} is None"
+            assert value.text, f"from_minimal() labels.{field_name}.text is empty"
+
+    def test_full_templates_payload_with_empty_state_labels_validates(self):
+        """Regression guard for the silent label wipe described above.
+
+        Before this change the same payload raised ``extra_forbidden``.
+        """
+        templates = MessageTemplates.model_validate(
+            {
+                "labels": {
+                    "home_page_text": {"text": "Main menu"},
+                    "no_sports_available": {"text": "Sin deportes por ahora"},
+                }
+            }
+        )
+        assert isinstance(templates.labels, LabelMessages)
+        assert templates.labels.home_page_text.text == "Main menu"
+        assert templates.labels.no_sports_available.text == "Sin deportes por ahora"
