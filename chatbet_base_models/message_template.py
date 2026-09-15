@@ -758,6 +758,12 @@ class LabelMessages(BaseModel):
     account_locked_text: Optional[MessageItem] = None
     invalid_otp_text: Optional[MessageItem] = None
     balance_notification: Optional[MessageItem] = None
+    # CU-86agxy2wz: empty-state copy for the deterministic sportbook menus.
+    # Hardcoded per language in channel-services until now, so operators
+    # could not match the wording to their brand without a deploy.
+    no_sports_available: Optional[MessageItem] = None
+    no_tournaments_available: Optional[MessageItem] = None
+    no_fixtures_available: Optional[MessageItem] = None
 
     @classmethod
     def model_validate(cls, obj):
@@ -1534,6 +1540,15 @@ class MessageTemplates(BaseModel):
                 invalid_otp_text=MessageItem(text="Invalid OTP"),
                 balance_notification=MessageItem(
                     text="Your available balance is {balance}"
+                ),
+                no_sports_available=MessageItem(
+                    text="There are no sports available at the moment. Please try again later."
+                ),
+                no_tournaments_available=MessageItem(
+                    text="There are no tournaments available for this sport at the moment. Please try again later."
+                ),
+                no_fixtures_available=MessageItem(
+                    text="There are no games available for this tournament at the moment. Please try again later."
                 ),
             ),
             end=EndMessages(
