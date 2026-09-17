@@ -16,6 +16,29 @@ from chatbet_base_models.message_template import InlineKeyboardButton
 
 
 # ===========================
+# Extra-field policy (CU-86ak5jhrk)
+# ===========================
+# The promotions config is WRITTEN by Backoffice, a separate service on its own
+# deploy cycle, and only READ here. Strict validation earns its keep when you
+# own the writer; across this boundary it turns every new Backoffice field into
+# an outage in a reader that never needed the field at all.
+#
+# Three times now an undeclared field reached a consumer and blew it up —
+# ``priority`` (CU-86ak4q6qv), ``buttons`` (CU-86ak0ajez), ``banner_url``
+# (CU-86ak5jhrk) — each declared only AFTER it broke something. The last one
+# stopped chatbet-channel-services from booting (it builds every company's
+# config at startup, so one tenant's fixture took the whole process down),
+# aborted the deploy, and left the stack in UPDATE_ROLLBACK_FAILED for a week
+# because the rollback failed identically — the DATA changed, not the code
+# (CU-86akf2we9).
+#
+# So ``PromotionButton``, ``PromotionItem`` and ``PromotionsConfig`` below all
+# use ``extra="ignore"``: unrecognized keys are dropped, the config parses, and
+# adding a Backoffice field stays a Backoffice-only change. Declare a field
+# here when this library actually needs to read it.
+
+
+# ===========================
 # Nested Model - Promotion Button
 # ===========================
 class PromotionButton(BaseModel):
@@ -27,7 +50,8 @@ class PromotionButton(BaseModel):
     use to navigate straight to a fixture's odds), never both.
     """
 
-    model_config = ConfigDict(extra="forbid")
+    # Tolerant by design — see "Extra-field policy" above (CU-86ak5jhrk).
+    model_config = ConfigDict(extra="ignore")
 
     text: str = Field(min_length=1, max_length=200)
     promotion_id: Optional[str] = None
@@ -86,7 +110,8 @@ class PromotionButton(BaseModel):
 class PromotionItem(BaseModel):
     """Individual promotion within the PromotionsConfig array"""
 
-    model_config = ConfigDict(extra="forbid")
+    # Tolerant by design — see "Extra-field policy" above (CU-86ak5jhrk).
+    model_config = ConfigDict(extra="ignore")
 
     promotion_id: str = Field(
         default_factory=lambda: str(uuid4()),
@@ -168,7 +193,8 @@ class PromotionItem(BaseModel):
 class PromotionsConfig(BaseModel):
     """Configuration containing an array of promotions"""
 
-    model_config = ConfigDict(extra="forbid")
+    # Tolerant by design — see "Extra-field policy" above (CU-86ak5jhrk).
+    model_config = ConfigDict(extra="ignore")
 
     promotions: List[PromotionItem] = Field(
         default_factory=list,
