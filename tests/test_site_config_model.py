@@ -327,6 +327,27 @@ class TestIntegrationConfigs:
         assert config.waba_id == "waba123"
         assert config.webhook_url == "https://example.com/webhook"
 
+    def test_whatsapp_config_shared_without_phone_or_token(self):
+        """Embedded Signup's 'share WABA' step writes only waba_id + status,
+        before the number is connected — phone_id/auth_token must be optional."""
+        config = WhatsAppConfig(connection_status="shared", waba_id="waba123")
+        assert config.phone_id is None
+        assert config.auth_token is None
+        assert config.connection_status == "shared"
+
+    def test_whatsapp_config_connected(self):
+        config = WhatsAppConfig(
+            phone_id="phone123",
+            auth_token="auth_token",
+            connection_status="connected",
+        )
+        assert config.connection_status == "connected"
+
+    def test_whatsapp_config_legacy_without_connection_status(self):
+        """Pre-Embedded-Signup manually-entered configs never set connection_status."""
+        config = WhatsAppConfig(phone_id="phone123", auth_token="auth_token")
+        assert config.connection_status is None
+
 
 class TestWhatsAppIntegration:
     def test_whatsapp_integration_with_whapi(self):
