@@ -447,6 +447,80 @@ class TestValidationMessagesConfirmPhoneNumber:
             )
 
 
+class TestValidationMessagesRequestContactInfo:
+    """Validate the `request_contact_info` template added under ValidationMessages.
+
+    See ClickUp 86akncmum. BO-editable body text of the WhatsApp "share your
+    contact" bubble, which Meta renders as an `interactive.request_contact_info`
+    message. Unlike `confirm_phone_number` this field is TEXT ONLY: Meta's
+    interactive types are mutually exclusive, so that message carries no
+    `buttons` array and its button label is Meta's own, localized to the user's
+    phone and not customizable. The field is `Optional[MessageItem] = None` so
+    company configs that omit it keep validating; bet-bot falls back to
+    hardcoded localized defaults when absent."""
+
+    def test_request_contact_info_defaults_to_none(self):
+        validation = ValidationMessages()
+        assert validation.request_contact_info is None
+
+    def test_request_contact_info_omitted_from_dict_yields_none(self):
+        validation = ValidationMessages.model_validate(
+            {"member_validation": "Please validate"}
+        )
+        assert validation.request_contact_info is None
+        assert validation.member_validation.text == "Please validate"
+
+    def test_plain_text_item_validates(self):
+        """No keyboard required — and none is wanted. This is the field's whole
+        point of difference from `confirm_phone_number`, which raises without
+        one."""
+        validation = ValidationMessages(
+            request_contact_info=MessageItem(text="Compartí tu contacto 👇")
+        )
+        assert validation.request_contact_info.text == "Compartí tu contacto 👇"
+        assert validation.request_contact_info.reply_markup is None
+
+    def test_round_trip_via_model_validate_and_dump(self):
+        data = {"request_contact_info": {"text": "Compartí tu contacto 👇"}}
+        validation = ValidationMessages.model_validate(data)
+        dumped = validation.model_dump(exclude_none=True)
+        assert "request_contact_info" in dumped
+        reloaded = ValidationMessages.model_validate(dumped)
+        assert (
+            reloaded.request_contact_info.text
+            == validation.request_contact_info.text
+        )
+
+    def test_serializes_in_dynamodb_item(self):
+        templates = MessageTemplates.from_minimal()
+        templates.validation.request_contact_info = MessageItem(
+            text="Compartí tu contacto 👇"
+        )
+        item = templates.to_dynamodb_item()
+        assert item["validation"]["request_contact_info"]["text"] == (
+            "Compartí tu contacto 👇"
+        )
+
+    def test_from_minimal_seeds_request_contact_info(self):
+        """`from_minimal()` auto-seeds it so NEW companies get an editable
+        bubble out of the box (existing companies are covered by the
+        channel-services migration)."""
+        templates = MessageTemplates.from_minimal()
+        item = templates.validation.request_contact_info
+        assert item is not None
+        assert item.text.strip()
+        # Text only: a keyboard here would be silently dropped when sent.
+        assert item.reply_markup is None
+        MessageTemplates.model_validate(templates.model_dump())
+
+    def test_unknown_key_rejected(self):
+        """`extra=forbid` keeps protecting against typos near the new field."""
+        with pytest.raises(ValidationError):
+            ValidationMessages.model_validate(
+                {"request_contact_inf": {"text": "typo"}}
+            )
+
+
 class TestValidationMessagesTermsNotAccepted:
     """Validate the `terms_not_accepted` template added under ValidationMessages.
 
