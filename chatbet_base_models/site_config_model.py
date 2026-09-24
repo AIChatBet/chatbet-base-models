@@ -613,6 +613,17 @@ class AuthConfig(BaseModel):
         default=None,
         description="Optional forgot-password URL — reserved for Phase 2 (deferred).",
     )
+    require_login: bool = Field(
+        default=False,
+        description=(
+            "Require an authenticated session before the bot answers anything. "
+            "When False (the default, and every existing operator) auth is only "
+            "requested just-in-time at bet confirmation. When True the user is "
+            "sent into the login flow on their first message and cannot browse, "
+            "bet or chat until the session is active — the login conversation "
+            "itself and the registration/support links stay reachable."
+        ),
+    )
 
 
 # ==========================="
