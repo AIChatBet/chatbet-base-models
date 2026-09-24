@@ -1083,6 +1083,16 @@ class TestAuthConfig:
         assert cfg.flow_id is None
         assert cfg.forgot_password_url is None
 
+    def test_auth_config_require_login_defaults_false(self):
+        """Every existing operator keeps just-in-time auth: the gate is opt-in."""
+        assert AuthConfig().require_login is False
+
+    def test_auth_config_require_login_accepts_true(self):
+        cfg = AuthConfig(require_login=True)
+        assert cfg.require_login is True
+        # Independent of the auth method — an OTP operator can gate too.
+        assert cfg.method == "otp"
+
     def test_auth_config_explicit_otp(self):
         cfg = AuthConfig(method="otp")
         assert cfg.method == "otp"
