@@ -173,8 +173,8 @@ class WhatsAppConfig(BaseModel):
     provider: Literal["meta"] = Field(
         default="meta", description="Discriminador de proveedor"
     )
-    phone_id: str
-    auth_token: str
+    phone_id: Optional[str] = None
+    auth_token: Optional[str] = None
     # Legacy fields (pre hub_verify_token migration) — kept Optional so existing
     # DynamoDB configs still validate while backoffice/bot migrate to the new
     # names. Remove once every stored config has been updated.
@@ -184,6 +184,12 @@ class WhatsAppConfig(BaseModel):
     hub_verify_token: Optional[str] = None
     waba_id: Optional[str] = None
     webhook_url: Optional[str] = None
+    # Embedded Signup wizard progress (chatbet-backoffice) — None means not
+    # started via the wizard (e.g. a legacy manually-entered config); "shared"
+    # means the WABA was shared with the Tech Provider's Business Portfolio but
+    # the number isn't registered yet, so phone_id/auth_token may still be
+    # unset at that point; "connected" means the full flow completed.
+    connection_status: Optional[Literal["shared", "connected"]] = None
 
 
 # Unión discriminada por el campo `provider`
