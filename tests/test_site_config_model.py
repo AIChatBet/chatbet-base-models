@@ -327,6 +327,27 @@ class TestIntegrationConfigs:
         assert config.waba_id == "waba123"
         assert config.webhook_url == "https://example.com/webhook"
 
+    def test_whatsapp_config_shared_without_phone_or_token(self):
+        """Embedded Signup's 'share WABA' step writes only waba_id + status,
+        before the number is connected — phone_id/auth_token must be optional."""
+        config = WhatsAppConfig(connection_status="shared", waba_id="waba123")
+        assert config.phone_id is None
+        assert config.auth_token is None
+        assert config.connection_status == "shared"
+
+    def test_whatsapp_config_connected(self):
+        config = WhatsAppConfig(
+            phone_id="phone123",
+            auth_token="auth_token",
+            connection_status="connected",
+        )
+        assert config.connection_status == "connected"
+
+    def test_whatsapp_config_legacy_without_connection_status(self):
+        """Pre-Embedded-Signup manually-entered configs never set connection_status."""
+        config = WhatsAppConfig(phone_id="phone123", auth_token="auth_token")
+        assert config.connection_status is None
+
 
 class TestWhatsAppIntegration:
     def test_whatsapp_integration_with_whapi(self):
@@ -1082,6 +1103,16 @@ class TestAuthConfig:
         assert cfg.method == "otp"
         assert cfg.flow_id is None
         assert cfg.forgot_password_url is None
+
+    def test_auth_config_require_login_defaults_false(self):
+        """Every existing operator keeps just-in-time auth: the gate is opt-in."""
+        assert AuthConfig().require_login is False
+
+    def test_auth_config_require_login_accepts_true(self):
+        cfg = AuthConfig(require_login=True)
+        assert cfg.require_login is True
+        # Independent of the auth method — an OTP operator can gate too.
+        assert cfg.method == "otp"
 
     def test_auth_config_explicit_otp(self):
         cfg = AuthConfig(method="otp")

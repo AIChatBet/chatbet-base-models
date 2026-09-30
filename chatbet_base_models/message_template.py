@@ -288,6 +288,19 @@ class ValidationMessages(BaseModel):
     # to hardcoded localized defaults (account_state_defaults pattern), so empty
     # configs are safe.
     confirm_phone_number: Optional[MessageItem] = None
+    # BO-editable body text of the WhatsApp "share your contact" bubble
+    # (ClickUp 86akncmum). Sent as a second bubble alongside the type-the-number
+    # prompt when Meta gave us a username instead of a phone number, and
+    # rendered by Meta as an `interactive.request_contact_info` message.
+    #
+    # TEXT ONLY — any `reply_markup` on this item is ignored. Meta's interactive
+    # types are mutually exclusive: `request_contact_info` carries no `buttons`
+    # array, and its button label is Meta's own (localized to the user's phone,
+    # not customizable). The operator controls this body text and nothing else.
+    #
+    # When absent, bet-bot falls back to hardcoded localized defaults (the
+    # `account_state_defaults` pattern), so empty configs are safe.
+    request_contact_info: Optional[MessageItem] = None
     # Plannatech `terms_not_accepted` (Result=-1219) signaling.
     # See SDD change `terms-not-accepted`.
     terms_not_accepted: Optional[MessageItem] = None
@@ -1157,6 +1170,11 @@ class MessageTemplates(BaseModel):
                                 )
                             ],
                         ]
+                    ),
+                ),
+                request_contact_info=MessageItem(
+                    text=(
+                        "O compartí tu contacto y leemos el número por vos 👇"
                     ),
                 ),
                 password_required=MessageItem(
