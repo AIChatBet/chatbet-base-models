@@ -50,7 +50,7 @@ class TestCatalogEntry:
         )
         assert entry.legacy_tokens["%1"] == "amount"
 
-    @pytest.mark.parametrize("name", ["", "has space", "a-b", "{a}"])
+    @pytest.mark.parametrize("name", ["", "has space", "a-b", "{a}", "amount\n"])
     def test_rejects_invalid_placeholder_names(self, name):
         with pytest.raises(ValidationError):
             CatalogEntry(allowed_placeholders=[name])
@@ -59,7 +59,7 @@ class TestCatalogEntry:
         with pytest.raises(ValidationError):
             CatalogEntry(allowed_placeholders=["a", "a"])
 
-    @pytest.mark.parametrize("literal", ["%a", "1", "{{x y}}", "{x}", "%%"])
+    @pytest.mark.parametrize("literal", ["%a", "1", "{{x y}}", "{x}", "%%", "%1\n"])
     def test_rejects_invalid_legacy_literals(self, literal):
         with pytest.raises(ValidationError):
             CatalogEntry(allowed_placeholders=["a"], legacy_tokens={literal: "a"})
@@ -107,7 +107,16 @@ class TestMessageCatalog:
             self._catalog(version=version)
 
     @pytest.mark.parametrize(
-        "key", ["nodot", "Bets.Upper", "bets.", ".field", "a.b.c", "bets.with space"]
+        "key",
+        [
+            "nodot",
+            "Bets.Upper",
+            "bets.",
+            ".field",
+            "a.b.c",
+            "bets.with space",
+            "bets.x\n",
+        ],
     )
     def test_rejects_malformed_keys(self, key):
         with pytest.raises(ValidationError):
@@ -158,6 +167,12 @@ class TestClientMessages:
                 catalog_version=1, messages={"nodot": MessageContent(text="x")}
             )
 
+    def test_rejects_message_keys_with_a_trailing_newline(self):
+        with pytest.raises(ValidationError):
+            ClientMessages(
+                catalog_version=1, messages={"bets.x\n": MessageContent(text="x")}
+            )
+
     @pytest.mark.parametrize("field", ["general_errors", "account_state_defaults"])
     def test_dead_or_constant_fields_are_not_part_of_client_content(self, field):
         with pytest.raises(ValidationError):
@@ -185,6 +200,11 @@ class TestLegacyToClientMessages:
         result = legacy_to_client_messages(templates, catalog_version=1)
         assert isinstance(result, LegacyConversion)
         assert result.content.catalog_version == 1
+
+    def test_legacy_conversion_rejects_unknown_fields(self, templates):
+        content = legacy_to_client_messages(templates, 1).content
+        with pytest.raises(ValidationError):
+            LegacyConversion(content=content, bogus=1)
 
     def test_every_message_item_becomes_a_dotted_key(self, templates):
         messages = legacy_to_client_messages(templates, 1).content.messages

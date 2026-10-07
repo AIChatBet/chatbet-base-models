@@ -35,7 +35,7 @@ _NON_CATALOG_SECTIONS = {"links", "created_at", "updated_at"}
 
 def _check_message_keys(keys: List[str]) -> None:
     for key in keys:
-        if not MESSAGE_KEY_RE.match(key):
+        if not MESSAGE_KEY_RE.fullmatch(key):
             raise ValueError(
                 f"invalid message key {key!r}: expected '<section>.<field>'"
             )
@@ -56,7 +56,7 @@ class CatalogEntry(BaseModel):
     @classmethod
     def _valid_unique_placeholders(cls, v: List[str]) -> List[str]:
         for name in v:
-            if not PLACEHOLDER_NAME_RE.match(name):
+            if not PLACEHOLDER_NAME_RE.fullmatch(name):
                 raise ValueError(f"invalid placeholder name: {name!r}")
         if len(set(v)) != len(v):
             raise ValueError("allowed_placeholders must not contain duplicates")
@@ -65,7 +65,7 @@ class CatalogEntry(BaseModel):
     @model_validator(mode="after")
     def _valid_legacy_tokens(self) -> "CatalogEntry":
         for literal, name in self.legacy_tokens.items():
-            if not LEGACY_TOKEN_RE.match(literal):
+            if not LEGACY_TOKEN_RE.fullmatch(literal):
                 raise ValueError(f"invalid legacy token literal: {literal!r}")
             if name not in self.allowed_placeholders:
                 raise ValueError(
@@ -141,6 +141,8 @@ class ClientMessages(BaseModel):
 
 class LegacyConversion(BaseModel):
     """Result of converting legacy templates: the content plus what needs review."""
+
+    model_config = ConfigDict(extra="forbid")
 
     content: ClientMessages
     warnings: List[str] = Field(default_factory=list)
