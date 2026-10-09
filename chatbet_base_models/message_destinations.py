@@ -15,7 +15,7 @@ from .message_catalog import MessageCatalog
 from .message_template import IDENTIFIER_RE, ButtonDestination
 from .message_tokens import TOKEN_NAME_PATTERN
 
-# Same limit as `InlineKeyboardButton.callback_data`.
+# Telegram's callback_data limit, in UTF-8 bytes (not characters).
 CALLBACK_DATA_MAX_LENGTH = 64
 
 ParamKind = Literal[
@@ -141,10 +141,11 @@ def render_destination(
     if definition.callback_template is None:
         return RenderedAction(url=_fill(definition.url_template or "", values))
     callback_data = _fill(definition.callback_template, values)
-    if len(callback_data) > CALLBACK_DATA_MAX_LENGTH:
+    size_in_bytes = len(callback_data.encode("utf-8"))
+    if size_in_bytes > CALLBACK_DATA_MAX_LENGTH:
         raise ValueError(
-            f"callback_data of destination {destination.id!r} is "
-            f"{len(callback_data)} characters, the limit is {CALLBACK_DATA_MAX_LENGTH}"
+            f"callback_data of destination {destination.id!r} is {size_in_bytes} bytes, "
+            f"the limit is {CALLBACK_DATA_MAX_LENGTH} bytes"
         )
     return RenderedAction(callback_data=callback_data)
 

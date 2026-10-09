@@ -146,6 +146,19 @@ class TestRenderDestination:
         )
         assert action.callback_data == "link:{key}"
 
+    def test_callback_limit_counts_utf8_bytes_not_characters(self):
+        # 35 characters but 65 UTF-8 bytes: Telegram rejects it.
+        with pytest.raises(ValueError, match="64"):
+            render_destination(
+                _catalog(), ButtonDestination(id="link", params={"title": "é" * 30})
+            )
+
+    def test_callback_of_exactly_64_bytes_is_accepted(self):
+        action = render_destination(
+            _catalog(), ButtonDestination(id="link", params={"title": "x" * 59})
+        )
+        assert len(action.callback_data.encode("utf-8")) == CALLBACK_DATA_MAX_LENGTH
+
     def test_callback_longer_than_the_limit_raises_instead_of_truncating(self):
         too_long = "x" * CALLBACK_DATA_MAX_LENGTH
         with pytest.raises(ValueError, match="64"):
