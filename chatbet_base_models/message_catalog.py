@@ -41,6 +41,16 @@ def _check_message_keys(keys: List[str]) -> None:
             )
 
 
+def check_placeholder_names(names: List[str]) -> List[str]:
+    """Placeholder names must be valid tokens and unique; shared by catalog entries and events."""
+    for name in names:
+        if not PLACEHOLDER_NAME_RE.fullmatch(name):
+            raise ValueError(f"invalid placeholder name: {name!r}")
+    if len(set(names)) != len(names):
+        raise ValueError("allowed_placeholders must not contain duplicates")
+    return names
+
+
 class CatalogEntry(BaseModel):
     """One message key of the catalog: which placeholders its text may use."""
 
@@ -55,12 +65,7 @@ class CatalogEntry(BaseModel):
     @field_validator("allowed_placeholders")
     @classmethod
     def _valid_unique_placeholders(cls, v: List[str]) -> List[str]:
-        for name in v:
-            if not PLACEHOLDER_NAME_RE.fullmatch(name):
-                raise ValueError(f"invalid placeholder name: {name!r}")
-        if len(set(v)) != len(v):
-            raise ValueError("allowed_placeholders must not contain duplicates")
-        return v
+        return check_placeholder_names(v)
 
     @model_validator(mode="after")
     def _valid_legacy_tokens(self) -> "CatalogEntry":
