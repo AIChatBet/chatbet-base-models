@@ -4,6 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from chatbet_base_models.message_catalog import CatalogEntry, MessageCatalog
+from chatbet_base_models.message_destinations import DESCRIPTION_MAX_LENGTH, LABEL_MAX_LENGTH
 from chatbet_base_models.message_flow import (
     ClientFlow,
     EventCatalog,
@@ -133,3 +134,32 @@ class TestFindFlowProblems:
             "route for unknown event 'a_event'",
             "route for unknown event 'b_event'",
         ]
+
+
+class TestEventNameAndDescription:
+    def test_label_and_description_are_optional(self):
+        event = EventDef(default_message_key="menu.main_menu")
+        assert event.label is None
+        assert event.description is None
+
+    def test_keeps_a_label_and_a_description(self):
+        event = EventDef(
+            default_message_key="menu.main_menu",
+            label="OTP inválido",
+            description="El usuario escribió un código incorrecto",
+        )
+        assert event.label == "OTP inválido"
+        assert event.description == "El usuario escribió un código incorrecto"
+
+    def test_rejects_an_empty_or_too_long_label_and_description(self):
+        with pytest.raises(ValidationError):
+            EventDef(default_message_key="menu.main_menu", label="")
+        with pytest.raises(ValidationError):
+            EventDef(default_message_key="menu.main_menu", label="x" * (LABEL_MAX_LENGTH + 1))
+        with pytest.raises(ValidationError):
+            EventDef(default_message_key="menu.main_menu", description="")
+        with pytest.raises(ValidationError):
+            EventDef(
+                default_message_key="menu.main_menu",
+                description="x" * (DESCRIPTION_MAX_LENGTH + 1),
+            )

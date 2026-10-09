@@ -16,6 +16,7 @@ from .message_catalog import (
     MessageCatalog,
     check_placeholder_names,
 )
+from .message_destinations import DESCRIPTION_MAX_LENGTH, LABEL_MAX_LENGTH
 from .message_template import IDENTIFIER_RE
 
 
@@ -35,6 +36,10 @@ class EventDef(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     description_i18n_key: Optional[str] = None
+    label: Optional[str] = Field(default=None, min_length=1, max_length=LABEL_MAX_LENGTH)
+    description: Optional[str] = Field(
+        default=None, min_length=1, max_length=DESCRIPTION_MAX_LENGTH
+    )
     allowed_placeholders: List[str] = Field(default_factory=list)
     default_message_key: str
 

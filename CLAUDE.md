@@ -47,7 +47,7 @@ Dynamic message catalog support (CU-86akn2750):
 ### message_destinations.py / message_flow.py
 Flow structures (CU-86akn2750, stage 1): what a button leads to and which message each event shows:
 - `ButtonDestination` (in `message_template.py`): destination id + params; optional `destination` on `InlineKeyboardButton`, stored next to the generated `callback_data`
-- `DestinationDef`, `DestinationCatalog`, `ParamDef`: global destination catalog types (data lives in DynamoDB, never in this package); ids are plain strings
+- `DestinationDef`, `DestinationCatalog`, `ParamDef`: global destination catalog types (data lives in DynamoDB, never in this package); ids are plain strings; destinations and events may carry an optional plain-text label and description (80 / 300 characters)
 - `render_destination`: builds the callback (or URL) of a destination; raises `ValueError`, never truncates (64-byte limit)
 - `find_destination_problems`: readable problems of a button's destination (unknown destination, bad params, unknown message key)
 - `EventDef`, `EventCatalog`, `ClientFlow`: events the bot reports and the per-client `event -> message key` routes (the global default flow has the same shape)
