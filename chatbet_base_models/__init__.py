@@ -10,6 +10,7 @@ __version__ = "1.1.0"
 
 # Message Templates
 from .message_template import (
+    ButtonDestination,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     MessageItem,
@@ -39,6 +40,25 @@ from .message_catalog import (
     MessageCatalog,
     MessageContent,
     legacy_to_client_messages,
+)
+
+# Message Destinations (button targets)
+from .message_destinations import (
+    DestinationCatalog,
+    DestinationDef,
+    ParamDef,
+    RenderedAction,
+    find_destination_problems,
+    render_destination,
+)
+
+# Message Flow (event -> message routes)
+from .message_flow import (
+    ClientFlow,
+    EventCatalog,
+    EventDef,
+    find_event_catalog_problems,
+    find_flow_problems,
 )
 
 # Platform Endpoints
@@ -146,6 +166,7 @@ __all__ = [
     # Version
     "__version__",
     # Message Templates
+    "ButtonDestination",
     "InlineKeyboardButton",
     "InlineKeyboardMarkup",
     "MessageItem",
@@ -172,6 +193,19 @@ __all__ = [
     "MessageCatalog",
     "MessageContent",
     "legacy_to_client_messages",
+    # Message Destinations
+    "ParamDef",
+    "DestinationDef",
+    "DestinationCatalog",
+    "RenderedAction",
+    "render_destination",
+    "find_destination_problems",
+    # Message Flow
+    "EventDef",
+    "EventCatalog",
+    "ClientFlow",
+    "find_event_catalog_problems",
+    "find_flow_problems",
     # Platform Endpoints
     "HTTPMethod",
     "Endpoint",

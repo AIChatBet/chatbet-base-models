@@ -11,12 +11,35 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator, field_valida
 # ==================
 # Reply Markup Models (Telegram-like)
 # ==================
+IDENTIFIER_RE = re.compile(r"[a-z0-9_]+")
+
+
+class ButtonDestination(BaseModel):
+    """Where a button leads, as the operator picked it: a destination id plus its params.
+
+    The Backoffice stores this next to the `callback_data` it generates from it, so
+    consumers that only read `callback_data` keep working.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+    id: str
+    params: Dict[str, str] = Field(default_factory=dict)
+
+    @field_validator("id")
+    @classmethod
+    def _valid_identifier(cls, v: str) -> str:
+        if not IDENTIFIER_RE.fullmatch(v):
+            raise ValueError(f"invalid destination id {v!r}: expected [a-z0-9_]+")
+        return v
+
+
 class InlineKeyboardButton(BaseModel):
     model_config = ConfigDict(extra="forbid")
     text: str = Field(min_length=1)
     callback_data: Optional[str] = None
     url: Optional[str] = None
     title: Optional[str] = None
+    destination: Optional[ButtonDestination] = None
     active_from: Optional[datetime] = None
     active_until: Optional[datetime] = None
 
