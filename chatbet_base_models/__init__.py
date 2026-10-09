@@ -28,6 +28,17 @@ from .message_template import (
     MessageTemplatesDB,
     LinkItem,
     LinksMessages,
+    DEFAULT_ACCOUNT_STATE,
+)
+
+# Message Catalog (dynamic message templates)
+from .message_catalog import (
+    CatalogEntry,
+    ClientMessages,
+    LegacyConversion,
+    MessageCatalog,
+    MessageContent,
+    legacy_to_client_messages,
 )
 
 # Platform Endpoints
@@ -153,6 +164,14 @@ __all__ = [
     "MessageTemplatesDB",
     "LinkItem",
     "LinksMessages",
+    "DEFAULT_ACCOUNT_STATE",
+    # Message Catalog
+    "CatalogEntry",
+    "ClientMessages",
+    "LegacyConversion",
+    "MessageCatalog",
+    "MessageContent",
+    "legacy_to_client_messages",
     # Platform Endpoints
     "HTTPMethod",
     "Endpoint",

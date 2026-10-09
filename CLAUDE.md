@@ -9,6 +9,9 @@ chatbet-base-models/
 ├── chatbet_base_models/          # Main modules
 │   ├── __init__.py               # Exports all public models
 │   ├── message_template.py       # Message templates and keyboards
+│   ├── message_tokens.py         # {TOKEN} scanner shared by validators and renderer
+│   ├── message_render.py         # Single render engine (preview + sending)
+│   ├── message_catalog.py        # Dynamic catalog types + legacy shape conversion
 │   ├── platform_endpoints.py     # HTTP endpoint configuration
 │   ├── site_config_model.py      # Site configuration
 │   ├── sportbook_config.py       # Sportsbook configuration
@@ -30,6 +33,14 @@ Models for bot messages with Telegram-like interactive keyboards:
 - `BetsMessages`, `CombosMessages`: Betting flow
 - `MessageTemplates`: Container for all templates
 - `MessageTemplatesDB`: DynamoDB variant
+
+### message_tokens.py / message_render.py / message_catalog.py
+Dynamic message catalog support (CU-86akn2750):
+- `extract_tokens`, `build_scan_pattern`: the one `{TOKEN}` scanner (`{{` / `}}` are escaped braces)
+- `render`: single render engine; unresolved tokens stay raw and are logged; never raises
+- `CatalogEntry`, `MessageCatalog`, `MessageContent`, `ClientMessages`: shared types of the dynamic catalog (the data lives in DynamoDB, never in this package); a message is single (text + at most 10 buttons, no `additional_message`)
+- `legacy_to_client_messages`: legacy 11-section `MessageTemplates` -> `LegacyConversion` (new `ClientMessages` + warnings)
+- `DEFAULT_ACCOUNT_STATE` (exported): localized account-state fallbacks; consumers read it directly, it is not stored per client
 
 ### platform_endpoints.py
 HTTP endpoint configuration for APIs:
