@@ -6,6 +6,8 @@ from pydantic import ValidationError
 from chatbet_base_models.message_catalog import CatalogEntry, MessageCatalog
 from chatbet_base_models.message_destinations import (
     CALLBACK_DATA_MAX_LENGTH,
+    DESCRIPTION_MAX_LENGTH,
+    LABEL_MAX_LENGTH,
     DestinationCatalog,
     DestinationDef,
     ParamDef,
@@ -182,3 +184,39 @@ class TestFindDestinationProblems:
             ButtonDestination(id="refund"), _catalog(), _messages()
         )
         assert problems == ["unknown destination 'refund'"]
+
+
+class TestDestinationNameAndDescription:
+    def test_label_and_description_are_optional(self):
+        definition = DestinationDef(callback_template="menu")
+        assert definition.label is None
+        assert definition.description is None
+
+    def test_keeps_a_label_and_a_description(self):
+        definition = DestinationDef(
+            callback_template="menu", label="Menú", description="Vuelve al menú principal"
+        )
+        assert definition.label == "Menú"
+        assert definition.description == "Vuelve al menú principal"
+
+    def test_rejects_an_empty_label_or_description(self):
+        with pytest.raises(ValidationError):
+            DestinationDef(callback_template="menu", label="")
+        with pytest.raises(ValidationError):
+            DestinationDef(callback_template="menu", description="")
+
+    def test_rejects_a_label_or_description_over_the_limit(self):
+        with pytest.raises(ValidationError):
+            DestinationDef(callback_template="menu", label="x" * (LABEL_MAX_LENGTH + 1))
+        with pytest.raises(ValidationError):
+            DestinationDef(
+                callback_template="menu", description="x" * (DESCRIPTION_MAX_LENGTH + 1)
+            )
+
+    def test_accepts_the_limits_exactly(self):
+        definition = DestinationDef(
+            callback_template="menu",
+            label="x" * LABEL_MAX_LENGTH,
+            description="x" * DESCRIPTION_MAX_LENGTH,
+        )
+        assert len(definition.label) == LABEL_MAX_LENGTH

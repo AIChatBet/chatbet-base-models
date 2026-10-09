@@ -18,6 +18,11 @@ from .message_tokens import TOKEN_NAME_PATTERN
 # Telegram's callback_data limit, in UTF-8 bytes (not characters).
 CALLBACK_DATA_MAX_LENGTH = 64
 
+# Plain-text name and description an operator can give an entry; the frontend falls back
+# to a translation key and then to the id when they are absent.
+LABEL_MAX_LENGTH = 80
+DESCRIPTION_MAX_LENGTH = 300
+
 ParamKind = Literal[
     "text",
     "sport",
@@ -57,6 +62,10 @@ class DestinationDef(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     label_i18n_key: Optional[str] = None
+    label: Optional[str] = Field(default=None, min_length=1, max_length=LABEL_MAX_LENGTH)
+    description: Optional[str] = Field(
+        default=None, min_length=1, max_length=DESCRIPTION_MAX_LENGTH
+    )
     callback_template: Optional[str] = Field(default=None, min_length=1)
     url_template: Optional[str] = Field(default=None, min_length=1)
     params: List[ParamDef] = Field(default_factory=list)
