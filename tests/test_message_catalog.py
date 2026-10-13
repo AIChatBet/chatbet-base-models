@@ -90,6 +90,41 @@ class TestCatalogEntry:
         )
         assert text == "Bet 10 placed"
 
+    def test_default_text_defaults_to_empty(self):
+        assert CatalogEntry().default_text == {}
+
+    def test_accepts_a_default_text_per_known_language(self):
+        entry = CatalogEntry(
+            allowed_placeholders=["phone"],
+            default_text={"es": "Hola {phone}", "en": "Hello {phone}", "pt_br": "Olá {phone}"},
+        )
+        assert entry.default_text["en"] == "Hello {phone}"
+
+    @pytest.mark.parametrize("language", ["fr", "ES", "pt-br", ""])
+    def test_rejects_an_unknown_default_text_language(self, language):
+        with pytest.raises(ValidationError):
+            CatalogEntry(default_text={language: "texto"})
+
+    @pytest.mark.parametrize("text", ["", "   "])
+    def test_rejects_an_empty_default_text(self, text):
+        with pytest.raises(ValidationError):
+            CatalogEntry(default_text={"es": text})
+
+    def test_rejects_a_default_text_longer_than_the_channel_limit(self):
+        with pytest.raises(ValidationError):
+            CatalogEntry(default_text={"es": "a" * 4097})
+
+    def test_rejects_a_default_text_placeholder_the_key_does_not_allow(self):
+        with pytest.raises(ValidationError):
+            CatalogEntry(allowed_placeholders=["phone"], default_text={"es": "Hola {email}"})
+
+    def test_escaped_braces_in_a_default_text_are_not_placeholders(self):
+        entry = CatalogEntry(default_text={"es": "Llaves {{literales}}"})
+        assert entry.default_text["es"] == "Llaves {{literales}}"
+
+    def test_an_entry_stored_without_default_text_still_reads(self):
+        assert CatalogEntry.model_validate({"allowed_placeholders": []}).default_text == {}
+
 
 class TestMessageCatalog:
     def _catalog(self, **overrides):
