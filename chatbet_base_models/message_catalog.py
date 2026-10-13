@@ -7,7 +7,7 @@ These are only the shared *types*; the data itself never lives in this package.
 """
 
 import re
-from typing import Dict, List, Optional
+from typing import Dict, FrozenSet, List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -18,7 +18,7 @@ from .message_template import (
     MessageItem,
     MessageTemplates,
 )
-from .message_tokens import TOKEN_NAME_PATTERN
+from .message_tokens import TOKEN_NAME_PATTERN, extract_tokens
 
 MESSAGE_KEY_RE = re.compile(r"^[a-z0-9_]+\.[a-z0-9_]+$")
 PLACEHOLDER_NAME_RE = re.compile(r"^" + TOKEN_NAME_PATTERN + r"$")
@@ -28,6 +28,11 @@ LEGACY_TOKEN_RE = re.compile(r"^(%\d*|\{\{" + TOKEN_NAME_PATTERN + r"\}\})$")
 # (anything beyond is dropped silently by the channel), so authored content is
 # capped here instead.
 MAX_BUTTONS_PER_MESSAGE = 10
+
+# Languages Channel Services knows (`site_config.locale.language`) and Telegram's
+# text limit, which a default text must respect.
+DEFAULT_TEXT_LANGUAGES: FrozenSet[str] = frozenset({"es", "en", "pt_br"})
+DEFAULT_TEXT_MAX_LENGTH = 4096
 
 # Legacy sections that are not MessageItem groups and travel next to `messages`.
 _NON_CATALOG_SECTIONS = {"links", "created_at", "updated_at"}
@@ -52,7 +57,7 @@ def check_placeholder_names(names: List[str]) -> List[str]:
 
 
 class CatalogEntry(BaseModel):
-    """One message key of the catalog: which placeholders its text may use."""
+    """One message key of the catalog: which placeholders its text may use and, when the text is hardcoded in the bot, its default text per language."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -61,6 +66,10 @@ class CatalogEntry(BaseModel):
     # the value that fills it. The name must also be an allowed placeholder.
     legacy_tokens: Dict[str, str] = Field(default_factory=dict)
     description_i18n_key: Optional[str] = None
+    # Text the bot uses today for this key, per language. Only keys whose text is
+    # hardcoded in Channel Services carry it; it is the starting point in the editor
+    # and the fallback when a client has written no text.
+    default_text: Dict[str, str] = Field(default_factory=dict)
 
     @field_validator("allowed_placeholders")
     @classmethod
@@ -76,6 +85,25 @@ class CatalogEntry(BaseModel):
                 raise ValueError(
                     f"legacy token {literal!r} maps to {name!r}, "
                     "which is not in allowed_placeholders"
+                )
+        return self
+
+    @model_validator(mode="after")
+    def _valid_default_text(self) -> "CatalogEntry":
+        for language, text in self.default_text.items():
+            if language not in DEFAULT_TEXT_LANGUAGES:
+                raise ValueError(f"unknown default_text language: {language!r}")
+            if not text.strip():
+                raise ValueError(f"default_text for {language!r} must not be empty")
+            if len(text) > DEFAULT_TEXT_MAX_LENGTH:
+                raise ValueError(
+                    f"default_text for {language!r} is longer than {DEFAULT_TEXT_MAX_LENGTH} characters"
+                )
+            unknown = sorted(extract_tokens(text) - set(self.allowed_placeholders))
+            if unknown:
+                raise ValueError(
+                    f"default_text for {language!r} uses placeholders {unknown} "
+                    "that are not in allowed_placeholders"
                 )
         return self
 
