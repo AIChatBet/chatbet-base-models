@@ -14,13 +14,14 @@ chatbet-base-models/
 │   ├── message_catalog.py        # Dynamic catalog types + legacy shape conversion
 │   ├── message_destinations.py   # Button destination catalog + callback generator
 │   ├── message_flow.py           # Event catalog + client flow (event -> message)
+│   ├── flow_rules/               # Catalog of what the channel can do + editable policy + pure validation
 │   ├── platform_endpoints.py     # HTTP endpoint configuration
 │   ├── site_config_model.py      # Site configuration
 │   ├── sportbook_config.py       # Sportsbook configuration
 │   ├── promotion_config.py       # Promotions management
 │   ├── tutorial.py               # Tutorial videos management
 │   └── onboarding_questions.py   # Operator-configured onboarding questions
-├── tests/                        # Test suite (715 tests)
+├── tests/                        # Test suite (814 tests)
 ├── pyproject.toml                # Project configuration
 └── pytest.ini                    # Pytest configuration
 ```
@@ -52,6 +53,14 @@ Flow structures (CU-86akn2750, stage 1): what a button leads to and which messag
 - `find_destination_problems`: readable problems of a button's destination (unknown destination, bad params, unknown message key)
 - `EventDef`, `EventCatalog`, `ClientFlow`: events the bot reports and the per-client `event -> message key` routes (the global default flow has the same shape)
 - `find_event_catalog_problems`, `find_flow_problems`: cross-validation against the message catalog
+
+### flow_rules/
+Rules for a client's `flow_config`, in two layers:
+- `catalog`: implementation facts (steps, capabilities, strategies, `requires`/`provides`, copy ids). Generated from the channel's registry by `python -m scripts.extract_flow_catalog --channel-src <chatbet-channel/src>`; never edited by hand (`_generated.py`).
+- `policy`: `FlowPolicy`, product decisions (required steps per flow, allowed strategies, default flows/bindings), edited from the Backoffice.
+- `find_policy_problems(policy, catalog)`: readable sentences for a policy that names steps, strategies or capabilities the catalog lacks, an empty allowed list, or a default binding the policy forbids. Run before storing a policy.
+- `validate_facts(config, catalog, templates=None)` and `validate_policy(config, policy)`: pure, return `list[ConfigError(field, message)]`. The channel calls only `validate_facts`.
+- `catalog_drift(shipped, from_code)`: empty list when the shipped catalog matches the code; meant for the channel's CI parity test.
 
 ### platform_endpoints.py
 HTTP endpoint configuration for APIs:
@@ -168,6 +177,6 @@ db_item = config.to_dynamodb_item()
 
 ## Testing
 
-- 715 tests total (100% pass rate)
+- 814 tests total (100% pass rate)
 - Coverage >= 80% enforced
 - Supports Python 3.10, 3.11, 3.12

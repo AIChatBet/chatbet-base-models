@@ -8,6 +8,9 @@ multiple ChatBet projects.
 
 __version__ = "1.1.0"
 
+import importlib
+from typing import Any
+
 # Message Templates
 from .message_template import (
     ButtonDestination,
@@ -59,6 +62,31 @@ from .message_flow import (
     EventDef,
     find_event_catalog_problems,
     find_flow_problems,
+)
+
+# Flow Rules (what the channel code can do, and what may be configured)
+from .flow_rules import (
+    CapabilityDef,
+    ConfigError,
+    CopyRequirements,
+    FactDef,
+    FlowCatalog,
+    FlowConfig,
+    FlowDef,
+    FlowPolicy,
+    FlowRef,
+    OutcomeDef,
+    StepDef,
+    StrategyDef,
+    catalog_drift,
+    catalog_from_registry,
+    find_catalog_problems,
+    find_policy_problems,
+    policy_from_registry,
+    render_generated_module,
+    required_copy,
+    validate_facts,
+    validate_policy,
 )
 
 # Platform Endpoints
@@ -289,4 +317,35 @@ __all__ = [
     "OnboardingQuestionItem",
     "OnboardingQuestions",
     "OnboardingQuestionsDB",
+    # Flow Rules
+    "CapabilityDef",
+    "ConfigError",
+    "CopyRequirements",
+    "DEFAULT_FLOW_POLICY",
+    "FLOW_CATALOG",
+    "FactDef",
+    "FlowCatalog",
+    "FlowConfig",
+    "FlowDef",
+    "FlowPolicy",
+    "FlowRef",
+    "OutcomeDef",
+    "StepDef",
+    "StrategyDef",
+    "catalog_drift",
+    "catalog_from_registry",
+    "find_catalog_problems",
+    "find_policy_problems",
+    "policy_from_registry",
+    "render_generated_module",
+    "required_copy",
+    "validate_facts",
+    "validate_policy",
 ]
+
+
+def __getattr__(name: str) -> Any:
+    """Resolve the shipped flow defaults on first use (see ``flow_rules``)."""
+    if name in ("DEFAULT_FLOW_POLICY", "FLOW_CATALOG"):
+        return getattr(importlib.import_module(".flow_rules", __name__), name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
