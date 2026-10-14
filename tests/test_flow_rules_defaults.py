@@ -1,3 +1,9 @@
+from chatbet_base_models import (
+    DEFAULT_FLOW_POLICY as root_policy,
+    FLOW_CATALOG as root_catalog,
+    validate_facts as root_validate_facts,
+    validate_policy as root_validate_policy,
+)
 from chatbet_base_models.flow_rules.defaults import DEFAULT_FLOW_POLICY, FLOW_CATALOG
 from chatbet_base_models.flow_rules.validation import (
     FlowConfig,
@@ -39,3 +45,10 @@ def test_the_seed_flows_ask_for_some_copy() -> None:
 
 def test_the_fingerprint_is_available_for_consumers() -> None:
     assert len(FLOW_CATALOG.fingerprint) == 12
+
+
+def test_the_public_api_is_importable_from_the_package_root() -> None:
+    assert root_catalog is FLOW_CATALOG
+    assert root_policy is DEFAULT_FLOW_POLICY
+    assert root_validate_facts is validate_facts
+    assert root_validate_policy is validate_policy

@@ -61,6 +61,32 @@ from .message_flow import (
     find_flow_problems,
 )
 
+# Flow Rules (what the channel code can do, and what may be configured)
+from .flow_rules import (
+    CapabilityDef,
+    ConfigError,
+    CopyRequirements,
+    DEFAULT_FLOW_POLICY,
+    FLOW_CATALOG,
+    FactDef,
+    FlowCatalog,
+    FlowConfig,
+    FlowDef,
+    FlowPolicy,
+    FlowRef,
+    OutcomeDef,
+    StepDef,
+    StrategyDef,
+    catalog_drift,
+    catalog_from_registry,
+    find_catalog_problems,
+    policy_from_registry,
+    render_generated_module,
+    required_copy,
+    validate_facts,
+    validate_policy,
+)
+
 # Platform Endpoints
 from .platform_endpoints import (
     HTTPMethod,
@@ -289,4 +315,27 @@ __all__ = [
     "OnboardingQuestionItem",
     "OnboardingQuestions",
     "OnboardingQuestionsDB",
+    # Flow Rules
+    "CapabilityDef",
+    "ConfigError",
+    "CopyRequirements",
+    "DEFAULT_FLOW_POLICY",
+    "FLOW_CATALOG",
+    "FactDef",
+    "FlowCatalog",
+    "FlowConfig",
+    "FlowDef",
+    "FlowPolicy",
+    "FlowRef",
+    "OutcomeDef",
+    "StepDef",
+    "StrategyDef",
+    "catalog_drift",
+    "catalog_from_registry",
+    "find_catalog_problems",
+    "policy_from_registry",
+    "render_generated_module",
+    "required_copy",
+    "validate_facts",
+    "validate_policy",
 ]
