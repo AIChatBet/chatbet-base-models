@@ -24,7 +24,7 @@ from .extract import (
     policy_from_registry,
     render_generated_module,
 )
-from .policy import FlowPolicy
+from .policy import FlowPolicy, find_policy_problems
 from .validation import (
     ConfigError,
     CopyRequirements,
@@ -52,6 +52,7 @@ __all__ = [
     "catalog_drift",
     "catalog_from_registry",
     "find_catalog_problems",
+    "find_policy_problems",
     "policy_from_registry",
     "render_generated_module",
     "required_copy",
