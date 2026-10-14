@@ -185,6 +185,16 @@ def test_complete_copy_is_accepted(catalog) -> None:
     assert validate_facts(valid_config(), catalog, templates=templates) == []
 
 
+def test_a_set_of_copy_ids_works_as_templates(catalog) -> None:
+    assert validate_facts(valid_config(), catalog, templates=set(BET_COPY)) == []
+
+
+def test_copy_values_need_not_be_strings(catalog) -> None:
+    templates = {template: {"text": "x"} for template in BET_COPY}
+
+    assert validate_facts(valid_config(), catalog, templates=templates) == []
+
+
 def test_a_missing_copy_error_says_who_asked_for_it(catalog) -> None:
     templates = {template: "text" for template in BET_COPY - {"bet.placed"}}
     errors = validate_facts(valid_config(), catalog, templates=templates)

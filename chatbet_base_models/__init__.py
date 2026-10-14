@@ -8,6 +8,9 @@ multiple ChatBet projects.
 
 __version__ = "1.1.0"
 
+import importlib
+from typing import Any
+
 # Message Templates
 from .message_template import (
     ButtonDestination,
@@ -66,8 +69,6 @@ from .flow_rules import (
     CapabilityDef,
     ConfigError,
     CopyRequirements,
-    DEFAULT_FLOW_POLICY,
-    FLOW_CATALOG,
     FactDef,
     FlowCatalog,
     FlowConfig,
@@ -339,3 +340,10 @@ __all__ = [
     "validate_facts",
     "validate_policy",
 ]
+
+
+def __getattr__(name: str) -> Any:
+    """Resolve the shipped flow defaults on first use (see ``flow_rules``)."""
+    if name in ("DEFAULT_FLOW_POLICY", "FLOW_CATALOG"):
+        return getattr(importlib.import_module(".flow_rules", __name__), name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

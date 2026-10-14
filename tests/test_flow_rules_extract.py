@@ -6,7 +6,6 @@ from chatbet_base_models.flow_rules.catalog import (
     CapabilityDef,
     FactDef,
     FlowCatalog,
-    FlowDef,
     FlowRef,
     OutcomeDef,
     StepDef,
@@ -173,7 +172,7 @@ def test_drift_names_what_the_code_added_removed_and_changed() -> None:
     assert catalog_drift(expected, actual) == [
         "steps: 'new_step' exists in the code but not in the catalog",
         "steps: 'support' is in the catalog but not in the code",
-        "steps: 'confirm' differs between code and catalog",
+        "steps: 'confirm' differs between code and catalog (renders)",
     ]
 
 

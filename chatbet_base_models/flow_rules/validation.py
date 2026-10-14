@@ -7,7 +7,7 @@ product decided. The channel calls only the first.
 """
 from __future__ import annotations
 
-from collections.abc import Collection, Mapping
+from collections.abc import Collection
 
 from pydantic import Field
 
@@ -53,13 +53,14 @@ class CopyRequirements(FrozenModel):
 def validate_facts(
     config: FlowConfig,
     catalog: FlowCatalog,
-    templates: Mapping[str, str] | None = None,
+    templates: Collection[str] | None = None,
 ) -> list[ConfigError]:
     """Every reason this configuration cannot run, given what the code can do.
 
     All checks run; the caller gets the full list rather than the first failure.
-    ``templates`` is optional because flow structure can be checked before copy
-    exists. When supplied, even an empty mapping, missing copy is an error.
+    ``templates`` is the set of copy ids that exist (a mapping works: only its keys
+    are read). It is optional because flow structure can be checked before copy
+    exists. When supplied, even an empty collection, missing copy is an error.
     """
     errors = [
         *_check_names_resolve(config, catalog),
@@ -217,7 +218,7 @@ def _check_bindings(config: FlowConfig, catalog: FlowCatalog) -> list[ConfigErro
 
 
 def _check_copy(
-    config: FlowConfig, catalog: FlowCatalog, templates: Mapping[str, str]
+    config: FlowConfig, catalog: FlowCatalog, templates: Collection[str]
 ) -> list[ConfigError]:
     """Copy a stored flow needs but nobody has written."""
     requirements = required_copy(config, catalog)

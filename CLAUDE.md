@@ -21,7 +21,7 @@ chatbet-base-models/
 │   ├── promotion_config.py       # Promotions management
 │   ├── tutorial.py               # Tutorial videos management
 │   └── onboarding_questions.py   # Operator-configured onboarding questions
-├── tests/                        # Test suite (794 tests)
+├── tests/                        # Test suite (799 tests)
 ├── pyproject.toml                # Project configuration
 └── pytest.ini                    # Pytest configuration
 ```
@@ -176,6 +176,6 @@ db_item = config.to_dynamodb_item()
 
 ## Testing
 
-- 794 tests total (100% pass rate)
+- 799 tests total (100% pass rate)
 - Coverage >= 80% enforced
 - Supports Python 3.10, 3.11, 3.12

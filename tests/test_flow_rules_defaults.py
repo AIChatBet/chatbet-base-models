@@ -1,3 +1,10 @@
+import subprocess
+import sys
+from pathlib import Path
+
+import pytest
+
+import chatbet_base_models.flow_rules as flow_rules
 from chatbet_base_models import (
     DEFAULT_FLOW_POLICY as root_policy,
     FLOW_CATALOG as root_catalog,
@@ -52,3 +59,27 @@ def test_the_public_api_is_importable_from_the_package_root() -> None:
     assert root_policy is DEFAULT_FLOW_POLICY
     assert root_validate_facts is validate_facts
     assert root_validate_policy is validate_policy
+
+
+def test_the_extractor_imports_without_building_the_shipped_defaults() -> None:
+    """A broken generated module must not stop the script that regenerates it."""
+    repo_root = Path(__file__).resolve().parent.parent
+    code = (
+        "import sys; import chatbet_base_models.flow_rules.extract; "
+        "assert 'chatbet_base_models.flow_rules.defaults' not in sys.modules"
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", code], cwd=repo_root, capture_output=True, text=True
+    )
+
+    assert result.returncode == 0, result.stderr
+
+
+def test_an_unknown_flow_rules_name_raises_attribute_error() -> None:
+    with pytest.raises(AttributeError):
+        flow_rules.does_not_exist
+
+
+def test_the_lazy_exports_are_the_same_objects_as_the_defaults() -> None:
+    assert flow_rules.FLOW_CATALOG is FLOW_CATALOG
+    assert root_catalog is FLOW_CATALOG

@@ -10,6 +10,8 @@ import pprint
 from collections.abc import Iterable
 from typing import Any
 
+from pydantic import BaseModel
+
 from .catalog import (
     CapabilityDef,
     FactDef,
@@ -75,8 +77,11 @@ def catalog_drift(expected: FlowCatalog, actual: FlowCatalog) -> list[str]:
         for key in sorted(shipped.keys() - in_code.keys()):
             drift.append(f"{kind}: {key!r} is in the catalog but not in the code")
         for key in sorted(shipped.keys() & in_code.keys()):
-            if shipped[key] != in_code[key]:
-                drift.append(f"{kind}: {key!r} differs between code and catalog")
+            fields = _differing_fields(shipped[key], in_code[key])
+            if fields:
+                drift.append(
+                    f"{kind}: {key!r} differs between code and catalog ({', '.join(fields)})"
+                )
     return drift
 
 
@@ -88,6 +93,12 @@ def render_generated_module(catalog: FlowCatalog, policy: FlowPolicy) -> str:
 
 
 # --- helpers --------------------------------------------------------------------
+
+
+def _differing_fields(shipped: BaseModel, in_code: BaseModel) -> list[str]:
+    before = shipped.model_dump()
+    after = in_code.model_dump()
+    return sorted(name for name in before.keys() | after.keys() if before.get(name) != after.get(name))
 
 
 def _fact(fact: Any) -> FactDef:

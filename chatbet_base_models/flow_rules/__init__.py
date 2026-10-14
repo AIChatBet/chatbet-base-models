@@ -4,6 +4,9 @@ Two layers. The catalog holds implementation facts and comes from the channel's
 code; the policy holds product decisions and is edited in the Backoffice.
 ``validate_facts`` and ``validate_policy`` are pure.
 """
+import importlib
+from typing import Any
+
 from .catalog import (
     CapabilityDef,
     FactDef,
@@ -15,7 +18,6 @@ from .catalog import (
     StrategyDef,
     find_catalog_problems,
 )
-from .defaults import DEFAULT_FLOW_POLICY, FLOW_CATALOG
 from .extract import (
     catalog_drift,
     catalog_from_registry,
@@ -56,3 +58,14 @@ __all__ = [
     "validate_facts",
     "validate_policy",
 ]
+
+
+_LAZY_DEFAULTS = ("DEFAULT_FLOW_POLICY", "FLOW_CATALOG")
+
+
+def __getattr__(name: str) -> Any:
+    """Build the shipped defaults on first use, so a broken generated module does
+    not stop the package (or the script that regenerates it) from importing."""
+    if name in _LAZY_DEFAULTS:
+        return getattr(importlib.import_module(".defaults", __name__), name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
