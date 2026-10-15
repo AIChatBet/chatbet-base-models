@@ -168,6 +168,11 @@ class IsolutionsConfig(BaseModel):
     # doesn't use it, but must accept it because both services validate the same
     # DynamoDB `sportbook_config` row (extra="forbid" would otherwise 500).
     catalog_autodiscovery: Optional[bool] = False
+    # Company whose iSolutions feed this company offers: its matches and odds are read from
+    # that company's data in Valkey (e.g. bolabetmalawi and bolabetzimbabue read "bolabet",
+    # one shared feed), while catalog, settings, users and bets stay this company's own.
+    # None: the company's own feed.
+    offer_company: Optional[str] = None
 
 
 class BetbyConfig(BaseModel):
