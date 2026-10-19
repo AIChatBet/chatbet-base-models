@@ -7,7 +7,7 @@ plain strings, not an enum, so the list can grow without an incompatible release
 """
 
 import re
-from typing import Dict, List, Literal, Optional
+from typing import Dict, List, Literal, Optional, Tuple
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -22,6 +22,13 @@ CALLBACK_DATA_MAX_LENGTH = 64
 # to a translation key and then to the id when they are absent.
 LABEL_MAX_LENGTH = 80
 DESCRIPTION_MAX_LENGTH = 300
+
+# Destinations the rest of the system treats specially: a callback typed by hand, and a link
+# that leaves the conversation instead of coming back as a callback.
+RAW_DESTINATION_ID = "raw"
+URL_DESTINATION_ID = "url"
+RAW_PARAM_NAME = "callback_data"
+URL_PARAM_NAME = "url"
 
 ParamKind = Literal[
     "text",
@@ -178,3 +185,74 @@ def find_destination_problems(
                 f"parameter {param.name!r} points at unknown message key {value!r}"
             )
     return problems
+
+
+Candidate = Tuple[str, "re.Pattern[str]"]
+
+
+def _pattern_of(template: str) -> "re.Pattern[str]":
+    """A regex that matches what the template renders; each token captures one param."""
+    parts: List[str] = []
+    cursor = 0
+    for match in _TEMPLATE_TOKEN_RE.finditer(template):
+        parts.append(re.escape(template[cursor:match.start()]))
+        parts.append(f"(?P<{match.group(1)}>.+)")
+        cursor = match.end()
+    parts.append(re.escape(template[cursor:]))
+    return re.compile("".join(parts))
+
+
+def _literal_length(template: str) -> int:
+    return len(_TEMPLATE_TOKEN_RE.sub("", template))
+
+
+def callback_candidates(catalog: DestinationCatalog) -> List[Candidate]:
+    """Callback destinations (never ``raw``), most specific template first.
+
+    A template whose pattern does not compile (e.g. a repeated token) is skipped, so one bad
+    published destination cannot break the recognition of every other callback.
+    """
+    templated = [
+        (destination_id, definition.callback_template)
+        for destination_id, definition in catalog.destinations.items()
+        if definition.callback_template is not None and destination_id != RAW_DESTINATION_ID
+    ]
+    templated.sort(key=lambda entry: -_literal_length(entry[1]))
+    candidates: List[Candidate] = []
+    for destination_id, template in templated:
+        try:
+            candidates.append((destination_id, _pattern_of(template)))
+        except re.error:
+            continue
+    return candidates
+
+
+def match_destination(
+    callback_data: Optional[str],
+    catalog: DestinationCatalog,
+    candidates: Optional[List[Candidate]] = None,
+) -> Optional[ButtonDestination]:
+    """The destination a callback came from: the most specific whose template rebuilds it exactly.
+
+    What fits nothing is ``raw`` (so no button is ever lost); ``None`` when the catalog has no
+    ``raw`` destination or the callback is empty. Pass ``candidates`` (from ``callback_candidates``)
+    to avoid recompiling the patterns on every call.
+    """
+    if not callback_data:
+        return None
+    if candidates is None:
+        candidates = callback_candidates(catalog)
+    for destination_id, pattern in candidates:
+        found = pattern.fullmatch(callback_data)
+        if found is None:
+            continue
+        candidate = ButtonDestination(id=destination_id, params=found.groupdict())
+        try:
+            rebuilt = render_destination(catalog, candidate)
+        except ValueError:
+            continue
+        if rebuilt.callback_data == callback_data:
+            return candidate
+    if RAW_DESTINATION_ID not in catalog.destinations:
+        return None
+    return ButtonDestination(id=RAW_DESTINATION_ID, params={RAW_PARAM_NAME: callback_data})
