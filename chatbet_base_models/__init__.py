@@ -50,8 +50,14 @@ from .message_destinations import (
     DestinationCatalog,
     DestinationDef,
     ParamDef,
+    RAW_DESTINATION_ID,
+    RAW_PARAM_NAME,
+    URL_DESTINATION_ID,
+    URL_PARAM_NAME,
     RenderedAction,
+    callback_candidates,
     find_destination_problems,
+    match_destination,
     render_destination,
 )
 
@@ -228,6 +234,12 @@ __all__ = [
     "RenderedAction",
     "render_destination",
     "find_destination_problems",
+    "RAW_DESTINATION_ID",
+    "URL_DESTINATION_ID",
+    "RAW_PARAM_NAME",
+    "URL_PARAM_NAME",
+    "callback_candidates",
+    "match_destination",
     # Message Flow
     "EventDef",
     "EventCatalog",
