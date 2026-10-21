@@ -101,11 +101,23 @@ class MoneyLimits(BaseModel):
 
 
 class TestConfig(BaseModel):
+    """The company's test account, for development and staging only: whoever logs in with these
+    is let through without a real code or a real provider check."""
+
     model_config = ConfigDict(extra="forbid")
     phone_number: Optional[str] = None
     email: Optional[str] = None
     otp: Optional[str] = None
     user_key: Optional[str] = None
+    username: Optional[str] = Field(
+        default=None,
+        description="Test username for the operator-login method (simulated login, never in production)",
+    )
+    password: Optional[str] = Field(
+        default=None,
+        repr=False,
+        description="Test password for the operator-login method; kept out of repr and logs",
+    )
 
 
 class SessionConfig(BaseModel):
