@@ -1071,8 +1071,26 @@ class MessageTemplates(BaseModel):
     validation: Optional[ValidationMessages] = None
     registration: Optional[RegistrationMessages] = None
     menu: Optional[MenuMessages] = None
-    bets: Optional[BetsMessages] = None
-    combos: Optional[CombosMessages] = None
+    # Superseded by the channel's own `bet.*` and `combo.*` message ids, which
+    # are declared by the steps that render them rather than by this schema.
+    # Deprecated rather than removed: every company in `chatbet-main-companies`
+    # still stores these two sections, and `extra="forbid"` above turns their
+    # removal into a validation error on every one of those records. Remove
+    # only once no company stores them and nothing reads `MessageTemplates`.
+    bets: Optional[BetsMessages] = Field(
+        default=None,
+        deprecated=(
+            "bets is superseded by the channel's bet.* message ids; "
+            "see ClientMessages in message_catalog.py"
+        ),
+    )
+    combos: Optional[CombosMessages] = Field(
+        default=None,
+        deprecated=(
+            "combos is superseded by the channel's combo.* message ids; "
+            "see ClientMessages in message_catalog.py"
+        ),
+    )
     errors: Optional[ErrorMessages] = None
     confirmation: Optional[ConfirmationMessages] = None
     labels: Optional[LabelMessages] = None

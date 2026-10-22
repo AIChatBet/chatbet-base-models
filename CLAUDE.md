@@ -33,7 +33,7 @@ Models for bot messages with Telegram-like interactive keyboards:
 - `InlineKeyboardButton`, `InlineKeyboardMarkup`: Buttons and keyboards
 - `MessageItem`: Message with text and optional keyboard
 - `OnboardingMessages`, `ValidationMessages`, `RegistrationMessages`: User flows
-- `BetsMessages`, `CombosMessages`: Betting flow
+- `BetsMessages`, `CombosMessages`: Betting flow — **deprecated**, superseded by the channel's own `bet.*` / `combo.*` message ids. Kept because every company still stores these sections and `extra="forbid"` turns their removal into a validation error
 - `MessageTemplates`: Container for all templates
 - `MessageTemplatesDB`: DynamoDB variant
 
