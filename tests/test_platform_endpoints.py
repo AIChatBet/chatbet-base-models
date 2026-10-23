@@ -102,6 +102,28 @@ class TestEndpointGroups:
         assert auth.validate_token is not None
         assert auth.generate_token is None
         assert auth.generate_otp is None
+        assert auth.create_login_request is None
+        assert auth.get_login_request is None
+
+    def test_auth_login_request_endpoints(self):
+        auth = AuthEndpoints(
+            create_login_request=Endpoint(
+                method="POST",
+                endpoint="https://api.example.com/api/v1/auth/acme/requests",
+            ),
+            get_login_request=Endpoint(
+                method="GET",
+                endpoint="https://api.example.com/api/v1/auth/acme/requests/{request_id}",
+            ),
+        )
+        assert auth.create_login_request is not None
+        assert auth.create_login_request.method == HTTPMethod.POST
+        assert auth.get_login_request is not None
+        assert auth.get_login_request.method == HTTPMethod.GET
+
+    def test_auth_endpoints_reject_unknown_field(self):
+        with pytest.raises(ValueError):
+            AuthEndpoints(login_link=Endpoint(endpoint="https://api.example.com/x"))
 
     def test_users_endpoints(self):
         users = UsersEndpoints(

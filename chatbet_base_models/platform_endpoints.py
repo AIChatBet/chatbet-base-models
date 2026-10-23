@@ -58,6 +58,10 @@ class AuthEndpoints(BaseModel):
     validate_token: Optional[Endpoint] = None
     generate_token: Optional[Endpoint] = None
     generate_otp: Optional[Endpoint] = None
+    # Login with the operator account: the channel opens a request, sends the
+    # user a link, and reads the request back once the page reports the login.
+    create_login_request: Optional[Endpoint] = None
+    get_login_request: Optional[Endpoint] = None
 
 
 class UsersEndpoints(BaseModel):
