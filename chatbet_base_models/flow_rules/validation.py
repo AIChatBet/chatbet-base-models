@@ -44,7 +44,8 @@ class CopyRequirements(FrozenModel):
 
     required: frozenset[str]
     by_source: dict[str, frozenset[str]]
-    """Which step or strategy asked for each group, so an error can say why."""
+    """Which step, strategy, or unconditional source asked for each group, so an error
+    can say why."""
 
     def missing_from(self, available: Collection[str]) -> frozenset[str]:
         return frozenset(template for template in self.required if template not in available)
@@ -80,14 +81,27 @@ def validate_policy(config: FlowConfig, policy: FlowPolicy) -> list[ConfigError]
     ]
 
 
+#: How `by_source` names the catalog's unconditional copy. Every other key is a
+#: step or strategy id the operator chose; this one is prose because it names the
+#: thing they did not choose, and because `_check_copy` reads it aloud: "<source>
+#: can display this, but no copy is set." Nothing about a channel belongs here —
+#: a tap, a voice turn and a push all reach this copy the same way, by not going
+#: through a flow at all.
+ALWAYS = "the bot itself"
+
+
 def required_copy(config: FlowConfig, catalog: FlowCatalog) -> CopyRequirements:
     """Every copy id this client's configuration can display.
 
-    Two sources, and only together are they complete. A step knows what it
+    Three sources, and only together are they complete. A step knows what it
     renders and what its outcomes render; it does not know which errors can
-    occur, because that depends on the strategy bound to the capability.
+    occur, because that depends on the strategy bound to the capability. And
+    neither knows the copy a channel displays without consulting the flow at
+    all, which is `catalog.always_renders` — configured by nobody, so derived
+    from nothing the first two sources can see.
     """
     by_source: dict[str, frozenset[str]] = {}
+    _claim(by_source, ALWAYS, frozenset(catalog.always_renders))
 
     for names in config.flows.values():
         for name in names:
