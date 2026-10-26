@@ -2,6 +2,8 @@ from dataclasses import dataclass
 from enum import Enum
 from types import SimpleNamespace
 
+import pytest
+
 from chatbet_base_models.flow_rules.catalog import (
     CapabilityDef,
     FactDef,
@@ -12,6 +14,8 @@ from chatbet_base_models.flow_rules.catalog import (
     StrategyDef,
 )
 from chatbet_base_models.flow_rules.extract import (
+    CATALOG_FLAT_KINDS,
+    CATALOG_KINDS,
     catalog_drift,
     catalog_from_registry,
     policy_from_registry,
@@ -72,6 +76,7 @@ def fake_registry() -> SimpleNamespace:
         id="support", requires=(), provides=(), omittable=False, renders=()
     )
     return SimpleNamespace(
+        always_renders=(),
         facts={
             "amount": SimpleNamespace(name="amount", scope=Scope.FLOW),
             "authenticated": SimpleNamespace(name="authenticated", scope=Scope.SESSION),
@@ -157,6 +162,54 @@ def test_drift_is_empty_when_catalog_and_code_agree() -> None:
     catalog = catalog_from_registry(fake_registry())
 
     assert catalog_drift(catalog, catalog_from_registry(fake_registry())) == []
+
+
+def test_every_catalog_field_is_compared_by_drift() -> None:
+    """The structural prompt. A field in neither tuple is a field drift cannot see.
+
+    `catalog_drift` walks two tuples, not `FlowCatalog` itself, so adding a field
+    and forgetting to list it is a silent hole rather than an error — which for
+    copy nothing configures means the Backoffice never learns to ask for it. This
+    fails on the field, at the edit, instead of months later in a company record.
+    """
+    compared = set(CATALOG_KINDS) | set(CATALOG_FLAT_KINDS)
+
+    assert set(FlowCatalog.model_fields) == compared
+
+
+def test_a_registry_that_never_declared_unconditional_copy_fails_loudly() -> None:
+    """Silence here would be the original defect, one layer up and unobservable."""
+    registry = fake_registry()
+    del registry.always_renders
+
+    with pytest.raises(AttributeError, match="always_renders"):
+        catalog_from_registry(registry)
+
+
+def test_drift_notices_unconditional_copy_the_catalog_has_not_got() -> None:
+    """Without this the Backoffice silently keeps not asking for it.
+
+    `always_renders` is a flat set, not one of the named collections the loop
+    above walks, so a template added in the code and never regenerated would
+    drift undetected — which is the exact failure this copy exists to close.
+    """
+    expected = catalog_from_registry(fake_registry())
+    registry = fake_registry()
+    registry.always_renders = ("labels.expired_button",)
+
+    assert catalog_drift(expected, catalog_from_registry(registry)) == [
+        "always_renders: 'labels.expired_button' exists in the code but not in the catalog"
+    ]
+
+
+def test_drift_notices_unconditional_copy_the_code_has_dropped() -> None:
+    registry = fake_registry()
+    registry.always_renders = ("labels.expired_button",)
+    expected = catalog_from_registry(registry)
+
+    assert catalog_drift(expected, catalog_from_registry(fake_registry())) == [
+        "always_renders: 'labels.expired_button' is in the catalog but not in the code"
+    ]
 
 
 def test_drift_names_what_the_code_added_removed_and_changed() -> None:

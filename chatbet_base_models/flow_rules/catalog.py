@@ -72,6 +72,17 @@ class FlowCatalog(FrozenModel):
     strategies: dict[str, StrategyDef] = Field(default_factory=dict)
     flows: dict[str, FlowDef] = Field(default_factory=dict)
 
+    always_renders: tuple[str, ...] = ()
+    """Copy any client can display, whatever their flows say.
+
+    Everything else here is reached by configuring something: a step listed in a
+    flow, a strategy bound to a slot. This is the copy that is reached by neither
+    — a channel answers an input that no longer applies to anything without
+    consulting the flow at all, so no step and no strategy can declare that copy
+    on its behalf. Left out, `required_copy` does not return it, which is to say
+    no client is ever asked for it.
+    """
+
     @model_validator(mode="after")
     def _reject_inconsistent_catalog(self) -> FlowCatalog:
         problems = find_catalog_problems(self)

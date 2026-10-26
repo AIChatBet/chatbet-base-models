@@ -3,7 +3,8 @@
 Do not edit by hand: regenerate it.
 """
 
-CATALOG_DATA = {'capabilities': {'authenticate': {'id': 'authenticate',
+CATALOG_DATA = {'always_renders': ['common.not_understood', 'labels.expired_button'],
+ 'capabilities': {'authenticate': {'id': 'authenticate',
                                    'outcomes': [],
                                    'provides': ['authenticated', 'auth_token'],
                                    'renders': [],

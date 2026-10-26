@@ -162,6 +162,47 @@ def test_required_copy_collects_steps_outcomes_and_the_bound_strategy(catalog) -
     assert "auth.password_form" not in requirements.by_source  # not bound, not required
 
 
+def test_copy_nothing_configures_is_required_by_a_client_with_no_flows(catalog) -> None:
+    """The point of `always_renders`: it survives having nothing to hang on.
+
+    Every other source is reached by configuring something, so an empty config
+    asks for nothing. A channel answering a dead tap consults no flow, so this
+    copy has to be required where there is no flow to require it.
+    """
+    bare = catalog.model_copy(update={"always_renders": ("labels.expired_button",)})
+
+    assert required_copy(FlowConfig(), bare).required == frozenset({"labels.expired_button"})
+
+
+def test_the_error_for_unconditional_copy_names_a_source_an_operator_recognises(catalog) -> None:
+    """`by_source` is read out loud in the error, so it cannot be an internal id."""
+    bare = catalog.model_copy(update={"always_renders": ("labels.expired_button",)})
+
+    errors = validate_facts(FlowConfig(), bare, templates={})
+
+    assert [e.field for e in errors] == ["message_templates.labels.expired_button"]
+    assert errors[0].message == "the bot itself can display this, but no copy is set."
+
+
+def test_unconditional_copy_a_step_also_renders_is_claimed_by_both(catalog) -> None:
+    """Two sources asking for one id is not a conflict; the error should name both.
+
+    `bet.placed` is named rather than derived from the fixture, so a later edit to
+    what `place_bet` renders breaks this visibly instead of quietly testing some
+    other template.
+    """
+    shared = "bet.placed"
+    assert shared in required_copy(valid_config(), catalog).by_source["place_bet"]
+    bare = catalog.model_copy(update={"always_renders": (shared,)})
+
+    requirements = required_copy(valid_config(), bare)
+
+    asked_by = {
+        source for source, group in requirements.by_source.items() if shared in group
+    }
+    assert asked_by == {"the bot itself", "place_bet"}
+
+
 def test_a_strategy_bound_to_a_slot_no_flow_uses_asks_for_no_copy(catalog) -> None:
     config = FlowConfig(flows={"bet": ("understand",)}, bindings={"authenticate": "auth.otp"})
 
