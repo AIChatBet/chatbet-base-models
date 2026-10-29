@@ -365,7 +365,8 @@ CATALOG_DATA = {'always_renders': ['common.not_understood', 'labels.expired_butt
                                                     'renders': ['identify.unavailable']}],
                                       'renders': ['identify.ask_phone',
                                                   'identify.malformed',
-                                                  'identify.not_found']},
+                                                  'identify.not_found',
+                                                  'identify.request_contact']},
                 'identify.by_phone_confirm': {'capability': 'identify',
                                               'id': 'identify.by_phone_confirm',
                                               'outcomes': [{'id': 'identified', 'renders': []},
@@ -379,6 +380,7 @@ CATALOG_DATA = {'always_renders': ['common.not_understood', 'labels.expired_butt
                                                           'identify.malformed',
                                                           'identify.not_found',
                                                           'identify.phone_not_found',
+                                                          'identify.request_contact',
                                                           'identify.use_this_number']},
                 'identify.from_channel': {'capability': 'identify',
                                           'id': 'identify.from_channel',
@@ -389,7 +391,8 @@ CATALOG_DATA = {'always_renders': ['common.not_understood', 'labels.expired_butt
                                                         'renders': ['identify.unavailable']}],
                                           'renders': ['identify.ask_phone',
                                                       'identify.malformed',
-                                                      'identify.not_found']}}}
+                                                      'identify.not_found',
+                                                      'identify.request_contact']}}}
 
 POLICY_DATA = {'allowed_strategies': {},
  'default_bindings': {},
