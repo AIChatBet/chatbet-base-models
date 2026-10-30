@@ -296,6 +296,28 @@ class TestIsolutionsConfig:
                 events_program_code="mefvdituytybd",
             )
 
+    def test_isolutions_config_offer_company_defaults_to_none(self):
+        config = IsolutionsConfig(
+            api_url="https://api-stg.bolabet.co.zm",
+            api_account="ChatBet",
+            api_password="secret123",
+            events_program_code="mefvdituytybd",
+        )
+
+        assert config.offer_company is None  # the company's own feed
+
+    def test_isolutions_config_accepts_offer_company(self):
+        config = IsolutionsConfig(
+            api_url="https://api-stg-chatbet.bolabet.mw",
+            api_account="ChatBetMW",
+            api_password="secret123",
+            bookmaker_id=179,
+            events_program_code="mefvdituytybd",
+            offer_company="bolabet",
+        )
+
+        assert config.offer_company == "bolabet"
+
     def test_isolutions_config_extra_fields_forbidden(self):
         with pytest.raises(ValueError):
             IsolutionsConfig(
