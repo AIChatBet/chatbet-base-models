@@ -174,6 +174,31 @@ class TestTestConfig:
         assert config.email is None
         assert config.otp is None
         assert config.user_key is None
+        assert config.username is None
+        assert config.password is None
+
+    def test_operator_login_credentials(self):
+        config = TestConfig(
+            user_key="testuser", username="testChatbet", password="s3cret-pass"
+        )
+        assert config.username == "testChatbet"
+        assert config.password == "s3cret-pass"
+
+    def test_password_is_kept_out_of_repr(self):
+        config = TestConfig(username="testChatbet", password="s3cret-pass")
+        assert "s3cret-pass" not in repr(config)
+        assert "s3cret-pass" not in str(config)
+
+    def test_operator_login_credentials_round_trip_through_site_config(self):
+        site = SiteConfig.model_validate(
+            {
+                "identity": _identity_factory().model_dump(mode="json"),
+                "test": {"username": "testChatbet", "password": "s3cret-pass"},
+            }
+        )
+        dumped = site.model_dump(mode="json")["test"]
+        assert dumped["username"] == "testChatbet"
+        assert dumped["password"] == "s3cret-pass"
 
 
 class TestSessionConfig:

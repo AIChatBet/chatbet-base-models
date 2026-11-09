@@ -8,8 +8,12 @@ multiple ChatBet projects.
 
 __version__ = "1.1.0"
 
+import importlib
+from typing import Any
+
 # Message Templates
 from .message_template import (
+    ButtonDestination,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     MessageItem,
@@ -28,6 +32,67 @@ from .message_template import (
     MessageTemplatesDB,
     LinkItem,
     LinksMessages,
+    DEFAULT_ACCOUNT_STATE,
+)
+
+# Message Catalog (dynamic message templates)
+from .message_catalog import (
+    CatalogEntry,
+    ClientMessages,
+    LegacyConversion,
+    MessageCatalog,
+    MessageContent,
+    legacy_to_client_messages,
+)
+
+# Message Destinations (button targets)
+from .message_destinations import (
+    DestinationCatalog,
+    DestinationDef,
+    ParamDef,
+    RAW_DESTINATION_ID,
+    RAW_PARAM_NAME,
+    URL_DESTINATION_ID,
+    URL_PARAM_NAME,
+    RenderedAction,
+    callback_candidates,
+    find_destination_problems,
+    match_destination,
+    render_destination,
+)
+
+# Message Flow (event -> message routes)
+from .message_flow import (
+    ClientFlow,
+    EventCatalog,
+    EventDef,
+    find_event_catalog_problems,
+    find_flow_problems,
+)
+
+# Flow Rules (what the channel code can do, and what may be configured)
+from .flow_rules import (
+    CapabilityDef,
+    ConfigError,
+    CopyRequirements,
+    FactDef,
+    FlowCatalog,
+    FlowConfig,
+    FlowDef,
+    FlowPolicy,
+    FlowRef,
+    OutcomeDef,
+    StepDef,
+    StrategyDef,
+    catalog_drift,
+    catalog_from_registry,
+    find_catalog_problems,
+    find_policy_problems,
+    policy_from_registry,
+    render_generated_module,
+    required_copy,
+    validate_facts,
+    validate_policy,
 )
 
 # Platform Endpoints
@@ -135,6 +200,7 @@ __all__ = [
     # Version
     "__version__",
     # Message Templates
+    "ButtonDestination",
     "InlineKeyboardButton",
     "InlineKeyboardMarkup",
     "MessageItem",
@@ -153,6 +219,33 @@ __all__ = [
     "MessageTemplatesDB",
     "LinkItem",
     "LinksMessages",
+    "DEFAULT_ACCOUNT_STATE",
+    # Message Catalog
+    "CatalogEntry",
+    "ClientMessages",
+    "LegacyConversion",
+    "MessageCatalog",
+    "MessageContent",
+    "legacy_to_client_messages",
+    # Message Destinations
+    "ParamDef",
+    "DestinationDef",
+    "DestinationCatalog",
+    "RenderedAction",
+    "render_destination",
+    "find_destination_problems",
+    "RAW_DESTINATION_ID",
+    "URL_DESTINATION_ID",
+    "RAW_PARAM_NAME",
+    "URL_PARAM_NAME",
+    "callback_candidates",
+    "match_destination",
+    # Message Flow
+    "EventDef",
+    "EventCatalog",
+    "ClientFlow",
+    "find_event_catalog_problems",
+    "find_flow_problems",
     # Platform Endpoints
     "HTTPMethod",
     "Endpoint",
@@ -236,4 +329,35 @@ __all__ = [
     "OnboardingQuestionItem",
     "OnboardingQuestions",
     "OnboardingQuestionsDB",
+    # Flow Rules
+    "CapabilityDef",
+    "ConfigError",
+    "CopyRequirements",
+    "DEFAULT_FLOW_POLICY",
+    "FLOW_CATALOG",
+    "FactDef",
+    "FlowCatalog",
+    "FlowConfig",
+    "FlowDef",
+    "FlowPolicy",
+    "FlowRef",
+    "OutcomeDef",
+    "StepDef",
+    "StrategyDef",
+    "catalog_drift",
+    "catalog_from_registry",
+    "find_catalog_problems",
+    "find_policy_problems",
+    "policy_from_registry",
+    "render_generated_module",
+    "required_copy",
+    "validate_facts",
+    "validate_policy",
 ]
+
+
+def __getattr__(name: str) -> Any:
+    """Resolve the shipped flow defaults on first use (see ``flow_rules``)."""
+    if name in ("DEFAULT_FLOW_POLICY", "FLOW_CATALOG"):
+        return getattr(importlib.import_module(".flow_rules", __name__), name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
