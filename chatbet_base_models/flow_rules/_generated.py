@@ -29,6 +29,8 @@ CATALOG_DATA = {'always_renders': ['common.not_understood', 'labels.expired_butt
            'combo_placed': {'name': 'combo_placed', 'scope': 'flow'},
            'combo_priced': {'name': 'combo_priced', 'scope': 'flow'},
            'combo_profit': {'name': 'combo_profit', 'scope': 'flow'},
+           'currency': {'name': 'currency', 'scope': 'session'},
+           'currency_symbol': {'name': 'currency_symbol', 'scope': 'session'},
            'greeting_fixture': {'name': 'greeting_fixture', 'scope': 'session'},
            'idempotency_key': {'name': 'idempotency_key', 'scope': 'flow'},
            'is_new_session': {'name': 'is_new_session', 'scope': 'session'},
