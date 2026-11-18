@@ -11,7 +11,9 @@ from pydantic import (
     ConfigDict,
     Field,
     HttpUrl,
+    SerializerFunctionWrapHandler,
     field_validator,
+    model_serializer,
     model_validator,
 )
 
@@ -405,11 +407,45 @@ class PersonalityConfig(BaseModel):
 # ==========================="
 
 
+class CompanyType(str, Enum):
+    """What a company sells: sports bets or lottery tickets.
+
+    A sportbook company has a ``sportbook_config`` row and the sports catalog. A
+    lottery company has a ``lottery_config`` row, the lottery catalog and the
+    ``lottery`` endpoint group, and no sportbook at all (no sports, fixtures, odds
+    or bets).
+    """
+
+    SPORTBOOK = "sportbook"
+    LOTTERY = "lottery"
+
+
 class Identity(BaseModel):
     model_config = ConfigDict(extra="forbid")
     site_name: str
     company_id: str
     site_url: HttpUrl
+    company_type: CompanyType = Field(
+        default=CompanyType.SPORTBOOK,
+        description=(
+            "What the company sells. Absent means 'sportbook', so every company "
+            "stored before this field existed keeps working unchanged."
+        ),
+    )
+
+    @model_serializer(mode="wrap")
+    def _omit_default_company_type(
+        self, handler: SerializerFunctionWrapHandler
+    ) -> dict[str, Any]:
+        # A sportbook company is serialized without `company_type`. Every consumer
+        # validates this row with extra="forbid": if re-saving a sportbook company
+        # (the back office writes the full dump) added the key, every service still
+        # on an older base-models would fail to load that company. Only lottery
+        # companies carry the field, and they need the new models anyway.
+        data = handler(self)
+        if self.company_type is CompanyType.SPORTBOOK:
+            data.pop("company_type", None)
+        return data
 
 
 class LocaleConfig(BaseModel):
