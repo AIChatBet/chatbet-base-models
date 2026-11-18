@@ -51,6 +51,7 @@ chatbet-base-models/
 │   ├── platform_endpoints.py    # API endpoint configurations
 │   ├── site_config_model.py     # Site configuration models
 │   ├── sportbook_config.py      # Sportsbook configuration models
+│   ├── lottery_config.py        # Lottery provider configuration models
 │   ├── promotion_config.py      # Promotions management
 │   └── tutorial.py              # Tutorial videos management
 ├── tests/
@@ -227,6 +228,7 @@ isort chatbet_base_models/
 ### Configuration Models
 - `SiteConfig` - Complete site configuration
 - `SportbookConfig` - Sportsbook integration settings
+- `LotteryConfig` - Lottery provider settings of a lottery company (`site_config.identity.company_type = "lottery"`)
 - `APIEndpoints` - API endpoint configurations
 - `MoneyLimits` - Betting limits and constraints
 - `PromotionsConfig` - Promotions management
