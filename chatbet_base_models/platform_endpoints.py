@@ -145,6 +145,21 @@ class SportCatalogEndpoints(BaseModel):
     search_markets: Optional[Endpoint] = None
 
 
+class LotteryEndpoints(BaseModel):
+    """Endpoints of a lottery company (``site_config.identity.company_type`` =
+    ``"lottery"``). Like every endpoint here they are fixed URLs: what varies (the
+    lottery, the draw date, the number) goes in ``params``, never in the path."""
+
+    model_config = ConfigDict(extra="forbid")
+    get_lotteries: Optional[Endpoint] = None  # the lotteries the company sells
+    get_draws: Optional[Endpoint] = None  # the open draws of one lottery
+    get_draw: Optional[Endpoint] = None  # one draw: price, closing time
+    get_taken_numbers: Optional[Endpoint] = None  # numbers already sold in a draw
+    check_number: Optional[Endpoint] = None  # is this number (and serie) free?
+    purchase: Optional[Endpoint] = None  # buy tickets: moves money
+    get_tickets: Optional[Endpoint] = None  # the user's tickets
+
+
 # ======================
 # Unified Endpoints
 # ======================
@@ -162,6 +177,7 @@ class APIEndpoints(BaseModel):
     combos: Optional[CombosEndpoints] = None
     sport_catalog: Optional[SportCatalogEndpoints] = None
     markets: Optional[MarketsEndpoints] = None
+    lottery: Optional[LotteryEndpoints] = None
 
 
 # =========================================================

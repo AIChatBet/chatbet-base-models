@@ -18,10 +18,11 @@ chatbet-base-models/
 │   ├── platform_endpoints.py     # HTTP endpoint configuration
 │   ├── site_config_model.py      # Site configuration
 │   ├── sportbook_config.py       # Sportsbook configuration
+│   ├── lottery_config.py         # Lottery provider configuration (lottery companies)
 │   ├── promotion_config.py       # Promotions management
 │   ├── tutorial.py               # Tutorial videos management
 │   └── onboarding_questions.py   # Operator-configured onboarding questions
-├── tests/                        # Test suite (814 tests)
+├── tests/                        # Test suite (873 tests)
 ├── pyproject.toml                # Project configuration
 └── pytest.ini                    # Pytest configuration
 ```
@@ -67,12 +68,13 @@ HTTP endpoint configuration for APIs:
 - `Endpoint`: Single endpoint config (method, url, headers, payload)
 - `AuthEndpoints`, `UsersEndpoints`, `SportsEndpoints`, `FixturesEndpoints`: Endpoint groups
 - `SportCatalogEndpoints`: Sport Catalog endpoints (get_sports, get_regions, get_tournaments, get_markets)
+- `LotteryEndpoints`: endpoints of a lottery company (lotteries, draws, numbers, purchase, tickets); fixed URLs, what varies goes in `params`
 - `APIEndpoints`: Unified container
 - `APIEndpointsDB`: DynamoDB variant with factory method
 
 ### site_config_model.py
 Complete site configuration:
-- `Identity`: Company and site name
+- `Identity`: Company and site name, and `company_type` (`CompanyType`: `sportbook` | `lottery`; absent = `sportbook`). A sportbook company is serialized **without** `company_type`, so re-saving it never writes a key that services on an older base-models reject (`extra="forbid"`); only lottery companies carry it
 - `MoneyLimits`: Betting limits (min/max)
 - `Integrations`: Meilisearch, Twilio, Telegram, WhatsApp, Bitly
 - `FeaturesConfig`: odd_type, validation_method, etc.
@@ -83,6 +85,13 @@ Sportsbook provider configuration:
 - Providers: `Betsw3Config`, `DigitainConfig`, `PhoenixConfig`, `KambiConfig`, `PlannatechConfig`, `IsolutionsConfig`
 - `SportsS3Reference`: Reference to sports hierarchy in S3
 - `SportbookConfig` / `SportbookConfigDB`: Main container
+
+### lottery_config.py
+Lottery provider configuration of a lottery company (SK `lottery_config`), the counterpart of `sportbook_config`:
+- `MockLotteryConfig`: ChatBet's lottery mock (`provider="mock"`, `api_url`, `timeout_s`); becomes one member of a union discriminated by `provider` when a real provider arrives
+- `LotteryRules`: company-wide purchase limits (`max_quantity_per_purchase`, `max_amount_per_purchase`)
+- `LotteryConfig` / `LotteryConfigDB`: container with `from_minimal_mock()` and `to_dynamodb_item()` (floats become Decimals)
+- What is sold (lotteries, draws, prices, a company's offer) is NOT here: it lives in the lottery catalog in Postgres
 
 ### promotion_config.py
 Promotions management:
@@ -177,6 +186,6 @@ db_item = config.to_dynamodb_item()
 
 ## Testing
 
-- 814 tests total (100% pass rate)
+- 873 tests total (100% pass rate)
 - Coverage >= 80% enforced
 - Supports Python 3.10, 3.11, 3.12

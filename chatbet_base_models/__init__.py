@@ -109,6 +109,7 @@ from .platform_endpoints import (
     CombosEndpoints,
     MarketsEndpoints,
     SportCatalogEndpoints,
+    LotteryEndpoints,
     APIEndpoints,
     APIEndpointsDB,
 )
@@ -136,6 +137,7 @@ from .site_config_model import (
     WebWidgetKey,
     WebConfig,
     Integrations,
+    CompanyType,
     Identity,
     LocaleConfig,
     FeaturesConfig,
@@ -167,6 +169,14 @@ from .sportbook_config import (
     SportbookConfig,
     SportbookConfigDB,
     SportsS3Reference,
+)
+
+# Lottery Configuration
+from .lottery_config import (
+    MockLotteryConfig,
+    LotteryRules,
+    LotteryConfig,
+    LotteryConfigDB,
 )
 
 # Promotion Configuration
@@ -259,6 +269,7 @@ __all__ = [
     "CombosEndpoints",
     "MarketsEndpoints",
     "SportCatalogEndpoints",
+    "LotteryEndpoints",
     "APIEndpoints",
     "APIEndpointsDB",
     # Site Configuration
@@ -283,6 +294,7 @@ __all__ = [
     "WebWidgetKey",
     "WebConfig",
     "Integrations",
+    "CompanyType",
     "Identity",
     "LocaleConfig",
     "FeaturesConfig",
@@ -311,6 +323,11 @@ __all__ = [
     "SportbookConfig",
     "SportbookConfigDB",
     "SportsS3Reference",
+    # Lottery Configuration
+    "MockLotteryConfig",
+    "LotteryRules",
+    "LotteryConfig",
+    "LotteryConfigDB",
     # Promotion Configuration
     "PromotionButton",
     "PromotionItem",
