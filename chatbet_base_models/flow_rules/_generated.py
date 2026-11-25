@@ -18,6 +18,7 @@ CATALOG_DATA = {'always_renders': ['common.not_understood', 'labels.expired_butt
            'auth_token': {'name': 'auth_token', 'scope': 'session'},
            'authenticated': {'name': 'authenticated', 'scope': 'session'},
            'bet_placed': {'name': 'bet_placed', 'scope': 'flow'},
+           'channel_host_login': {'name': 'channel_host_login', 'scope': 'session'},
            'channel_identifier': {'name': 'channel_identifier', 'scope': 'session'},
            'channel_phone': {'name': 'channel_phone', 'scope': 'session'},
            'combo_base_profit': {'name': 'combo_base_profit', 'scope': 'flow'},
