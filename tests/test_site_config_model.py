@@ -657,6 +657,30 @@ class TestFeaturesConfig:
         assert features.multigames_response is True
         assert features.see_in_combo is True
 
+    def test_suggested_prompts_and_answer_feedback_are_off_by_default(self):
+        features = FeaturesConfig(
+            odd_type=OddType.DECIMAL,
+            validation=ValidationMethod.EMAIL,
+            combos=True,
+            multigames_response=True,
+            see_in_combo=True,
+        )
+        assert features.suggested_prompts is False
+        assert features.answer_feedback is False
+
+    def test_suggested_prompts_and_answer_feedback_can_be_turned_on(self):
+        features = FeaturesConfig(
+            odd_type=OddType.DECIMAL,
+            validation=ValidationMethod.EMAIL,
+            combos=True,
+            multigames_response=True,
+            see_in_combo=True,
+            suggested_prompts=True,
+            answer_feedback=True,
+        )
+        assert features.suggested_prompts is True
+        assert features.answer_feedback is True
+
     def test_features_config_default_alias_probabilities(self):
         features = FeaturesConfig(
             odd_type=OddType.DECIMAL,
