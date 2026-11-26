@@ -61,6 +61,15 @@ class AliasProbabilities(str, Enum):
 # ==========================="
 
 
+# Optional limits a config is stored without until the operator sets them. See
+# MoneyLimits._drop_unset_recommendation_limits.
+_OPTIONAL_RECOMMENDATION_LIMITS = (
+    "min_recommended_leg_odds",
+    "min_recommended_total_odds",
+    "combo_default_legs",
+)
+
+
 class MoneyLimits(BaseModel):
     model_config = ConfigDict(extra="forbid")
     min_bet_amount: Decimal = Field(ge=0)
@@ -74,12 +83,27 @@ class MoneyLimits(BaseModel):
         default=None,
         description="Maximum absolute payout per ticket, in the operator's currency. None/0 = no cap.",
     )
+    min_recommended_leg_odds: Optional[Decimal] = Field(
+        default=None,
+        description="Operator floor for the odds of each selection of a recommended combo. No recommendation style may go below it. None = no floor.",
+    )
+    min_recommended_total_odds: Optional[Decimal] = Field(
+        default=None,
+        description="Operator floor for the total odds of a recommended combo. No recommendation style may go below it. None = no floor.",
+    )
+    combo_default_legs: Optional[int] = Field(
+        default=None,
+        ge=1,
+        description="How many matches a recommended combo has when the user does not say. None = the agent's default.",
+    )
 
     @field_validator(
         "min_bet_amount",
         "max_bet_amount",
         "max_win_multiplier",
         "max_potential_win",
+        "min_recommended_leg_odds",
+        "min_recommended_total_odds",
         mode="before",
     )
     @classmethod
@@ -100,6 +124,19 @@ class MoneyLimits(BaseModel):
         if isinstance(min_val, Decimal) and v <= min_val:
             raise ValueError("max_bet_amount must be greater than min_bet_amount")
         return v
+
+    @model_serializer(mode="wrap")
+    def _drop_unset_recommendation_limits(
+        self, handler: SerializerFunctionWrapHandler
+    ) -> dict[str, Any]:
+        # Every consumer validates this row with extra="forbid": writing these keys
+        # as null on every save would break each service still on an older
+        # base-models. They are stored only once the operator sets them.
+        data = handler(self)
+        for name in _OPTIONAL_RECOMMENDATION_LIMITS:
+            if data.get(name) is None:
+                data.pop(name, None)
+        return data
 
 
 class TestConfig(BaseModel):
@@ -554,6 +591,14 @@ class FeaturesConfig(BaseModel):
         default=False,
         description="Minimal-buttons / conversational experiment (per-company rollout, Spike CU-86ahdec0v). When True, the agent replies text-first and channel-services renders no navigation buttons (only the bet-summary Confirmar button). When False, the standard button-driven flow is unchanged.",
     )
+    suggested_prompts: Optional[bool] = Field(
+        default=False,
+        description="Offer suggested questions under the bot's answers (per-company rollout, CU-17tmdg7mhkd). The questions come from the company's `suggested_prompts` record, or from the agent's default catalog when there is none.",
+    )
+    answer_feedback: Optional[bool] = Field(
+        default=False,
+        description="Ask the user to rate the bot's answers with thumbs up / thumbs down (per-company rollout, CU-17tmdg7mhkd).",
+    )
     fixture_range_days: Optional[int] = Field(
         default=7,
         ge=1,
@@ -675,6 +720,104 @@ class AuthConfig(BaseModel):
 
 
 # ==========================="
+# Recommendation style
+# ==========================="
+
+RecommendationStyleKey = Literal["safe", "balanced", "high_value"]
+
+_MARKETS_DESCRIPTION = (
+    "Allowed market types by sport id. A sport that is not listed has no restriction."
+)
+
+
+class SingleBetStyleRules(BaseModel):
+    """What a recommendation style allows in a single bet. An unset value means
+    the agent's default for that style."""
+
+    model_config = ConfigDict(extra="forbid")
+    odds_min: Optional[Decimal] = Field(default=None, description="Lowest odds of a pick.")
+    odds_max: Optional[Decimal] = Field(default=None, description="Highest odds of a pick.")
+    options_min: Optional[int] = Field(
+        default=None, description="Fewest picks offered in one answer."
+    )
+    options_max: Optional[int] = Field(
+        default=None, description="Most picks offered in one answer."
+    )
+    markets: dict[str, list[str]] = Field(
+        default_factory=dict, description=_MARKETS_DESCRIPTION
+    )
+
+
+class ComboStyleRules(BaseModel):
+    """What a recommendation style allows in a combo. An unset value means the
+    agent's default for that style."""
+
+    model_config = ConfigDict(extra="forbid")
+    leg_odds_min: Optional[Decimal] = Field(
+        default=None, description="Lowest odds of each selection."
+    )
+    leg_odds_max: Optional[Decimal] = Field(
+        default=None, description="Highest odds of each selection."
+    )
+    total_odds_min: Optional[Decimal] = Field(
+        default=None, description="Lowest total odds of the combo."
+    )
+    total_odds_max: Optional[Decimal] = Field(
+        default=None, description="Highest total odds of the combo."
+    )
+    legs_min: Optional[int] = Field(default=None, description="Fewest matches in the combo.")
+    legs_max: Optional[int] = Field(default=None, description="Most matches in the combo.")
+    markets: dict[str, list[str]] = Field(
+        default_factory=dict, description=_MARKETS_DESCRIPTION
+    )
+
+
+class RecommendationStyleProfile(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    enabled: bool = Field(
+        default=True,
+        description=(
+            "A disabled style is never used, even when the user asks for it. The "
+            "first style of a priority list stays active whatever this says."
+        ),
+    )
+    single: SingleBetStyleRules = Field(default_factory=SingleBetStyleRules)
+    combo: ComboStyleRules = Field(default_factory=ComboStyleRules)
+
+
+class RecommendationStyles(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    safe: RecommendationStyleProfile = Field(default_factory=RecommendationStyleProfile)
+    balanced: RecommendationStyleProfile = Field(
+        default_factory=RecommendationStyleProfile
+    )
+    high_value: RecommendationStyleProfile = Field(
+        default_factory=RecommendationStyleProfile
+    )
+
+
+class RecommendationStyleConfig(BaseModel):
+    """How the agent recommends bets for this operator (CU-17tmdg7mhxc).
+
+    Ranges are not cross-checked here on purpose: the agent falls back to its own
+    default for a missing or inconsistent value, while a validation error would
+    make every service fail to load the whole company. The back office validates
+    them before saving.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+    priority_combo: list[RecommendationStyleKey] = Field(
+        default_factory=list,
+        description="Styles in order of preference for combos. The first one is the default.",
+    )
+    priority_single: list[RecommendationStyleKey] = Field(
+        default_factory=list,
+        description="Styles in order of preference for single bets. The first one is the default.",
+    )
+    styles: RecommendationStyles = Field(default_factory=RecommendationStyles)
+
+
+# ==========================="
 # General Config (no core wrapper)
 # ==========================="
 
@@ -771,6 +914,21 @@ class SiteConfig(BaseModel):
             "operators without an explicit auth block keep the legacy OTP path."
         ),
     )
+    recommendation_style: Optional[RecommendationStyleConfig] = Field(
+        default=None,
+        description="Recommendation styles set by the operator. None = the agent's defaults.",
+    )
+
+    @model_serializer(mode="wrap")
+    def _drop_unset_recommendation_style(
+        self, handler: SerializerFunctionWrapHandler
+    ) -> dict[str, Any]:
+        # Same reason as MoneyLimits._drop_unset_recommendation_limits: a null key
+        # written on every save would break services on an older base-models.
+        data = handler(self)
+        if data.get("recommendation_style") is None:
+            data.pop("recommendation_style", None)
+        return data
 
     @model_validator(mode="after")
     def _validate_auth_compatibility(self) -> "SiteConfig":

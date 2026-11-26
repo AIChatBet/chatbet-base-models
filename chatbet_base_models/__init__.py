@@ -143,6 +143,7 @@ from .site_config_model import (
     FeaturesConfig,
     Meta,
     AuthConfig,
+    RecommendationStyleConfig,
     SiteConfig,
     SiteConfigDB,
 )
@@ -300,6 +301,7 @@ __all__ = [
     "FeaturesConfig",
     "Meta",
     "AuthConfig",
+    "RecommendationStyleConfig",
     "SiteConfig",
     "SiteConfigDB",
     # Sportbook Configuration
